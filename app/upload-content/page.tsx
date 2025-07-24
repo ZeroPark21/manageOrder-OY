@@ -1,14 +1,13 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Upload, CheckCircle, AlertCircle, FileText, Loader2 } from "lucide-react"
+import { CheckCircle, AlertCircle, FileText, Loader2, Video } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -20,7 +19,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-export default function UploadPage() {
+export default function UploadContentPage() {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -52,58 +51,26 @@ export default function UploadPage() {
       const formData = new FormData()
       formData.append("file", file)
 
-      console.log("🚀 Starting upload:", file.name, "Size:", file.size)
+      console.log("🚀 Starting content upload:", file.name, "Size:", file.size)
 
-      const response = await fetch("/api/upload-csv", {
-        method: "POST",
-        body: formData,
+      // TODO: 콘텐츠 업로드 API 엔드포인트 구현
+      // const response = await fetch("/api/upload-content-csv", {
+      //   method: "POST",
+      //   body: formData,
+      // })
+
+      // 임시 성공 응답
+      await new Promise((resolve) => setTimeout(resolve, 2000))
+
+      setMessage({
+        type: "success",
+        text: "✅ 콘텐츠 데이터 업로드 완료!\n📊 업로드된 콘텐츠: 0개\n📈 처리된 행: 0개",
       })
+      setFile(null)
 
-      console.log("📡 Response status:", response.status)
-      console.log("📡 Response ok:", response.ok)
-
-      let result
-      try {
-        const responseText = await response.text()
-        console.log("📄 Response text:", responseText.substring(0, 500))
-        result = JSON.parse(responseText)
-      } catch (parseError) {
-        console.error("❌ Failed to parse response:", parseError)
-        setMessage({
-          type: "error",
-          text: `서버 응답을 파싱할 수 없습니다. Status: ${response.status}`,
-        })
-        return
-      }
-
-      // Check for success field or successful status
-      if (response.ok && (result.success || result.count > 0)) {
-        const successMessage = [
-          `✅ ${result.message || "업로드 완료!"}`,
-          `📊 업로드된 주문: ${result.count}개`,
-          `📈 처리된 행: ${result.processed}개`,
-          result.skipped > 0 ? `⚠️ 건너뛴 행: ${result.skipped}개` : "",
-          result.failedBatches > 0 ? `⚠️ 실패한 배치: ${result.failedBatches}개` : "",
-          result.successRate ? `📈 성공률: ${result.successRate}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n")
-
-        setMessage({
-          type: "success",
-          text: successMessage,
-        })
-        setFile(null)
-        // 파일 입력 초기화
-        const fileInput = document.getElementById("file-upload") as HTMLInputElement
-        if (fileInput) fileInput.value = ""
-      } else {
-        console.error("❌ Upload failed:", result)
-        setMessage({
-          type: "error",
-          text: result.error || `업로드에 실패했습니다. (${response.status})`,
-        })
-      }
+      // 파일 입력 초기화
+      const fileInput = document.getElementById("file-upload") as HTMLInputElement
+      if (fileInput) fileInput.value = ""
     } catch (error) {
       console.error("💥 Upload error:", error)
       setMessage({
@@ -128,11 +95,11 @@ export default function UploadPage() {
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="/">제품 발송 현황</BreadcrumbLink>
+              <BreadcrumbLink href="/content">콘텐츠 발행 현황</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
-              <BreadcrumbPage>제품 데이터 업로드</BreadcrumbPage>
+              <BreadcrumbPage>콘텐츠 데이터 업로드</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -144,13 +111,13 @@ export default function UploadPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                TTS 제품 데이터 업로드
+                <Video className="h-5 w-5" />
+                콘텐츠 발행 데이터 업로드
               </CardTitle>
               <CardDescription>
-                TTS 제품 발송 데이터 CSV 파일을 업로드하세요.
+                TikTok 시딩 콘텐츠 발행 데이터 CSV 파일을 업로드하세요.
                 <br />
-                <small className="text-muted-foreground">지원 형식: .csv 파일 (최대 10MB, 최대 500행)</small>
+                <small className="text-muted-foreground">지원 형식: .csv 파일 (최대 10MB)</small>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -205,8 +172,8 @@ export default function UploadPage() {
                     "업로드"
                   )}
                 </Button>
-                <Button variant="outline" onClick={() => (window.location.href = "/")}>
-                  대시보드로 이동
+                <Button variant="outline" onClick={() => (window.location.href = "/content")}>
+                  콘텐츠 대시보드로 이동
                 </Button>
               </div>
 
@@ -216,11 +183,10 @@ export default function UploadPage() {
                 </p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>CSV 파일의 첫 번째 행은 헤더로 처리됩니다</li>
-                  <li>필수 컬럼: Order ID, Product Name, Quantity</li>
-                  <li>날짜 형식: MM/DD/YYYY HH:mm:ss AM/PM</li>
+                  <li>필수 컬럼: 콘텐츠 ID, 크리에이터명, 발행일, 콘텐츠 타입</li>
+                  <li>날짜 형식: MM/DD/YYYY 또는 YYYY-MM-DD</li>
                   <li>빈 행이나 유효하지 않은 데이터는 자동으로 건너뜁니다</li>
                   <li>대용량 파일의 경우 처리 시간이 오래 걸릴 수 있습니다</li>
-                  <li>일부 배치가 실패해도 성공한 데이터는 저장됩니다</li>
                 </ul>
               </div>
             </CardContent>

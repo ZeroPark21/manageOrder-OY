@@ -9,6 +9,16 @@ import { WeeklyMatrixTable } from "@/components/weekly-matrix-table"
 import { MonthlyMatrixTable } from "@/components/monthly-matrix-table"
 import { Upload, BarChart3, TrendingUp, Package, Calendar } from "lucide-react"
 import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel } from "@/lib/excel-utils"
+import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import Link from "next/link"
 
 interface DashboardData {
@@ -237,8 +247,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center h-64">
+      <div className="flex h-16 shrink-0 items-center gap-2 px-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <div className="flex items-center justify-center flex-1 h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p>데이터를 불러오는 중...</p>
@@ -249,91 +261,113 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <>
       {/* 헤더 */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">TTS 제품 발송 현황</h1>
-          <p className="text-muted-foreground">상품 발송현황 분석 (2025년 7월 1일부터)</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchSummaryData}>
-            <BarChart3 className="h-4 w-4 mr-2" />
-            새로고침
-          </Button>
-          <Link href="/upload">
-            <Button>
-              <Upload className="h-4 w-4 mr-2" />
-              데이터 업로드
-            </Button>
-          </Link>
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem className="hidden md:block">
+              <BreadcrumbLink href="/">TTS 대시보드</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="hidden md:block" />
+            <BreadcrumbItem>
+              <BreadcrumbPage>제품 발송 현황</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+
+      {/* 메인 콘텐츠 */}
+      <div className="flex flex-1 flex-col gap-4 p-4">
+        <div className="space-y-8">
+          {/* 페이지 헤더 */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">TTS 제품 발송 현황</h1>
+              <p className="text-muted-foreground">상품 발송현황 분석 (2025년 7월 1일부터)</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={fetchSummaryData}>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                새로고침
+              </Button>
+              <Link href="/upload">
+                <Button>
+                  <Upload className="h-4 w-4 mr-2" />
+                  데이터 업로드
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* 요약 카드 */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">총 주문 수</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summaryData?.totalOrders?.toLocaleString() || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">7월 1일부터 누적</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">총 발송 수량</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summaryData?.totalQuantity?.toLocaleString() || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">전체 상품 발송량</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">상품 종류</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summaryData?.uniqueProducts || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">고유 상품 수</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">분석 기간</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summaryData?.data.length || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">일별 데이터 포인트</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 매트릭스 테이블 탭 */}
+          <Tabs defaultValue="daily" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="daily">일별 매트릭스</TabsTrigger>
+              <TabsTrigger value="weekly">주별 매트릭스</TabsTrigger>
+              <TabsTrigger value="monthly">월별 매트릭스</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="daily" className="space-y-4">
+              <DailyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+            </TabsContent>
+
+            <TabsContent value="weekly" className="space-y-4">
+              <WeeklyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+            </TabsContent>
+
+            <TabsContent value="monthly" className="space-y-4">
+              <MonthlyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
-
-      {/* 요약 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">총 주문 수</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summaryData?.totalOrders?.toLocaleString() || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">7월 1일부터 누적</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">총 발송 수량</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summaryData?.totalQuantity?.toLocaleString() || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">전체 상품 발송량</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">상품 종류</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summaryData?.uniqueProducts || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">고유 상품 수</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">분석 기간</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summaryData?.data.length || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">일별 데이터 포인트</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* 매트릭스 테이블 탭 */}
-      <Tabs defaultValue="daily" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="daily">일별 매트릭스</TabsTrigger>
-          <TabsTrigger value="weekly">주별 매트릭스</TabsTrigger>
-          <TabsTrigger value="monthly">월별 매트릭스</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="daily" className="space-y-4">
-          <DailyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-        </TabsContent>
-
-        <TabsContent value="weekly" className="space-y-4">
-          <WeeklyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-        </TabsContent>
-
-        <TabsContent value="monthly" className="space-y-4">
-          <MonthlyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </>
   )
 }
