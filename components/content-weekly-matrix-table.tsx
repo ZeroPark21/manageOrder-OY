@@ -59,6 +59,12 @@ export function ContentWeeklyMatrixTable() {
           weeks,
           weeklyStats
         })
+      } else {
+        // 데이터가 없을 때도 빈 데이터로 설정
+        setMatrixData({
+          weeks: [],
+          weeklyStats: {}
+        })
       }
     } catch (error) {
       console.error("콘텐츠 매트릭스 데이터 로딩 실패:", error)
@@ -96,8 +102,8 @@ export function ContentWeeklyMatrixTable() {
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium mb-2">콘텐츠 데이터가 없습니다</p>
-            <p className="text-sm">콘텐츠 발행 데이터를 업로드하여 분석을 시작하세요.</p>
+            <p className="text-lg font-medium mb-2">데이터 없음</p>
+            <p className="text-sm">해당 기간에는 데이터가 없습니다.</p>
           </div>
         </CardContent>
       </Card>

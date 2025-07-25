@@ -85,8 +85,8 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <p>데이터가 없습니다.</p>
-            <p className="text-sm">CSV 파일을 업로드하여 데이터를 추가하세요.</p>
+            <p className="text-lg font-medium mb-2">데이터 없음</p>
+            <p className="text-sm">현재 선택된 기간에는 데이터가 없습니다.</p>
           </div>
         </CardContent>
       </Card>
