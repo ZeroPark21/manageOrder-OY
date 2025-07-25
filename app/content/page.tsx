@@ -54,9 +54,15 @@ export default function ContentDashboard() {
       })
       
       // GMV 데이터 가져오기
-      const gmvResponse = await fetch('/api/gmv-total')
-      const gmvData = await gmvResponse.json()
-      setTotalGmv(gmvData.contentTotalGmv || 0)
+      try {
+        const gmvResponse = await fetch('/api/gmv-total')
+        if (gmvResponse.ok) {
+          const gmvData = await gmvResponse.json()
+          setTotalGmv(gmvData.contentTotalGmv || 0)
+        }
+      } catch (gmvError) {
+        console.error('GMV 데이터 로딩 오류:', gmvError)
+      }
     } catch (error: any) {
       console.error("콘텐츠 데이터 로딩 실패:", error.message ?? error)
     } finally {
