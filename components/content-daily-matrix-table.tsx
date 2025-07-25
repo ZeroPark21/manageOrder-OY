@@ -123,13 +123,60 @@ export function ContentDailyMatrixTable() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>일별 콘텐츠 발행현황</CardTitle>
+          <div className="flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <CardTitle>일별 콘텐츠 발행현황</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleYearChange(-1)}
+                  disabled={loading}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="font-medium">{selectedYear}년</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleYearChange(1)}
+                  disabled={loading}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Select value={selectedMonth || 'all'} onValueChange={handleMonthChange}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="월 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 기간</SelectItem>
+                    <SelectItem value="01">1월</SelectItem>
+                    <SelectItem value="02">2월</SelectItem>
+                    <SelectItem value="03">3월</SelectItem>
+                    <SelectItem value="04">4월</SelectItem>
+                    <SelectItem value="05">5월</SelectItem>
+                    <SelectItem value="06">6월</SelectItem>
+                    <SelectItem value="07">7월</SelectItem>
+                    <SelectItem value="08">8월</SelectItem>
+                    <SelectItem value="09">9월</SelectItem>
+                    <SelectItem value="10">10월</SelectItem>
+                    <SelectItem value="11">11월</SelectItem>
+                    <SelectItem value="12">12월</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-lg font-medium mb-2">콘텐츠 데이터가 없습니다</p>
-            <p className="text-sm">콘텐츠 발행 데이터를 업로드하여 분석을 시작하세요.</p>
+            <p className="text-sm">
+              {selectedMonth && selectedMonth !== 'all' 
+                ? `${selectedYear}년 ${parseInt(selectedMonth)}월에는 콘텐츠 발행 데이터가 없습니다.`
+                : '콘텐츠 발행 데이터를 업로드하여 분석을 시작하세요.'}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -180,10 +227,6 @@ export function ContentDailyMatrixTable() {
                   <SelectItem value="12">12월</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline" size="sm" onClick={() => fetchMatrixData(selectedYear, selectedMonth)}>
-                <Download className="h-4 w-4 mr-2" />
-                새로고침
-              </Button>
             </div>
           </div>
         </div>
