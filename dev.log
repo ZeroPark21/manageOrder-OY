@@ -213,3 +213,5 @@
  GET /api/contents?groupBy=daily 200 in 67ms
  GET /api/contents?groupBy=daily 200 in 126ms
  GET /api/contents?groupBy=daily 200 in 70ms
+ ✓ Compiled in 1131ms (454 modules)
+ GET /content 200 in 78ms
