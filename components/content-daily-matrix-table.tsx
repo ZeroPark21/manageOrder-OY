@@ -81,8 +81,16 @@ export function ContentDailyMatrixTable() {
     // 현재 월로 초기화
     const now = new Date()
     const currentMonth = String(now.getMonth() + 1).padStart(2, '0')
-    setSelectedMonth(currentMonth)
-    fetchMatrixData(now.getFullYear(), currentMonth)
+    const currentYear = now.getFullYear()
+    
+    // 2025년 6월 이전이면 6월로 설정
+    if (currentYear === 2025 && parseInt(currentMonth) < 6) {
+      setSelectedMonth('06')
+      fetchMatrixData(currentYear, '06')
+    } else {
+      setSelectedMonth(currentMonth)
+      fetchMatrixData(currentYear, currentMonth)
+    }
   }, [])
   
   const handleMonthChange = (value: string) => {
@@ -90,6 +98,10 @@ export function ContentDailyMatrixTable() {
       setSelectedMonth('')
       fetchMatrixData()
     } else {
+      // 2025년의 경우 6월 이전은 선택 불가
+      if (selectedYear === 2025 && parseInt(value) < 6) {
+        return
+      }
       setSelectedMonth(value)
       fetchMatrixData(selectedYear, value)
     }
@@ -97,6 +109,8 @@ export function ContentDailyMatrixTable() {
   
   const handleYearChange = (increment: number) => {
     const newYear = selectedYear + increment
+    // 2024년 이전은 선택 불가
+    if (newYear < 2025) return
     setSelectedYear(newYear)
     if (selectedMonth) {
       fetchMatrixData(newYear, selectedMonth)
@@ -131,7 +145,7 @@ export function ContentDailyMatrixTable() {
                   variant="outline"
                   size="icon"
                   onClick={() => handleYearChange(-1)}
-                  disabled={loading}
+                  disabled={loading || selectedYear <= 2025}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -150,18 +164,7 @@ export function ContentDailyMatrixTable() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">전체 기간</SelectItem>
-                    <SelectItem value="01">1월</SelectItem>
-                    <SelectItem value="02">2월</SelectItem>
-                    <SelectItem value="03">3월</SelectItem>
-                    <SelectItem value="04">4월</SelectItem>
-                    <SelectItem value="05">5월</SelectItem>
-                    <SelectItem value="06">6월</SelectItem>
-                    <SelectItem value="07">7월</SelectItem>
-                    <SelectItem value="08">8월</SelectItem>
-                    <SelectItem value="09">9월</SelectItem>
-                    <SelectItem value="10">10월</SelectItem>
-                    <SelectItem value="11">11월</SelectItem>
-                    <SelectItem value="12">12월</SelectItem>
+                    {renderMonthOptions()}
                   </SelectContent>
                 </Select>
               </div>
@@ -213,11 +216,6 @@ export function ContentDailyMatrixTable() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">전체 기간</SelectItem>
-                  <SelectItem value="01">1월</SelectItem>
-                  <SelectItem value="02">2월</SelectItem>
-                  <SelectItem value="03">3월</SelectItem>
-                  <SelectItem value="04">4월</SelectItem>
-                  <SelectItem value="05">5월</SelectItem>
                   <SelectItem value="06">6월</SelectItem>
                   <SelectItem value="07">7월</SelectItem>
                   <SelectItem value="08">8월</SelectItem>
@@ -264,7 +262,7 @@ export function ContentDailyMatrixTable() {
               {matrixData.dates.map((date, index) => {
                 const isEvenRow = index % 2 === 0
                 return (
-                  <TableRow key={date} className={isEvenRow ? "bg-gray-50" : ""}>
+                  <TableRow key={date} className={isEvenRow ? "bg-gray-50" : ""} style={{ cursor: 'default' }}>
                     <TableCell className="border border-gray-300 px-3 py-2 text-sm font-medium">
                       {new Date(date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
                     </TableCell>

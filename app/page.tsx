@@ -298,7 +298,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold">TTS 제품 발송 현황</h1>
-              <p className="text-muted-foreground">상품 발송현황 분석 (2025년 7월 1일부터)</p>
+              <p className="text-muted-foreground">상품 발송현황 분석 (2025년 6월 1일부터)</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={fetchSummaryData}>
@@ -323,7 +323,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summaryData?.totalOrders?.toLocaleString() || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">7월 1일부터 누적</p>
+                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 누적</p>
               </CardContent>
             </Card>
             <Card>
@@ -353,7 +353,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalGmv.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-1">7월 1일부터 총 발송 수량</p>
+                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 총 발송 수량</p>
               </CardContent>
             </Card>
           </div>

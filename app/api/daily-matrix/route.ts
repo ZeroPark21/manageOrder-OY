@@ -23,7 +23,18 @@ export async function GET(request: NextRequest) {
     
     // 기본값: 현재 월의 첫날
     const now = new Date()
-    const defaultStartDate = startDate || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+    const currentMonth = now.getMonth() + 1
+    const currentYear = now.getFullYear()
+    
+    // 2025년 6월 이전이면 6월로 설정
+    let defaultStartDate = startDate
+    if (!startDate) {
+      if (currentYear === 2025 && currentMonth < 6) {
+        defaultStartDate = "2025-06-01"
+      } else {
+        defaultStartDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
+      }
+    }
     const defaultEndDate = endDate || now.toISOString().split('T')[0]
 
     // 데이터 조회

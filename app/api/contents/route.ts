@@ -195,13 +195,20 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerClient()
     
-    // 기본값: daily의 경우 현재 월, 다른 경우 7월 1일부터
+    // 기본값: daily의 경우 현재 월, 다른 경우 6월 1일부터
     const now = new Date()
-    let defaultStartDate = "2025-07-01"
+    let defaultStartDate = "2025-06-01"
     let defaultEndDate = now.toISOString().split('T')[0]
     
     if (groupBy === "daily" && !startDate) {
-      defaultStartDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+      const currentMonth = now.getMonth() + 1
+      const currentYear = now.getFullYear()
+      // 2025년 6월 이전이면 6월로 설정
+      if (currentYear === 2025 && currentMonth < 6) {
+        defaultStartDate = "2025-06-01"
+      } else {
+        defaultStartDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
+      }
     }
 
     // contents 테이블에서 데이터 조회

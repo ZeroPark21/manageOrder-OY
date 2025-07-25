@@ -115,7 +115,7 @@ export default function ContentDashboard() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold">콘텐츠 발행 현황</h1>
-              <p className="text-muted-foreground">TikTok 시딩 콘텐츠 발행 추이 분석 (2025년 7월 1일부터)</p>
+              <p className="text-muted-foreground">TikTok 시딩 콘텐츠 발행 추이 분석 (2025년 6월 1일부터)</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={fetchSummaryData}>
@@ -140,7 +140,7 @@ export default function ContentDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summaryData?.totalContents?.toLocaleString() || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">7월 1일부터 누적</p>
+                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 누적</p>
               </CardContent>
             </Card>
             <Card>
@@ -170,7 +170,7 @@ export default function ContentDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">₩{totalGmv.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-1">7월 1일부터 총 GMV</p>
+                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 총 GMV</p>
               </CardContent>
             </Card>
           </div>

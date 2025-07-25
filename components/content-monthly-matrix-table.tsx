@@ -148,7 +148,7 @@ export function ContentMonthlyMatrixTable() {
               {matrixData.months.map((month, index) => {
                 const isEvenRow = index % 2 === 0
                 return (
-                  <TableRow key={month} className={isEvenRow ? "bg-gray-50" : ""}>
+                  <TableRow key={month} className={isEvenRow ? "bg-gray-50" : ""} style={{ cursor: 'default' }}>
                     <TableCell className="border border-gray-300 px-3 py-2 text-sm font-medium">
                       {month}
                     </TableCell>
