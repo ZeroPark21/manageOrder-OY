@@ -118,8 +118,17 @@ export function ContentDailyMatrixTable() {
     // 2024년 이전은 선택 불가
     if (newYear < 2025) return
     setSelectedYear(newYear)
-    if (selectedMonth) {
-      fetchMatrixData(newYear, selectedMonth)
+    if (selectedMonth && selectedMonth !== 'all') {
+      // 2025년으로 변경 시 6월 이전 선택되어 있으면 6월로 변경
+      if (newYear === 2025 && parseInt(selectedMonth) < 6) {
+        setSelectedMonth('06')
+        fetchMatrixData(newYear, '06')
+      } else {
+        fetchMatrixData(newYear, selectedMonth)
+      }
+    } else {
+      // 전체 기간 선택 시
+      fetchMatrixData()
     }
   }
 
