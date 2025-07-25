@@ -340,7 +340,7 @@ export default function Dashboard() {
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{summaryData?.data.length || 0}</div>
+                <div className="text-2xl font-bold">{summaryData?.data?.length || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">일별 데이터 포인트</p>
               </CardContent>
             </Card>

@@ -15,6 +15,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { ContentDailyMatrixTable } from "@/components/content-daily-matrix-table"
+import { ContentWeeklyMatrixTable } from "@/components/content-weekly-matrix-table"
+import { ContentMonthlyMatrixTable } from "@/components/content-monthly-matrix-table"
 import Link from "next/link"
 
 interface ContentData {
@@ -38,20 +41,16 @@ export default function ContentDashboard() {
   const fetchSummaryData = async () => {
     setLoading(true)
     try {
-      // TODO: 콘텐츠 API 엔드포인트 구현 후 연결
-      // const response = await fetch(`/api/contents?groupBy=daily`)
-      // const data = await response.json()
-      // setSummaryData(data)
+      const response = await fetch(`/api/contents?groupBy=daily`)
+      const data = await response.json()
+      setSummaryData(data)
 
-      // 임시 데이터
-      setSummaryData({
-        data: [],
-        totalContents: 0,
-        totalCount: 0,
-        uniqueCreators: 0,
+      console.log("📊 Content data loaded:", {
+        totalContents: data.totalContents,
+        totalCount: data.totalCount,
+        uniqueCreators: data.uniqueCreators,
+        dataPoints: data.data?.length,
       })
-
-      console.log("📊 Content data loaded")
     } catch (error: any) {
       console.error("콘텐츠 데이터 로딩 실패:", error.message ?? error)
     } finally {
@@ -158,7 +157,7 @@ export default function ContentDashboard() {
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{summaryData?.data.length || 0}</div>
+                <div className="text-2xl font-bold">{summaryData?.data?.length || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">일별 데이터 포인트</p>
               </CardContent>
             </Card>
@@ -173,66 +172,15 @@ export default function ContentDashboard() {
             </TabsList>
 
             <TabsContent value="daily" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>일별 콘텐츠 발행현황</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Video className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium mb-2">콘텐츠 데이터가 없습니다</p>
-                    <p className="text-sm">콘텐츠 발행 데이터를 업로드하여 분석을 시작하세요.</p>
-                    <Link href="/upload-content">
-                      <Button className="mt-4">
-                        <Upload className="h-4 w-4 mr-2" />
-                        콘텐츠 데이터 업로드
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+              <ContentDailyMatrixTable />
             </TabsContent>
 
             <TabsContent value="weekly" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>주별 콘텐츠 발행현황</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Video className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium mb-2">콘텐츠 데이터가 없습니다</p>
-                    <p className="text-sm">콘텐츠 발행 데이터를 업로드하여 분석을 시작하세요.</p>
-                    <Link href="/upload-content">
-                      <Button className="mt-4">
-                        <Upload className="h-4 w-4 mr-2" />
-                        콘텐츠 데이터 업로드
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+              <ContentWeeklyMatrixTable />
             </TabsContent>
 
             <TabsContent value="monthly" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle>월별 콘텐츠 발행현황</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Video className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg font-medium mb-2">콘텐츠 데이터가 없습니다</p>
-                    <p className="text-sm">콘텐츠 발행 데이터를 업로드하여 분석을 시작하세요.</p>
-                    <Link href="/upload-content">
-                      <Button className="mt-4">
-                        <Upload className="h-4 w-4 mr-2" />
-                        콘텐츠 데이터 업로드
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
+              <ContentMonthlyMatrixTable />
             </TabsContent>
           </Tabs>
         </div>

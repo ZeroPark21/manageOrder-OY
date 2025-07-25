@@ -31,12 +31,15 @@ export default function UploadContentPage() {
         selectedFile.type === "text/csv" ||
         selectedFile.name.endsWith(".csv") ||
         selectedFile.type === "text/plain" ||
-        selectedFile.type === "application/vnd.ms-excel"
+        selectedFile.type === "application/vnd.ms-excel" ||
+        selectedFile.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        selectedFile.name.endsWith(".xlsx") ||
+        selectedFile.name.endsWith(".xls")
       ) {
         setFile(selectedFile)
         setMessage(null)
       } else {
-        setMessage({ type: "error", text: "CSV 파일만 업로드 가능합니다." })
+        setMessage({ type: "error", text: "CSV 또는 Excel 파일만 업로드 가능합니다." })
       }
     }
   }
@@ -53,18 +56,21 @@ export default function UploadContentPage() {
 
       console.log("🚀 Starting content upload:", file.name, "Size:", file.size)
 
-      // TODO: 콘텐츠 업로드 API 엔드포인트 구현
-      // const response = await fetch("/api/upload-content-csv", {
-      //   method: "POST",
-      //   body: formData,
-      // })
+      const response = await fetch("/api/upload-content", {
+        method: "POST",
+        body: formData,
+      })
 
-      // 임시 성공 응답
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error("업로드 오류 응답:", result)
+        throw new Error(result.error || `업로드에 실패했습니다. (${response.status})`)
+      }
 
       setMessage({
         type: "success",
-        text: "✅ 콘텐츠 데이터 업로드 완료!\n📊 업로드된 콘텐츠: 0개\n📈 처리된 행: 0개",
+        text: `✅ 콘텐츠 데이터 업로드 완료!\n📊 업로드된 콘텐츠: ${result.uploadedCount}개\n📈 처리된 행: ${result.uploadedCount}개`,
       })
       setFile(null)
 
@@ -115,9 +121,9 @@ export default function UploadContentPage() {
                 콘텐츠 발행 데이터 업로드
               </CardTitle>
               <CardDescription>
-                TikTok 시딩 콘텐츠 발행 데이터 CSV 파일을 업로드하세요.
+                TikTok 시딩 콘텐츠 발행 데이터 파일을 업로드하세요.
                 <br />
-                <small className="text-muted-foreground">지원 형식: .csv 파일 (최대 10MB)</small>
+                <small className="text-muted-foreground">지원 형식: .csv, .xlsx, .xls 파일 (최대 10MB)</small>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -126,7 +132,7 @@ export default function UploadContentPage() {
                 <Input
                   id="file-upload"
                   type="file"
-                  accept=".csv,text/csv,text/plain,application/vnd.ms-excel"
+                  accept=".csv,.xlsx,.xls,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   onChange={handleFileChange}
                   disabled={uploading}
                 />
@@ -182,9 +188,10 @@ export default function UploadContentPage() {
                   <strong>참고사항:</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>CSV 파일의 첫 번째 행은 헤더로 처리됩니다</li>
-                  <li>필수 컬럼: 콘텐츠 ID, 크리에이터명, 발행일, 콘텐츠 타입</li>
+                  <li>CSV/Excel 파일의 첫 번째 행은 헤더로 처리됩니다</li>
+                  <li>필수 컬럼: 콘텐츠 제목, 크리에이터명, 발행일, 조회수, 좋아요, 댓글</li>
                   <li>날짜 형식: MM/DD/YYYY 또는 YYYY-MM-DD</li>
+                  <li>Excel 파일은 자동으로 CSV로 변환됩니다</li>
                   <li>빈 행이나 유효하지 않은 데이터는 자동으로 건너뜁니다</li>
                   <li>대용량 파일의 경우 처리 시간이 오래 걸릴 수 있습니다</li>
                 </ul>

@@ -1,0 +1,24 @@
+   ▲ Next.js 15.2.4
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.51.153:3000
+
+ ✓ Starting...
+ ✓ Ready in 1515ms
+ ○ Compiling /api/orders ...
+ ✓ Compiled /api/orders in 689ms (527 modules)
+API /api/orders error: Error: Supabase env vars are missing. Please set NEXT_PUBLIC_SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY.
+    at createServerClient (lib/supabase.ts:33:10)
+    at GET (app/api/orders/route.ts:114:39)
+  31 |
+  32 |   if (!url || !serviceKey) {
+> 33 |     throw new Error(
+     |          ^
+  34 |       "Supabase env vars are missing. Please set NEXT_PUBLIC_SUPABASE_URL and either SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+  35 |     )
+  36 |   } {
+  
+}
+ GET /api/orders?groupBy=daily 500 in 904ms
+   Reload env: .env.local
+ ✓ Compiled in 1108ms (527 modules)
+[?25h
