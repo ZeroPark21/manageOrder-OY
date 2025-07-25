@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, BarChart3, TrendingUp, Video, Calendar } from "lucide-react"
+import { Upload, BarChart3, TrendingUp, Video, DollarSign } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -37,6 +37,7 @@ interface ContentData {
 export default function ContentDashboard() {
   const [summaryData, setSummaryData] = useState<ContentData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [totalGmv, setTotalGmv] = useState(0)
 
   const fetchSummaryData = async () => {
     setLoading(true)
@@ -51,6 +52,11 @@ export default function ContentDashboard() {
         uniqueCreators: data.uniqueCreators,
         dataPoints: data.data?.length,
       })
+      
+      // GMV 데이터 가져오기
+      const gmvResponse = await fetch('/api/gmv-total')
+      const gmvData = await gmvResponse.json()
+      setTotalGmv(gmvData.contentTotalGmv || 0)
     } catch (error: any) {
       console.error("콘텐츠 데이터 로딩 실패:", error.message ?? error)
     } finally {
@@ -153,12 +159,12 @@ export default function ContentDashboard() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">분석 기간</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Total GMV</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{summaryData?.data?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">일별 데이터 포인트</p>
+                <div className="text-2xl font-bold">₩{totalGmv.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">7월 1일부터 총 GMV</p>
               </CardContent>
             </Card>
           </div>

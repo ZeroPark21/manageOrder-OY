@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DailyMatrixTable } from "@/components/daily-matrix-table"
 import { WeeklyMatrixTable } from "@/components/weekly-matrix-table"
 import { MonthlyMatrixTable } from "@/components/monthly-matrix-table"
-import { Upload, BarChart3, TrendingUp, Package, Calendar } from "lucide-react"
+import { Upload, BarChart3, TrendingUp, Package, DollarSign } from "lucide-react"
 import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel } from "@/lib/excel-utils"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [summaryData, setSummaryData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloadLoading, setDownloadLoading] = useState(false)
+  const [totalGmv, setTotalGmv] = useState(0)
 
   const fetchSummaryData = async () => {
     setLoading(true)
@@ -53,6 +54,11 @@ export default function Dashboard() {
         uniqueProducts: data.uniqueProducts,
         dataPoints: data.data?.length,
       })
+      
+      // GMV 데이터 가져오기
+      const gmvResponse = await fetch('/api/gmv-total')
+      const gmvData = await gmvResponse.json()
+      setTotalGmv(gmvData.productTotalQuantity || 0)
     } catch (error: any) {
       console.error("데이터 로딩 실패:", error.message ?? error)
     } finally {
@@ -336,12 +342,12 @@ export default function Dashboard() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">분석 기간</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Total GMV</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{summaryData?.data?.length || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">일별 데이터 포인트</p>
+                <div className="text-2xl font-bold">{totalGmv.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">7월 1일부터 총 발송 수량</p>
               </CardContent>
             </Card>
           </div>
