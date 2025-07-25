@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Download, TrendingUp } from "lucide-react"
+import { Download, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface ContentDailyMatrixData {
   dates: string[]
@@ -22,11 +23,20 @@ interface ContentDailyMatrixData {
 export function ContentDailyMatrixTable() {
   const [matrixData, setMatrixData] = useState<ContentDailyMatrixData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedMonth, setSelectedMonth] = useState<string>('')
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
 
-  const fetchMatrixData = async () => {
+  const fetchMatrixData = async (year?: number, month?: string) => {
     setLoading(true)
     try {
-      const response = await fetch("/api/contents?groupBy=daily")
+      let url = "/api/contents?groupBy=daily"
+      if (year && month) {
+        const startDate = `${year}-${month}-01`
+        const lastDay = new Date(year, parseInt(month), 0).getDate()
+        const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
+        url += `&startDate=${startDate}&endDate=${endDate}`
+      }
+      const response = await fetch(url)
       const data = await response.json()
 
       if (data.data && data.data.length > 0) {
@@ -68,8 +78,30 @@ export function ContentDailyMatrixTable() {
   }
 
   useEffect(() => {
-    fetchMatrixData()
+    // 현재 월로 초기화
+    const now = new Date()
+    const currentMonth = String(now.getMonth() + 1).padStart(2, '0')
+    setSelectedMonth(currentMonth)
+    fetchMatrixData(now.getFullYear(), currentMonth)
   }, [])
+  
+  const handleMonthChange = (value: string) => {
+    if (value === 'all') {
+      setSelectedMonth('')
+      fetchMatrixData()
+    } else {
+      setSelectedMonth(value)
+      fetchMatrixData(selectedYear, value)
+    }
+  }
+  
+  const handleYearChange = (increment: number) => {
+    const newYear = selectedYear + increment
+    setSelectedYear(newYear)
+    if (selectedMonth) {
+      fetchMatrixData(newYear, selectedMonth)
+    }
+  }
 
   if (loading) {
     return (
@@ -107,12 +139,53 @@ export function ContentDailyMatrixTable() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>일별 콘텐츠 발행현황</CardTitle>
-          <Button variant="outline" size="sm" onClick={fetchMatrixData}>
-            <Download className="h-4 w-4 mr-2" />
-            새로고침
-          </Button>
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between items-center">
+            <CardTitle>일별 콘텐츠 발행현황</CardTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleYearChange(-1)}
+                disabled={loading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="font-medium">{selectedYear}년</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleYearChange(1)}
+                disabled={loading}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Select value={selectedMonth || 'all'} onValueChange={handleMonthChange}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="월 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체 기간</SelectItem>
+                  <SelectItem value="01">1월</SelectItem>
+                  <SelectItem value="02">2월</SelectItem>
+                  <SelectItem value="03">3월</SelectItem>
+                  <SelectItem value="04">4월</SelectItem>
+                  <SelectItem value="05">5월</SelectItem>
+                  <SelectItem value="06">6월</SelectItem>
+                  <SelectItem value="07">7월</SelectItem>
+                  <SelectItem value="08">8월</SelectItem>
+                  <SelectItem value="09">9월</SelectItem>
+                  <SelectItem value="10">10월</SelectItem>
+                  <SelectItem value="11">11월</SelectItem>
+                  <SelectItem value="12">12월</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" onClick={() => fetchMatrixData(selectedYear, selectedMonth)}>
+                <Download className="h-4 w-4 mr-2" />
+                새로고침
+              </Button>
+            </div>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

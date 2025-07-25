@@ -190,11 +190,22 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const groupBy = searchParams.get("groupBy") || "daily"
+    const startDate = searchParams.get("startDate")
+    const endDate = searchParams.get("endDate")
 
     const supabase = createServerClient()
+    
+    // 기본값: daily의 경우 현재 월, 다른 경우 7월 1일부터
+    const now = new Date()
+    let defaultStartDate = "2025-07-01"
+    let defaultEndDate = now.toISOString().split('T')[0]
+    
+    if (groupBy === "daily" && !startDate) {
+      defaultStartDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+    }
 
-    // contents 테이블에서 모든 데이터 조회 (7월 1일부터)
-    const { data, error: dbError } = await supabase
+    // contents 테이블에서 데이터 조회
+    let query = supabase
       .from("contents")
       .select(`
         id,
@@ -217,8 +228,14 @@ export async function GET(request: NextRequest) {
         comment_count,
         like_count
       `)
-      .gte("publish_date", "2025-07-01")
+      .gte("publish_date", startDate || defaultStartDate)
       .order("publish_date", { ascending: true })
+      
+    if (endDate || defaultEndDate) {
+      query = query.lte("publish_date", endDate || defaultEndDate)
+    }
+
+    const { data, error: dbError } = await query
 
     if (dbError) {
       // 테이블이 없으면 빈 데이터로 응답

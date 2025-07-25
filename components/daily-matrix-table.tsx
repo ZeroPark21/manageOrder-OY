@@ -96,18 +96,60 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>일별 상품 발송현황</CardTitle>
-            <CardDescription>상품별 일일 발송 수량 매트릭스 (총 {data.products.length}개 상품)</CardDescription>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>일별 상품 발송현황</CardTitle>
+              <CardDescription>상품별 일일 발송 수량 매트릭스 (총 {data.products.length}개 상품)</CardDescription>
+            </div>
+            {/* 날짜 필터 */}
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleYearChange(-1)}
+                disabled={loading}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="font-medium">{selectedYear}년</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleYearChange(1)}
+                disabled={loading}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Select value={selectedMonth || 'all'} onValueChange={handleMonthChange}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="월 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체 기간</SelectItem>
+                  <SelectItem value="01">1월</SelectItem>
+                  <SelectItem value="02">2월</SelectItem>
+                  <SelectItem value="03">3월</SelectItem>
+                  <SelectItem value="04">4월</SelectItem>
+                  <SelectItem value="05">5월</SelectItem>
+                  <SelectItem value="06">6월</SelectItem>
+                  <SelectItem value="07">7월</SelectItem>
+                  <SelectItem value="08">8월</SelectItem>
+                  <SelectItem value="09">9월</SelectItem>
+                  <SelectItem value="10">10월</SelectItem>
+                  <SelectItem value="11">11월</SelectItem>
+                  <SelectItem value="12">12월</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           {/* 헤더 부분의 버튼 수정 */}
-          <div className="flex gap-2">
+          <div className="flex justify-end gap-2">
             <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
               <Download className="h-4 w-4 mr-2" />
               {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
             </Button>
-            <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+            <Button variant="outline" size="sm" onClick={() => fetchData(selectedYear, selectedMonth)} disabled={loading}>
               <RefreshCw className="h-4 w-4 mr-2" />
               새로고침
             </Button>

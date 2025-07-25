@@ -15,12 +15,23 @@ interface OrderData {
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
+    
+    // URL 파라미터에서 날짜 범위 가져오기
+    const { searchParams } = new URL(request.url)
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
+    
+    // 기본값: 현재 월의 첫날
+    const now = new Date()
+    const defaultStartDate = startDate || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+    const defaultEndDate = endDate || now.toISOString().split('T')[0]
 
-    // 7월 1일부터 데이터 조회
+    // 데이터 조회
     const { data, error: dbError } = await supabase
       .from("orders")
       .select("id, product_name, seller_sku, sku_id, quantity, created_time")
-      .gte("created_time", "2025-07-01")
+      .gte("created_time", defaultStartDate)
+      .lte("created_time", defaultEndDate)
       .order("created_time", { ascending: true })
 
     if (dbError) {
