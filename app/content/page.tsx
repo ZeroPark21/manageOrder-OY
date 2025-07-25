@@ -19,6 +19,7 @@ import { ContentDailyMatrixTable } from "@/components/content-daily-matrix-table
 import { ContentWeeklyMatrixTable } from "@/components/content-weekly-matrix-table"
 import { ContentMonthlyMatrixTable } from "@/components/content-monthly-matrix-table"
 import Link from "next/link"
+import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel } from "@/lib/excel-utils"
 
 interface ContentData {
   data: Array<{
@@ -38,6 +39,7 @@ export default function ContentDashboard() {
   const [summaryData, setSummaryData] = useState<ContentData | null>(null)
   const [loading, setLoading] = useState(true)
   const [totalGmv, setTotalGmv] = useState(0)
+  const [downloadLoading, setDownloadLoading] = useState(false)
 
   const fetchSummaryData = async () => {
     setLoading(true)
@@ -67,6 +69,182 @@ export default function ContentDashboard() {
       console.error("콘텐츠 데이터 로딩 실패:", error.message ?? error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAllMatrixDownload = async () => {
+    setDownloadLoading(true)
+    try {
+      console.log("📥 Fetching content matrix data...")
+      const response = await fetch("/api/content-all-matrix")
+
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("📊 Content matrix data loaded successfully")
+
+      if (!data.daily || !data.weekly || !data.monthly) {
+        console.error("❌ Missing matrix data:", {
+          hasDaily: !!data.daily,
+          hasWeekly: !!data.weekly,
+          hasMonthly: !!data.monthly,
+        })
+        throw new Error("매트릭스 데이터를 가져올 수 없습니다.")
+      }
+
+      const sheets = []
+
+      // 일별 시트 생성
+      if (data.daily.dates && data.daily.dates.length > 0) {
+        const dailyHeaders = [
+          "날짜",
+          "콘텐츠",
+          "GMV",
+          "Items Sold",
+          "Orders",
+          "Impressions",
+          "댓글",
+          "좋아요"
+        ]
+
+        const dailyRows = data.daily.dates.map((date: string) => {
+          const stats = data.daily.dailyStats[date]
+          return [
+            formatDateForExcel(date),
+            stats.totalCount,
+            stats.totalGmv,
+            stats.totalAffiliateItemsSold,
+            stats.totalAffiliateOrders,
+            stats.totalShoppableImpressions,
+            stats.totalCommentCount,
+            stats.totalLikeCount
+          ]
+        })
+
+        // 일별 총계 행
+        dailyRows.push([
+          "Total",
+          data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalCount, 0),
+          data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalGmv, 0),
+          data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalAffiliateItemsSold, 0),
+          data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalAffiliateOrders, 0),
+          data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalShoppableImpressions, 0),
+          data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalCommentCount, 0),
+          data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalLikeCount, 0)
+        ])
+
+        sheets.push({
+          name: "일별 콘텐츠 발행현황",
+          headers: dailyHeaders,
+          rows: dailyRows,
+        })
+      }
+
+      // 주별 시트 생성
+      if (data.weekly.weeks && data.weekly.weeks.length > 0) {
+        const weeklyHeaders = [
+          "주차",
+          "콘텐츠",
+          "GMV",
+          "Items Sold",
+          "Orders",
+          "Impressions",
+          "댓글",
+          "좋아요"
+        ]
+
+        const weeklyRows = data.weekly.weeks.map((week: string) => {
+          const stats = data.weekly.weeklyStats[week]
+          return [
+            formatDateForExcel(week),
+            stats.totalCount,
+            stats.totalGmv,
+            stats.totalAffiliateItemsSold,
+            stats.totalAffiliateOrders,
+            stats.totalShoppableImpressions,
+            stats.totalCommentCount,
+            stats.totalLikeCount
+          ]
+        })
+
+        // 주별 총계 행
+        weeklyRows.push([
+          "Total",
+          data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalCount, 0),
+          data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalGmv, 0),
+          data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalAffiliateItemsSold, 0),
+          data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalAffiliateOrders, 0),
+          data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalShoppableImpressions, 0),
+          data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalCommentCount, 0),
+          data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalLikeCount, 0)
+        ])
+
+        sheets.push({
+          name: "주별 콘텐츠 발행현황",
+          headers: weeklyHeaders,
+          rows: weeklyRows,
+        })
+      }
+
+      // 월별 시트 생성
+      if (data.monthly.months && data.monthly.months.length > 0) {
+        const monthlyHeaders = [
+          "월",
+          "콘텐츠",
+          "GMV",
+          "Items Sold",
+          "Orders",
+          "Impressions",
+          "댓글",
+          "좋아요"
+        ]
+
+        const monthlyRows = data.monthly.months.map((month: string) => {
+          const stats = data.monthly.monthlyStats[month]
+          return [
+            month,
+            stats.totalCount,
+            stats.totalGmv,
+            stats.totalAffiliateItemsSold,
+            stats.totalAffiliateOrders,
+            stats.totalShoppableImpressions,
+            stats.totalCommentCount,
+            stats.totalLikeCount
+          ]
+        })
+
+        // 월별 총계 행
+        monthlyRows.push([
+          "Total",
+          data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalCount, 0),
+          data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalGmv, 0),
+          data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalAffiliateItemsSold, 0),
+          data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalAffiliateOrders, 0),
+          data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalShoppableImpressions, 0),
+          data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalCommentCount, 0),
+          data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalLikeCount, 0)
+        ])
+
+        sheets.push({
+          name: "월별 콘텐츠 발행현황",
+          headers: monthlyHeaders,
+          rows: monthlyRows,
+        })
+      }
+
+      console.log("📄 Preparing to download Excel with", sheets.length, "sheets")
+
+      downloadMultiSheetExcel({
+        sheets: sheets,
+        filename: `콘텐츠_발행현황_${new Date().toISOString().split("T")[0]}`,
+      })
+    } catch (error) {
+      console.error("❌ Excel download error:", error)
+      alert("엑셀 다운로드 중 오류가 발생했습니다.")
+    } finally {
+      setDownloadLoading(false)
     }
   }
 
@@ -184,15 +362,15 @@ export default function ContentDashboard() {
             </TabsList>
 
             <TabsContent value="daily" className="space-y-4">
-              <ContentDailyMatrixTable />
+              <ContentDailyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
             </TabsContent>
 
             <TabsContent value="weekly" className="space-y-4">
-              <ContentWeeklyMatrixTable />
+              <ContentWeeklyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
             </TabsContent>
 
             <TabsContent value="monthly" className="space-y-4">
-              <ContentMonthlyMatrixTable />
+              <ContentMonthlyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
             </TabsContent>
           </Tabs>
         </div>

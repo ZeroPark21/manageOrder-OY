@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Download, TrendingUp } from "lucide-react"
+import { Download, TrendingUp, RefreshCw } from "lucide-react"
 
 interface ContentMonthlyMatrixData {
   months: string[]
@@ -19,7 +19,12 @@ interface ContentMonthlyMatrixData {
   } }
 }
 
-export function ContentMonthlyMatrixTable() {
+interface ContentMonthlyMatrixTableProps {
+  onExcelDownload?: () => void
+  downloadLoading?: boolean
+}
+
+export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: ContentMonthlyMatrixTableProps) {
   const [matrixData, setMatrixData] = useState<ContentMonthlyMatrixData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -115,10 +120,16 @@ export function ContentMonthlyMatrixTable() {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>월별 콘텐츠 발행현황</CardTitle>
-          <Button variant="outline" size="sm" onClick={fetchMatrixData}>
-            <Download className="h-4 w-4 mr-2" />
-            새로고침
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={fetchMatrixData}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              새로고침
+            </Button>
+            <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
+              <Download className="h-4 w-4 mr-2" />
+              {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

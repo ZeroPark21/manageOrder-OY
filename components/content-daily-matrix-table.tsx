@@ -20,7 +20,12 @@ interface ContentDailyMatrixData {
   } }
 }
 
-export function ContentDailyMatrixTable() {
+interface ContentDailyMatrixTableProps {
+  onExcelDownload?: () => void
+  downloadLoading?: boolean
+}
+
+export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: ContentDailyMatrixTableProps) {
   const [matrixData, setMatrixData] = useState<ContentDailyMatrixData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState<string>('')
@@ -263,15 +268,13 @@ export function ContentDailyMatrixTable() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">전체 기간</SelectItem>
-                  <SelectItem value="06">6월</SelectItem>
-                  <SelectItem value="07">7월</SelectItem>
-                  <SelectItem value="08">8월</SelectItem>
-                  <SelectItem value="09">9월</SelectItem>
-                  <SelectItem value="10">10월</SelectItem>
-                  <SelectItem value="11">11월</SelectItem>
-                  <SelectItem value="12">12월</SelectItem>
+                  {renderMonthOptions()}
                 </SelectContent>
               </Select>
+              <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
+                <Download className="h-4 w-4 mr-2" />
+                {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
+              </Button>
             </div>
           </div>
         </div>
