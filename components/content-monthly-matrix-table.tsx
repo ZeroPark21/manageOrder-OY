@@ -119,28 +119,28 @@ export function ContentMonthlyMatrixTable() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-[120px]">월</TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">콘텐츠</span>
+              <TableRow className="bg-purple-600 text-white">
+                <TableHead className="border border-purple-500 px-3 py-2 text-left text-sm font-medium w-[120px] text-white">월</TableHead>
+                <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  콘텐츠
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">GMV</span>
+                <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  GMV
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">Items Sold</span>
+                <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  Items Sold
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">Orders</span>
+                <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  Orders
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">Impressions</span>
+                <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  Impressions
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">댓글</span>
+                <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  댓글
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">좋아요</span>
+                <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  좋아요
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -149,54 +149,54 @@ export function ContentMonthlyMatrixTable() {
                 const isEvenRow = index % 2 === 0
                 return (
                   <TableRow key={month} className={isEvenRow ? "bg-gray-50" : ""}>
-                    <TableCell className="font-medium">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-sm font-medium">
                       {month}
                     </TableCell>
-                    <TableCell className="text-center font-medium">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">
                       {matrixData.monthlyStats[month].totalCount}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.monthlyStats[month].totalGmv.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.monthlyStats[month].totalAffiliateItemsSold.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.monthlyStats[month].totalAffiliateOrders.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.monthlyStats[month].totalShoppableImpressions.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.monthlyStats[month].totalCommentCount.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.monthlyStats[month].totalLikeCount.toLocaleString()}
                     </TableCell>
                   </TableRow>
                 )
               })}
-              <TableRow className="font-bold bg-gray-100">
-                <TableCell>Total</TableCell>
-                <TableCell className="text-center">
+              <TableRow className="bg-purple-800 text-white font-bold">
+                <TableCell className="border border-purple-600 px-3 py-2 text-sm">Total</TableCell>
+                <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalCount, 0)}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalGmv, 0).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalAffiliateItemsSold, 0).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalAffiliateOrders, 0).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalShoppableImpressions, 0).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalCommentCount, 0).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalLikeCount, 0).toLocaleString()}
                 </TableCell>
               </TableRow>

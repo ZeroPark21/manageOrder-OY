@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase"
+import * as XLSX from "xlsx"
 
 export const runtime = "nodejs"
 
@@ -41,13 +42,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "파일이 없습니다." }, { status: 400 })
     }
 
-    // 파일 내용 읽기
-    const text = await file.text()
-    const lines = text.split("\n")
-    const dataLines = lines.slice(1).filter((line: string) => line.trim())
+    // 파일 처리 - Excel 또는 CSV
+    let dataLines: string[] = []
+    
+    // 파일 내용을 확인하여 실제 형식 판단
+    const buffer = await file.arrayBuffer()
+    let isExcel = false
+    
+    // Excel 파일 시그니처 확인 (PK\x03\x04 또는 \xd0\xcf)
+    const uint8Array = new Uint8Array(buffer)
+    if ((uint8Array[0] === 0x50 && uint8Array[1] === 0x4B) || // XLSX
+        (uint8Array[0] === 0xD0 && uint8Array[1] === 0xCF)) { // XLS
+      isExcel = true
+    }
+    
+    if (isExcel || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      // Excel 파일 처리
+      console.log("📊 Excel 파일 처리 시작 (실제 Excel 형식)")
+      const workbook = XLSX.read(buffer, { type: 'array' })
+      const sheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[sheetName]
+      
+      // Excel을 CSV 문자열로 변환
+      const csv = XLSX.utils.sheet_to_csv(worksheet)
+      const lines = csv.split("\n")
+      dataLines = lines.slice(1).filter((line: string) => line.trim())
+    } else {
+      // CSV 파일 처리
+      console.log("📊 CSV 파일 처리 시작")
+      const text = new TextDecoder().decode(buffer)
+      const lines = text.split("\n")
+      dataLines = lines.slice(1).filter((line: string) => line.trim())
+    }
     
     console.log(`📊 파일 처리 완료: ${file.name}, 데이터 행 수: ${dataLines.length}`)
-    console.log("📊 첫 번째 데이터 행:", dataLines[0])
+    if (dataLines.length > 0) {
+      console.log("📊 첫 번째 데이터 행:", dataLines[0])
+    }
 
     const contents: ContentData[] = []
     
@@ -69,6 +100,8 @@ export async function POST(request: NextRequest) {
         }
       }
       columns.push(current.trim()) // 마지막 컬럼
+      
+      console.log(`🔍 컬럼 수: ${columns.length}, 첫 번째 컬럼: ${columns[0]}`)
       
       if (columns.length >= 18) {
         const [
@@ -92,11 +125,24 @@ export async function POST(request: NextRequest) {
           like_count // Shoppable video likes
         ] = columns
         
-        // 날짜 형식 변환 (예: 2025-07-01 형식으로)
+        // 날짜 형식 처리
         let formattedDate = publish_date
-        if (publish_date.includes("/")) {
-          const [month, day, year] = publish_date.split("/")
-          formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+        try {
+          // YYYY-MM-DD 형식 확인
+          if (publish_date.includes("-") && publish_date.split("-").length === 3) {
+            formattedDate = publish_date
+          }
+          // MM/DD/YYYY 형식
+          else if (publish_date.includes("/")) {
+            const parts = publish_date.split("/")
+            if (parts.length === 3) {
+              const [month, day, year] = parts
+              formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+            }
+          }
+          // 다른 형식이면 그대로 사용
+        } catch (e) {
+          console.log(`⚠️ 날짜 형식 변환 실패: ${publish_date}`)
         }
         
         contents.push({
@@ -104,25 +150,28 @@ export async function POST(request: NextRequest) {
           creator_name: creator_name || "크리에이터 없음",
           publish_date: formattedDate,
           video_link: video_link || "",
-          gmv: parseFloat(gmv) || 0,
-          affiliate_items_sold: parseInt(affiliate_items_sold) || 0,
-          affiliate_gmv: parseFloat(affiliate_gmv) || 0,
-          shoppable_avg_order_value: parseFloat(shoppable_avg_order_value) || 0,
-          est_commission: parseFloat(est_commission) || 0,
+          gmv: parseFloat(gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
+          affiliate_items_sold: parseInt(affiliate_items_sold.toString().replace(/[^0-9-]/g, '')) || 0,
+          affiliate_gmv: parseFloat(affiliate_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
+          shoppable_avg_order_value: parseFloat(shoppable_avg_order_value.toString().replace(/[^0-9.-]/g, '')) || 0,
+          est_commission: parseFloat(est_commission.toString().replace(/[^0-9.-]/g, '')) || 0,
           est_flat_fee: est_flat_fee || "--",
-          affiliate_orders: parseInt(affiliate_orders) || 0,
-          shoppable_impressions: parseInt(shoppable_impressions) || 0,
-          affiliate_ctr: parseFloat(affiliate_ctr) || 0,
-          shoppable_gpm: parseFloat(shoppable_gpm) || 0,
-          affiliate_items_refunded: parseInt(affiliate_items_refunded) || 0,
-          affiliate_refunded_gmv: parseFloat(affiliate_refunded_gmv) || 0,
-          comment_count: parseInt(comment_count) || 0,
-          like_count: parseInt(like_count) || 0,
+          affiliate_orders: parseInt(affiliate_orders.toString().replace(/[^0-9-]/g, '')) || 0,
+          shoppable_impressions: parseInt(shoppable_impressions.toString().replace(/[^0-9-]/g, '')) || 0,
+          affiliate_ctr: parseFloat(affiliate_ctr.toString().replace(/[^0-9.-]/g, '').replace('%', '')) || 0,
+          shoppable_gpm: parseFloat(shoppable_gpm.toString().replace(/[^0-9.-]/g, '')) || 0,
+          affiliate_items_refunded: parseInt(affiliate_items_refunded.toString().replace(/[^0-9-]/g, '')) || 0,
+          affiliate_refunded_gmv: parseFloat(affiliate_refunded_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
+          comment_count: parseInt(comment_count.toString().replace(/[^0-9-]/g, '')) || 0,
+          like_count: parseInt(like_count.toString().replace(/[^0-9-]/g, '')) || 0,
         })
       }
     }
 
     console.log(`📊 처리된 콘텐츠 수: ${contents.length}`)
+    if (contents.length > 0) {
+      console.log("🔍 첫 번째 콘텐츠 데이터:", JSON.stringify(contents[0], null, 2))
+    }
 
     if (contents.length === 0) {
       return NextResponse.json({ error: "유효한 데이터가 없습니다." }, { status: 400 })
@@ -135,7 +184,7 @@ export async function POST(request: NextRequest) {
     const { error: deleteError } = await supabase
       .from("contents")
       .delete()
-      .gte("publish_date", "2025-07-01")
+      .gte("publish_date", "2000-01-01")
 
     if (deleteError) {
       console.warn("기존 데이터 삭제 실패:", deleteError)

@@ -119,28 +119,28 @@ export function ContentDailyMatrixTable() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="w-[120px]">날짜</TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">콘텐츠</span>
+              <TableRow className="bg-blue-600 text-white">
+                <TableHead className="border border-blue-500 px-3 py-2 text-left text-sm font-medium w-[120px] text-white">날짜</TableHead>
+                <TableHead className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  콘텐츠
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">GMV</span>
+                <TableHead className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  GMV
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">Items Sold</span>
+                <TableHead className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  Items Sold
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">Orders</span>
+                <TableHead className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  Orders
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">Impressions</span>
+                <TableHead className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  Impressions
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">댓글</span>
+                <TableHead className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  댓글
                 </TableHead>
-                <TableHead className="text-center">
-                  <span className="text-xs">좋아요</span>
+                <TableHead className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  좋아요
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -149,54 +149,54 @@ export function ContentDailyMatrixTable() {
                 const isEvenRow = index % 2 === 0
                 return (
                   <TableRow key={date} className={isEvenRow ? "bg-gray-50" : ""}>
-                    <TableCell className="font-medium">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-sm font-medium">
                       {new Date(date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
                     </TableCell>
-                    <TableCell className="text-center font-medium">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">
                       {matrixData.dailyStats[date].totalCount}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.dailyStats[date].totalGmv.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.dailyStats[date].totalAffiliateItemsSold.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.dailyStats[date].totalAffiliateOrders.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.dailyStats[date].totalShoppableImpressions.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.dailyStats[date].totalCommentCount.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.dailyStats[date].totalLikeCount.toLocaleString()}
                     </TableCell>
                   </TableRow>
                 )
               })}
-              <TableRow className="font-bold bg-gray-100">
-                <TableCell>Total</TableCell>
-                <TableCell className="text-center">
+              <TableRow className="bg-blue-800 text-white font-bold">
+                <TableCell className="border border-blue-600 px-3 py-2 text-sm">Total</TableCell>
+                <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalCount, 0)}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalGmv, 0).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalAffiliateItemsSold, 0).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalAffiliateOrders, 0).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalShoppableImpressions, 0).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalCommentCount, 0).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalLikeCount, 0).toLocaleString()}
                 </TableCell>
               </TableRow>

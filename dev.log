@@ -215,3 +215,85 @@
  GET /api/contents?groupBy=daily 200 in 70ms
  ✓ Compiled in 1131ms (454 modules)
  GET /content 200 in 78ms
+ ✓ Compiled in 1407ms (454 modules)
+ ⨯ Module not found: Error: Can't resolve 'next-flight-client-entry-loader' in '/Users/sero/Documents/GitHub/manageOrder-OY/manageOrder-OY'
+ GET /content 200 in 118ms
+ ✓ Compiled in 798ms (529 modules)
+ ✓ Compiled in 234ms (529 modules)
+ ✓ Compiled in 182ms (529 modules)
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 2.2s (1557 modules)
+ ⨯ [Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch]
+ ✓ Compiled in 375ms (1543 modules)
+ ⨯ Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch
+    at next/dist/compiled/next-server/pages.runtime.dev.js (.next/server/pages/_document.js:22:18)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at (pages-dir-node)/./node_modules/.pnpm/next@15.2.4_react-dom@19.0.0_react@19.0.0__react@19.0.0/node_modules/next/dist/server/route-modules/pages/module.compiled.js (.next/server/vendor-chunks/next@15.2.4_react-dom@19.0.0_react@19.0.0__react@19.0.0.js:173:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at (pages-dir-node)/./node_modules/.pnpm/next@15.2.4_react-dom@19.0.0_react@19.0.0__react@19.0.0/node_modules/next/dist/server/route-modules/pages/vendored/contexts/html-context.js (.next/server/vendor-chunks/next@15.2.4_react-dom@19.0.0_react@19.0.0__react@19.0.0.js:206:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+[Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch]
+ ⨯ Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch
+    at next/dist/compiled/next-server/pages.runtime.dev.js (.next/server/pages/_document.js:22:18)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at (pages-dir-node)/./node_modules/.pnpm/next@15.2.4_react-dom@19.0.0_react@19.0.0__react@19.0.0/node_modules/next/dist/server/route-modules/pages/module.compiled.js (.next/server/vendor-chunks/next@15.2.4_react-dom@19.0.0_react@19.0.0__react@19.0.0.js:173:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+    at (pages-dir-node)/./node_modules/.pnpm/next@15.2.4_react-dom@19.0.0_react@19.0.0__react@19.0.0/node_modules/next/dist/server/route-modules/pages/vendored/contexts/html-context.js (.next/server/vendor-chunks/next@15.2.4_react-dom@19.0.0_react@19.0.0__react@19.0.0.js:206:1)
+    at __webpack_require__ (.next/server/webpack-runtime.js:33:42)
+[Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch]
+ GET / 500 in 7256ms
+ GET / 500 in 189ms
+ GET / 200 in 529ms
+ ✓ Compiled in 1314ms (941 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 709ms (941 modules)
+ GET / 200 in 501ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⨯ ./app/globals.css
+Error: You forgot to add 'mini-css-extract-plugin' plugin (i.e. `{ plugins: [new MiniCssExtractPlugin()] }`), please read https://github.com/webpack-contrib/mini-css-extract-plugin#getting-started
+Import trace for requested module:
+./app/globals.css
+ ⨯ [Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch]
+[Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch]
+[Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch]
+ GET / 500 in 2835ms
+ GET / 500 in 22ms
+ ⨯ [Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch]
+[Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch]
+[Error: Incompatible React versions: The "react" and "react-dom" packages must have the exact same version. Instead got:
+  - react:      19.1.0
+  - react-dom:  19.0.0
+Learn more: https://react.dev/warnings/version-mismatch]
+ GET / 500 in 320ms
+ GET / 500 in 21ms
+[?25h
