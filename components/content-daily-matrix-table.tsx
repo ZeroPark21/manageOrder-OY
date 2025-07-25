@@ -131,6 +131,38 @@ export function ContentDailyMatrixTable() {
       fetchMatrixData()
     }
   }
+  
+  // 월 옵션 렌더링 함수
+  const renderMonthOptions = () => {
+    const months = [
+      { value: '01', label: '1월' },
+      { value: '02', label: '2월' },
+      { value: '03', label: '3월' },
+      { value: '04', label: '4월' },
+      { value: '05', label: '5월' },
+      { value: '06', label: '6월' },
+      { value: '07', label: '7월' },
+      { value: '08', label: '8월' },
+      { value: '09', label: '9월' },
+      { value: '10', label: '10월' },
+      { value: '11', label: '11월' },
+      { value: '12', label: '12월' },
+    ]
+    
+    return months.map(month => {
+      // 2025년의 경우 6월 이전은 비활성화
+      const isDisabled = selectedYear === 2025 && parseInt(month.value) < 6
+      return (
+        <SelectItem 
+          key={month.value} 
+          value={month.value} 
+          disabled={isDisabled}
+        >
+          {month.label}
+        </SelectItem>
+      )
+    })
+  }
 
   if (loading) {
     return (
