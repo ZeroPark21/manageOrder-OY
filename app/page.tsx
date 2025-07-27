@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DailyMatrixTable } from "@/components/daily-matrix-table"
 import { WeeklyMatrixTable } from "@/components/weekly-matrix-table"
 import { MonthlyMatrixTable } from "@/components/monthly-matrix-table"
-import { Upload, BarChart3, TrendingUp, Package, DollarSign, Box } from "lucide-react"
+import { Upload, BarChart3, TrendingUp, Package, Box } from "lucide-react"
 import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel } from "@/lib/excel-utils"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -39,7 +39,6 @@ export default function Dashboard() {
   const [summaryData, setSummaryData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloadLoading, setDownloadLoading] = useState(false)
-  const [totalGmv, setTotalGmv] = useState(0)
 
   const fetchSummaryData = async () => {
     setLoading(true)
@@ -54,17 +53,6 @@ export default function Dashboard() {
         uniqueProducts: data.uniqueProducts,
         dataPoints: data.data?.length,
       })
-      
-      // GMV 데이터 가져오기
-      try {
-        const gmvResponse = await fetch('/api/gmv-total')
-        if (gmvResponse.ok) {
-          const gmvData = await gmvResponse.json()
-          setTotalGmv(gmvData.productTotalQuantity || 0)
-        }
-      } catch (gmvError) {
-        console.error('GMV 데이터 로딩 오류:', gmvError)
-      }
     } catch (error: any) {
       console.error("데이터 로딩 실패:", error.message ?? error)
     } finally {
@@ -315,7 +303,7 @@ export default function Dashboard() {
           </div>
 
           {/* 요약 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">총 주문 수</CardTitle>
@@ -344,16 +332,6 @@ export default function Dashboard() {
               <CardContent>
                 <div className="text-2xl font-bold">{summaryData?.uniqueProducts || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">고유 상품 수</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total GMV</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalGmv.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 총 발송 수량</p>
               </CardContent>
             </Card>
           </div>
