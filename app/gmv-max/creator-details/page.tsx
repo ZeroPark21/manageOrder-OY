@@ -187,7 +187,9 @@ export default function CreatorDetailsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">전체 크리에이터</SelectItem>
-              {creatorsData.map((creator) => (
+              {creatorsData
+                .filter(creator => creator.account && creator.account.trim() !== "")
+                .map((creator) => (
                 <SelectItem key={creator.account} value={creator.account}>
                   {creator.account}
                 </SelectItem>
@@ -348,15 +350,17 @@ export default function CreatorDetailsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {creatorsData.map((creator, index) => (
+              {creatorsData
+                .filter(creator => creator.account && creator.account.trim() !== "")
+                .map((creator, index) => (
                 <TableRow 
-                  key={creator.account} 
+                  key={creator.account || `creator-${index}`} 
                   className={`cursor-pointer hover:bg-muted/50 ${
                     selectedCreator === creator.account ? 'bg-blue-50' : ''
                   }`}
                   onClick={() => setSelectedCreator(creator.account)}
                 >
-                  <TableCell className="font-medium">{creator.account}</TableCell>
+                  <TableCell className="font-medium">{creator.account || '이름 없음'}</TableCell>
                   <TableCell className="text-right">{creator.videoCount}</TableCell>
                   <TableCell className="text-right">{creator.totalOrders}</TableCell>
                   <TableCell className="text-right">{formatCurrency(creator.totalRevenue)}</TableCell>
