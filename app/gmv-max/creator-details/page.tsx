@@ -23,6 +23,13 @@ import {
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { 
   Users, 
   TrendingUp, 
@@ -33,7 +40,8 @@ import {
   Video,
   BarChart3,
   Search,
-  Target 
+  Target,
+  Play 
 } from "lucide-react"
 import {
   BarChart,
@@ -99,6 +107,8 @@ export default function CreatorDetailsPage() {
   const [campaignSummary, setCampaignSummary] = useState<CampaignSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showVideoDialog, setShowVideoDialog] = useState(false)
+  const [selectedCreatorVideos, setSelectedCreatorVideos] = useState<{creator: string, videos: VideoData[]}>({creator: '', videos: []})
 
   // 크리에이터 데이터 로드
   useEffect(() => {
@@ -184,6 +194,16 @@ export default function CreatorDetailsPage() {
 
   const formatPercentage = (value: number) => {
     return `${(value * 100).toFixed(2)}%`
+  }
+
+  // 영상 상세 보기 핸들러
+  const handleShowVideos = (creator: CreatorData, event: React.MouseEvent) => {
+    event.stopPropagation() // 행 클릭 이벤트와 충돌 방지
+    setSelectedCreatorVideos({
+      creator: creator.account,
+      videos: creator.videos || []
+    })
+    setShowVideoDialog(true)
   }
 
   // 크리에이터 검색 필터링
@@ -503,6 +523,7 @@ export default function CreatorDetailsPage() {
                 <TableHead className="text-right">평균 전환율</TableHead>
                 <TableHead className="text-right">총 노출수</TableHead>
                 <TableHead className="text-right">총 클릭수</TableHead>
+                <TableHead className="text-center">영상상세</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -532,12 +553,90 @@ export default function CreatorDetailsPage() {
                   </TableCell>
                   <TableCell className="text-right">{creator.totalImpressions.toLocaleString()}</TableCell>
                   <TableCell className="text-right">{creator.totalClicks.toLocaleString()}</TableCell>
+                  <TableCell className="text-center">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={(e) => handleShowVideos(creator, e)}
+                      className="flex items-center gap-1"
+                    >
+                      <Play className="h-3 w-3" />
+                      영상상세
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       </Card>
+
+      {/* 영상 상세 다이얼로그 */}
+      <Dialog open={showVideoDialog} onOpenChange={setShowVideoDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Video className="h-5 w-5" />
+              {selectedCreatorVideos.creator} 크리에이터의 영상 목록
+            </DialogTitle>
+            <DialogDescription>
+              총 {selectedCreatorVideos.videos.length}개의 영상
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[60vh]">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background">
+                <TableRow>
+                  <TableHead>영상 ID</TableHead>
+                  <TableHead>영상 제목</TableHead>
+                  <TableHead>유형</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead className="text-right">주문 수</TableHead>
+                  <TableHead className="text-right">매출</TableHead>
+                  <TableHead className="text-right">노출수</TableHead>
+                  <TableHead className="text-right">클릭수</TableHead>
+                  <TableHead className="text-right">클릭률</TableHead>
+                  <TableHead className="text-right">전환율</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedCreatorVideos.videos.map((video, index) => (
+                  <TableRow key={video.video_id || index}>
+                    <TableCell className="font-medium">{video.video_id || '-'}</TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {video.video_title || '제목 없음'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{video.creative_type || '-'}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant={video.status === 'Delivering' ? 'default' : 'secondary'}
+                      >
+                        {video.status || '-'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{video.orders}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(video.gross_revenue)}</TableCell>
+                    <TableCell className="text-right">{video.ad_impressions.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">{video.ad_clicks.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={video.ad_click_rate > 0.02 ? "default" : "secondary"}>
+                        {formatPercentage(video.ad_click_rate)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge variant={video.ad_conversion_rate > 0.03 ? "default" : "secondary"}>
+                        {formatPercentage(video.ad_conversion_rate)}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
