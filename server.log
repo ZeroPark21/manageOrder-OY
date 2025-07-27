@@ -1,0 +1,227 @@
+
+> tiktok-dashboard@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.2.4
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.219.132:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1465ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1783ms (985 modules)
+ HEAD / 200 in 2049ms
+ ✓ Compiled in 393ms (456 modules)
+ ○ Compiling /content-analysis ...
+ ✓ Compiled /content-analysis in 939ms (963 modules)
+ GET /content-analysis 200 in 1099ms
+ GET /content-analysis 200 in 49ms
+ ✓ Compiled in 521ms (977 modules)
+ GET /content-analysis 200 in 144ms
+ GET /content-analysis 200 in 37ms
+ ✓ Compiled / in 211ms (544 modules)
+ GET / 200 in 377ms
+ ✓ Compiled /api/orders in 489ms (706 modules)
+ GET /api/orders?groupBy=daily 200 in 1374ms
+ ✓ Compiled /api/daily-matrix in 146ms (709 modules)
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 340ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 62ms
+ ✓ Compiled /content in 440ms (1022 modules)
+ GET /content 200 in 491ms
+ ✓ Compiled /api/contents in 184ms (722 modules)
+ GET /api/contents?groupBy=daily 200 in 420ms
+ GET /api/contents?groupBy=daily 200 in 177ms
+ ✓ Compiled /api/gmv-total in 423ms (1042 modules)
+ GET /api/gmv-total 200 in 682ms
+ GET /api/gmv-total 200 in 130ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 163ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 62ms
+ GET /content-analysis 200 in 41ms
+ GET /content-analysis 200 in 20ms
+ GET /content 200 in 16ms
+ GET /api/contents?groupBy=daily 200 in 98ms
+ GET /api/contents?groupBy=daily 200 in 69ms
+ GET /api/gmv-total 200 in 131ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 58ms
+ GET /api/gmv-total 200 in 105ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 71ms
+ GET /content-analysis 200 in 179ms
+ GET /content 200 in 36ms
+ GET /api/contents?groupBy=daily 200 in 92ms
+ GET /api/contents?groupBy=daily 200 in 50ms
+ GET /api/gmv-total 200 in 137ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 63ms
+ GET /api/gmv-total 200 in 79ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 66ms
+ GET /content-analysis 200 in 10ms
+ ✓ Compiled in 821ms (1023 modules)
+ GET /content-analysis 200 in 95ms
+ ✓ Compiled in 434ms (1023 modules)
+ GET /content-analysis 200 in 59ms
+ GET /content-analysis 200 in 111ms
+ GET /api/contents?groupBy=creator 200 in 640ms
+ GET /content-analysis 200 in 78ms
+ GET /content-analysis 200 in 39ms
+ GET /content-analysis 200 in 55ms
+ GET /content-analysis 200 in 53ms
+ GET /api/contents?groupBy=creator 200 in 563ms
+ ○ Compiling /gmv-max ...
+ ✓ Compiled /gmv-max in 1766ms (2760 modules)
+ GET /gmv-max 200 in 1879ms
+ GET /gmv-max 200 in 61ms
+ GET /content-analysis 200 in 31ms
+ GET /api/contents?groupBy=creator 200 in 199ms
+ GET /api/contents?groupBy=creator 200 in 67ms
+ GET /gmv-max 200 in 30ms
+ GET /content-analysis 200 in 45ms
+ GET /api/contents?groupBy=creator 200 in 566ms
+ GET /api/contents?groupBy=creator 200 in 48ms
+ GET /gmv-max 200 in 12ms
+ ✓ Compiled in 984ms (2774 modules)
+ GET /gmv-max 200 in 76ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⨯ ReferenceError: categoryData is not defined
+    at GmvMaxPage (app/gmv-max/page.tsx:232:22)
+  230 |             <PieChart>
+  231 |               <Pie
+> 232 |                 data={categoryData}
+      |                      ^
+  233 |                 cx="50%"
+  234 |                 cy="50%"
+  235 |                 labelLine={false} {
+  digest: '804707720'
+}
+ GET /gmv-max 500 in 357ms
+ ✓ Compiled in 1230ms (2774 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /gmv-max 200 in 353ms
+ ✓ Compiled in 699ms (2774 modules)
+ GET /gmv-max 200 in 27ms
+ GET /gmv-max 200 in 168ms
+ ✓ Compiled in 829ms (1353 modules)
+ GET /gmv-max 200 in 34ms
+ GET /content-analysis 200 in 139ms
+ GET /api/contents?groupBy=creator 200 in 802ms
+ GET /api/contents?groupBy=creator 200 in 90ms
+ GET /gmv-max 200 in 127ms
+ ✓ Compiled in 1521ms (1353 modules)
+ GET /gmv-max 200 in 17ms
+ ✓ Compiled in 735ms (1353 modules)
+ GET /gmv-max 200 in 13ms
+ ✓ Compiled in 230ms (1353 modules)
+ GET /gmv-max 200 in 14ms
+ GET /gmv-max 200 in 145ms
+ ✓ Compiled in 881ms (2760 modules)
+ ✓ Compiled in 525ms (2760 modules)
+ ✓ Compiled in 1738ms (2760 modules)
+ ✓ Compiled in 713ms (2774 modules)
+ ✓ Compiled in 771ms (2774 modules)
+ ✓ Compiled in 753ms (2774 modules)
+ ✓ Compiled /api/gmv-data in 949ms (3011 modules)
+gmv_data 테이블이 없어 빈 결과를 반환합니다.
+ GET /api/gmv-data?groupBy=account 200 in 1271ms
+ ✓ Compiled in 710ms (2774 modules)
+ ✓ Compiled in 654ms (2774 modules)
+ ✓ Compiled in 825ms (2770 modules)
+ ✓ Compiled in 704ms (2770 modules)
+ ✓ Compiled in 484ms (1351 modules)
+ ○ Compiling /upload-gmv ...
+ ✓ Compiled /upload-gmv in 953ms (2777 modules)
+ GET /upload-gmv 200 in 1200ms
+ GET /upload-gmv 200 in 59ms
+ GET /upload-gmv 200 in 21ms
+ GET /upload-gmv 200 in 23ms
+ GET /upload-gmv 200 in 18ms
+ GET /upload-gmv 200 in 94ms
+ GET /upload-gmv 200 in 12ms
+ GET /upload-gmv 200 in 21ms
+ GET /upload-gmv 200 in 12ms
+ GET /upload-gmv 200 in 10ms
+ GET /upload-gmv 200 in 10ms
+ GET /upload-gmv 200 in 11ms
+ GET /upload-gmv 200 in 10ms
+ GET /upload-gmv 200 in 10ms
+ GET /upload-gmv 200 in 9ms
+ ○ Compiling /api/upload-gmv ...
+ ✓ Compiled /api/upload-gmv in 1096ms (2798 modules)
+🚀 GMV 데이터 업로드 API 시작
+📁 파일 정보: {
+  name: 'Creative data 2025-05-12 - 2025-06-22 - Product 1730837453039702652 (1).xlsx',
+  size: 87539,
+  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+}
+📊 Excel 파일 처리 완료: { totalRows: 556, sheetName: 'Sheet1' }
+🔄 데이터 변환 완료: 556 개 항목
+Supabase 삽입 오류: {}
+ POST /api/upload-gmv 500 in 2404ms
+ ✓ Compiled in 715ms (1360 modules)
+ GET /upload-gmv 200 in 74ms
+ ✓ Compiled in 690ms (2791 modules)
+ GET /upload-gmv 200 in 124ms
+ ✓ Compiled /api/upload-gmv in 284ms (1452 modules)
+🚀 GMV 데이터 업로드 API 시작
+📁 파일 정보: {
+  name: 'Creative data 2025-05-12 - 2025-06-22 - Product 1730837453039702652 (1).xlsx',
+  size: 87539,
+  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+}
+📊 Excel 파일 처리 완료: { totalRows: 556, sheetName: 'Sheet1' }
+🔄 데이터 변환 완료: 556 개 항목
+ GET /upload-gmv 200 in 229ms
+Supabase 삽입 오류: {}
+ POST /api/upload-gmv 500 in 1519ms
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 674ms (2802 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 933ms
+ ✓ Compiled in 958ms (2816 modules)
+ GET /upload-gmv 200 in 27ms
+ ✓ Compiled in 1676ms (1360 modules)
+ GET /upload-gmv 200 in 20ms
+ ✓ Compiled in 1234ms (1360 modules)
+ GET /upload-gmv 200 in 37ms
+ GET /upload-gmv 200 in 41ms
+ ✓ Compiled in 1219ms (2777 modules)
+ ✓ Compiled in 385ms (1360 modules)
+ ✓ Compiled /api/create-gmv-table in 399ms (1597 modules)
+🚀 GMV 테이블 생성 API 시작
+📊 테이블 생성 SQL 실행 중...
+SQL 명령 실행 중 오류 (무시 가능): Could not find the function public.sql(query) in the schema cache
+SQL 명령 실행 중 오류 (무시 가능): Could not find the function public.sql(query) in the schema cache
+SQL 명령 실행 중 오류 (무시 가능): Could not find the function public.sql(query) in the schema cache
+SQL 명령 실행 중 오류 (무시 가능): Could not find the function public.sql(query) in the schema cache
+SQL 명령 실행 중 오류 (무시 가능): Could not find the function public.sql(query) in the schema cache
+SQL 명령 실행 중 오류 (무시 가능): Could not find the function public.sql(query) in the schema cache
+SQL 명령 실행 중 오류 (무시 가능): Could not find the function public.sql(query) in the schema cache
+SQL 명령 실행 중 오류 (무시 가능): Could not find the function public.sql(query) in the schema cache
+SQL 명령 실행 중 오류 (무시 가능): Could not find the function public.sql(query) in the schema cache
+✅ GMV 테이블 생성 완료
+테이블 확인 오류: {
+  code: '42P01',
+  details: null,
+  hint: null,
+  message: 'relation "public.gmv_data" does not exist'
+}
+ POST /api/create-gmv-table 500 in 1433ms
+ ✓ Compiled in 385ms (1360 modules)
+ ✓ Compiled /api/upload-gmv in 489ms (1452 modules)
+🚀 GMV 데이터 업로드 API 시작
+📁 파일 정보: {
+  name: 'Creative data 2025-05-12 - 2025-06-22 - Product 1730837453039702652 (1).xlsx',
+  size: 87539,
+  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+}
+📊 Excel 파일 처리 완료: { totalRows: 556, sheetName: 'Sheet1' }
+🔄 데이터 변환 완료: 556 개 항목
+🔍 Supabase 연결 확인 중...
+✅ 테이블 존재 확인 완료
+📤 데이터 삽입 시작: 556 개 레코드
+✅ Supabase 저장 완료
+ POST /api/upload-gmv 200 in 1984ms
+ GET /gmv-max 200 in 83ms
+ GET /gmv-max 200 in 39ms
+ GET /gmv-max 200 in 12ms
+ GET /gmv-max 200 in 35ms
+ ✓ Compiled /api/gmv-data in 151ms (251 modules)
+ GET /api/gmv-data?groupBy=account 200 in 492ms
+ GET /api/gmv-data?groupBy=account 200 in 74ms

@@ -58,6 +58,12 @@ const utilityItems = [
     icon: BarChart3,
     description: "콘텐츠 발행 데이터 업로드",
   },
+  {
+    title: "GMV 데이터 업로드",
+    url: "/upload-gmv",
+    icon: TrendingUp,
+    description: "GMV 광고 데이터 업로드",
+  },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
