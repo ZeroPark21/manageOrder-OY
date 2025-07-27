@@ -23,6 +23,10 @@ interface GmvData {
   video_view_rate_75: number
   video_view_rate_100: number
   currency: string
+  campaign_name?: string
+  campaign_id?: string
+  product_id?: string
+  authorization_type?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -78,7 +82,11 @@ export async function POST(request: NextRequest) {
       video_view_rate_50: Number(row['50% ad video view rate']) || 0,
       video_view_rate_75: Number(row['75% ad video view rate']) || 0,
       video_view_rate_100: Number(row['100% ad video view rate']) || 0,
-      currency: row['Currency'] || 'KRW'
+      currency: row['Currency'] || 'KRW',
+      campaign_name: row['Campaign name'] || '',
+      campaign_id: row['Campaign ID'] || '',
+      product_id: row['Product ID'] || '',
+      authorization_type: row['Authorization type'] || ''
     }))
 
     console.log("🔄 데이터 변환 완료:", gmvDataList.length, "개 항목")

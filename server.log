@@ -50,3 +50,106 @@
  ✓ Compiled /gmv-max/creator-details in 915ms (2757 modules)
  GET /gmv-max/creator-details 200 in 1174ms
  GET /gmv-max 200 in 65ms
+ GET /gmv-max/creator-details 200 in 55ms
+ GET /gmv-max/creator-details 200 in 15ms
+ GET /api/gmv-data?groupBy=account 200 in 808ms
+ GET /api/gmv-data?groupBy=account 200 in 90ms
+ ✓ Compiled in 1054ms (2767 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /gmv-max/creator-details 200 in 281ms
+ GET /api/gmv-data?groupBy=account 200 in 171ms
+ ✓ Compiled in 657ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 76ms
+ GET /gmv-max/creator-details 200 in 309ms
+ GET /gmv-max 200 in 97ms
+ GET /api/gmv-data?groupBy=account 200 in 235ms
+ GET /api/gmv-data?groupBy=account 200 in 76ms
+ GET /gmv-max/creator-details 200 in 9ms
+ GET /api/gmv-data?groupBy=account 200 in 75ms
+ GET /api/gmv-data?groupBy=account 200 in 71ms
+ GET /gmv-max 200 in 62ms
+ GET /api/gmv-data?groupBy=account 200 in 110ms
+ GET /api/gmv-data?groupBy=account 200 in 66ms
+ GET /gmv-max/creator-details 200 in 44ms
+ GET /api/gmv-data?groupBy=account 200 in 379ms
+ GET /api/gmv-data?groupBy=account 200 in 93ms
+ ✓ Compiled in 1254ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 42ms
+ ✓ Compiled in 1083ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 149ms
+ ✓ Compiled in 1281ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 33ms
+ GET /api/gmv-data?groupBy=account 200 in 645ms
+ ✓ Compiled in 915ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 34ms
+ GET /gmv-max 200 in 119ms
+ GET /api/gmv-data?groupBy=account 200 in 241ms
+ GET /api/gmv-data?groupBy=account 200 in 85ms
+ GET /gmv-max/creator-details 200 in 10ms
+ GET /api/gmv-data?groupBy=account 200 in 86ms
+ GET /api/gmv-data?groupBy=account 200 in 70ms
+ ✓ Compiled in 729ms (2767 modules)
+ GET /api/gmv-data?groupBy=account 200 in 280ms
+ GET /gmv-max/creator-details 200 in 40ms
+ ✓ Compiled in 678ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 46ms
+ ✓ Compiled in 1348ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 58ms
+ ✓ Compiled in 825ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 51ms
+ ✓ Compiled in 978ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 31ms
+ GET /gmv-max/creator-details 200 in 374ms
+ ✓ Compiled in 1269ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 58ms
+ ✓ Compiled in 950ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 31ms
+ GET /api/gmv-data?groupBy=account 200 in 801ms
+ ✓ Compiled in 775ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 44ms
+ ✓ Compiled in 885ms (2767 modules)
+ GET /gmv-max/creator-details 200 in 43ms
+ ✓ Compiled in 2.2s (2769 modules)
+ GET /gmv-max/creator-details 200 in 44ms
+ ✓ Compiled in 997ms (2771 modules)
+ GET /gmv-max/creator-details 200 in 134ms
+ GET /gmv-max/creator-details 200 in 367ms
+ ✓ Compiled in 907ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 20ms
+ ✓ Compiled in 999ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 77ms
+ ✓ Compiled in 419ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 19ms
+ ✓ Compiled in 610ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 34ms
+ ✓ Compiled in 657ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 59ms
+ ✓ Compiled in 396ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 33ms
+ ✓ Compiled in 453ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 22ms
+ ✓ Compiled in 548ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 48ms
+ ✓ Compiled in 542ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 25ms
+ ✓ Compiled in 1270ms (2771 modules)
+ GET /gmv-max/creator-details 200 in 104ms
+ ✓ Compiled in 868ms (2771 modules)
+ GET /gmv-max/creator-details 200 in 48ms
+ ✓ Compiled in 786ms (2771 modules)
+ GET /gmv-max/creator-details 200 in 35ms
+ ✓ Compiled in 683ms (2771 modules)
+ GET /gmv-max/creator-details 200 in 44ms
+ ✓ Compiled in 1129ms (2771 modules)
+ GET /gmv-max/creator-details 200 in 34ms
+ ✓ Compiled in 718ms (2771 modules)
+ GET /gmv-max/creator-details 200 in 32ms
+ ✓ Compiled in 693ms (2771 modules)
+ GET /gmv-max/creator-details 200 in 33ms
+ ✓ Compiled in 410ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 38ms
+ ✓ Compiled in 438ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 48ms
+ ✓ Compiled in 660ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 43ms
+ GET /gmv-max/creator-details 200 in 307ms

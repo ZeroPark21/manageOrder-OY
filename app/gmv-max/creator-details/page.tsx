@@ -82,6 +82,10 @@ interface VideoData {
   ad_conversion_rate: number
   creative_type?: string
   status?: string
+  campaign_name?: string
+  campaign_id?: string
+  product_id?: string
+  authorization_type?: string
 }
 
 interface CampaignSummary {
@@ -128,9 +132,9 @@ export default function CreatorDetailsPage() {
         
         const creators = result.data || []
         
-        // 캠페인 목록 추출 (creative_type 기준)
+        // 캠페인 목록 추출 (campaign_name 기준)
         const allVideos = creators.flatMap((creator: CreatorData) => creator.videos || [])
-        const uniqueCampaigns = [...new Set(allVideos.map((video: VideoData) => video.creative_type).filter(Boolean))]
+        const uniqueCampaigns = [...new Set(allVideos.map((video: VideoData) => video.campaign_name).filter(Boolean))]
         setCampaigns(uniqueCampaigns)
         
         // GMV 기준 내림차순 정렬
@@ -155,7 +159,7 @@ export default function CreatorDetailsPage() {
       
       let filteredVideos = allVideos
       if (selectedCampaign !== "all") {
-        filteredVideos = allVideos.filter(video => video.creative_type === selectedCampaign)
+        filteredVideos = allVideos.filter(video => video.campaign_name === selectedCampaign)
       }
       
       const summary: CampaignSummary = {
@@ -168,7 +172,7 @@ export default function CreatorDetailsPage() {
           creatorsData
             .filter(creator => 
               selectedCampaign === "all" || 
-              creator.videos?.some(video => video.creative_type === selectedCampaign)
+              creator.videos?.some(video => video.campaign_name === selectedCampaign)
             )
             .map(creator => creator.account)
         ).size
@@ -212,7 +216,7 @@ export default function CreatorDetailsPage() {
       creator.account.toLowerCase().includes(creatorSearchQuery.toLowerCase())
     
     const matchesCampaign = selectedCampaign === "all" || 
-      creator.videos?.some(video => video.creative_type === selectedCampaign)
+      creator.videos?.some(video => video.campaign_name === selectedCampaign)
     
     return matchesSearch && matchesCampaign
   })
@@ -589,7 +593,9 @@ export default function CreatorDetailsPage() {
                 <TableRow>
                   <TableHead>영상 ID</TableHead>
                   <TableHead>영상 제목</TableHead>
-                  <TableHead>유형</TableHead>
+                  <TableHead>캠페인</TableHead>
+                  <TableHead>제품 ID</TableHead>
+                  <TableHead>인증 유형</TableHead>
                   <TableHead>상태</TableHead>
                   <TableHead className="text-right">주문 수</TableHead>
                   <TableHead className="text-right">매출</TableHead>
@@ -603,11 +609,17 @@ export default function CreatorDetailsPage() {
                 {selectedCreatorVideos.videos.map((video, index) => (
                   <TableRow key={video.video_id || index}>
                     <TableCell className="font-medium">{video.video_id || '-'}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">
+                    <TableCell className="max-w-[200px] truncate" title={video.video_title}>
                       {video.video_title || '제목 없음'}
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{video.creative_type || '-'}</Badge>
+                    <TableCell className="max-w-[150px] truncate" title={video.campaign_name}>
+                      <Badge variant="outline">{video.campaign_name || '-'}</Badge>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {video.product_id || '-'}
+                    </TableCell>
+                    <TableCell className="max-w-[120px] truncate">
+                      {video.authorization_type || '-'}
                     </TableCell>
                     <TableCell>
                       <Badge 

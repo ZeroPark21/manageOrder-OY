@@ -23,6 +23,10 @@ interface GmvDataSimple {
   video_view_rate_75: number
   video_view_rate_100: number
   currency: string
+  campaign_name?: string
+  campaign_id?: string
+  product_id?: string
+  authorization_type?: string
 }
 
 function groupByAccount(data: GmvDataSimple[]) {
