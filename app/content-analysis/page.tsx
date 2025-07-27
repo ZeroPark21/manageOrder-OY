@@ -1,242 +1,614 @@
 "use client"
 
-import { useState } from "react"
-import { Card } from "@/components/ui/card"
+import { useState, useEffect, useMemo } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { DatePickerWithRange } from "@/components/ui/date-range-picker"
-import { DateRange } from "react-day-picker"
-import { addDays } from "date-fns"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Progress } from "@/components/ui/progress"
-import { Eye, Heart, MessageCircle, Share2, TrendingUp } from "lucide-react"
+  ArrowLeft,
+  TrendingUp,
+  Users,
+  Video,
+  Search,
+  Eye,
+  MousePointer,
+  ShoppingCart,
+  Calendar,
+  ExternalLink,
+} from "lucide-react"
+
+// 크리에이터 분석용 인터페이스
+interface VideoData {
+  videoName: string
+  videoLink: string
+  videoId: string
+  videoPostDate: string
+  creatorUsername: string
+  gmv: number
+  affiliateItemsSold: number
+  affiliateShoppableVideoGmv: number
+  shoppableVideoAvgOrderValue: string
+  estCommission: number
+  affiliateOrders: number
+  shoppableVideoImpressions: number
+  affiliateCtr: string
+  shoppableVideoGpm: number
+  affiliateItemsRefunded: number
+  affiliateRefundedGmv: number
+  shoppableVideoComments: number
+  shoppableVideoLikes: number
+}
+
+interface CreatorStats {
+  username: string
+  videoCount: number
+  totalGmv: number
+  totalCommission: number
+  totalOrders: number
+  totalImpressions: number
+  totalLikes: number
+  totalComments: number
+  avgCtr: number
+  videos: VideoData[]
+}
 
 export default function ContentAnalysisPage() {
-  const [date, setDate] = useState<DateRange | undefined>({
-    from: addDays(new Date(), -30),
-    to: new Date(),
-  })
-  const [selectedCategory, setSelectedCategory] = useState<string>("all")
-  const [selectedStatus, setSelectedStatus] = useState<string>("all")
+  const [videoData, setVideoData] = useState<VideoData[]>([])
+  const [selectedCreator, setSelectedCreator] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // 샘플 데이터
-  const contentData = [
-    {
-      id: 1,
-      contentId: "CNT2024001",
-      creator: "@fashionista",
-      product: "립스틱 A",
-      publishDate: "2024-12-15",
-      views: 125000,
-      likes: 8500,
-      comments: 342,
-      shares: 125,
-      engagementRate: 7.2,
-      status: "active",
-      category: "beauty",
-    },
-    {
-      id: 2,
-      contentId: "CNT2024002",
-      creator: "@beautyexpert",
-      product: "스킨케어 세트",
-      publishDate: "2024-12-14",
-      views: 89000,
-      likes: 6200,
-      comments: 289,
-      shares: 98,
-      engagementRate: 7.8,
-      status: "active",
-      category: "skincare",
-    },
-    {
-      id: 3,
-      contentId: "CNT2024003",
-      creator: "@lifestyle_guru",
-      product: "향수 B",
-      publishDate: "2024-12-13",
-      views: 56000,
-      likes: 3200,
-      comments: 156,
-      shares: 45,
-      engagementRate: 6.1,
-      status: "completed",
-      category: "fragrance",
-    },
-  ]
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`
-    return num.toString()
+  // Video ID 추출 함수
+  const extractVideoId = (url: string): string => {
+    const match = url.match(/\/video\/(\d+)/)
+    return match ? match[1] : ""
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">활성</span>
-      case "completed":
-        return <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">완료</span>
-      default:
-        return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700">대기</span>
+  // CSV 파싱 함수
+  function parseCSVLine(line: string): string[] {
+    const result: string[] = []
+    let current = ""
+    let inQuotes = false
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+
+      if (char === '"') {
+        inQuotes = !inQuotes
+      } else if (char === "," && !inQuotes) {
+        result.push(current.trim())
+        current = ""
+      } else {
+        current += char
+      }
     }
+
+    result.push(current.trim())
+    return result
+  }
+
+  // 크리에이터 데이터 로드
+  const loadCreatorData = async () => {
+    try {
+      const response = await fetch(
+        "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Video_List_20250525-20250621_20250623005810-zMEbPPZVk76TqJRVagNfZukFEHsDak.csv",
+      )
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const csvText = await response.text()
+      const lines = csvText.split("\n").filter((line) => line.trim())
+
+      if (lines.length < 2) {
+        throw new Error("크리에이터 CSV 파일에 데이터가 없습니다.")
+      }
+
+      const parsedData: VideoData[] = []
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim()
+        if (!line) continue
+
+        try {
+          const values = parseCSVLine(line)
+
+          if (values.length >= 17) {
+            const videoItem: VideoData = {
+              videoName: values[0]?.replace(/"/g, "") || "",
+              videoLink: values[1]?.replace(/"/g, "") || "",
+              videoId: extractVideoId(values[1]?.replace(/"/g, "") || ""),
+              videoPostDate: values[2]?.replace(/"/g, "") || "",
+              creatorUsername: values[3]?.replace(/"/g, "") || "",
+              gmv: Number.parseFloat(values[4]?.replace(/"/g, "") || "0") || 0,
+              affiliateItemsSold: Number.parseInt(values[5]?.replace(/"/g, "") || "0") || 0,
+              affiliateShoppableVideoGmv: Number.parseFloat(values[6]?.replace(/"/g, "") || "0") || 0,
+              shoppableVideoAvgOrderValue: values[7]?.replace(/"/g, "") || "--",
+              estCommission: Number.parseFloat(values[8]?.replace(/"/g, "") || "0") || 0,
+              affiliateOrders: Number.parseInt(values[9]?.replace(/"/g, "") || "0") || 0,
+              shoppableVideoImpressions: Number.parseInt(values[10]?.replace(/"/g, "") || "0") || 0,
+              affiliateCtr: values[11]?.replace(/"/g, "") || "0%",
+              shoppableVideoGpm: Number.parseFloat(values[12]?.replace(/"/g, "") || "0") || 0,
+              affiliateItemsRefunded: Number.parseInt(values[13]?.replace(/"/g, "") || "0") || 0,
+              affiliateRefundedGmv: Number.parseFloat(values[14]?.replace(/"/g, "") || "0") || 0,
+              shoppableVideoComments: Number.parseInt(values[15]?.replace(/"/g, "") || "0") || 0,
+              shoppableVideoLikes: Number.parseInt(values[16]?.replace(/"/g, "") || "0") || 0,
+            }
+
+            parsedData.push(videoItem)
+          }
+        } catch (lineError) {
+          console.warn(`크리에이터 데이터 라인 ${i} 파싱 오류:`, lineError)
+        }
+      }
+
+      setVideoData(parsedData)
+      return parsedData
+    } catch (error) {
+      console.error("크리에이터 데이터 로딩 오류:", error)
+      throw error
+    }
+  }
+
+  useEffect(() => {
+    async function loadAllData() {
+      try {
+        setLoading(true)
+        setError(null)
+        await loadCreatorData()
+      } catch (error) {
+        console.error("데이터 로딩 오류:", error)
+        setError(error instanceof Error ? error.message : "데이터를 불러오는 중 오류가 발생했습니다.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadAllData()
+  }, [])
+
+  // 크리에이터별 통계 계산
+  const creatorStats = useMemo(() => {
+    if (!videoData.length) return []
+
+    const stats = videoData.reduce(
+      (acc, video) => {
+        const username = video.creatorUsername
+        if (!username) return acc
+
+        if (!acc[username]) {
+          acc[username] = {
+            username,
+            videoCount: 0,
+            totalGmv: 0,
+            totalCommission: 0,
+            totalOrders: 0,
+            totalImpressions: 0,
+            totalLikes: 0,
+            totalComments: 0,
+            avgCtr: 0,
+            videos: [],
+          }
+        }
+
+        acc[username].videoCount++
+        acc[username].totalGmv += video.gmv
+        acc[username].totalCommission += video.estCommission
+        acc[username].totalOrders += video.affiliateOrders
+        acc[username].totalImpressions += video.shoppableVideoImpressions
+        acc[username].totalLikes += video.shoppableVideoLikes
+        acc[username].totalComments += video.shoppableVideoComments
+        acc[username].videos.push(video)
+
+        return acc
+      },
+      {} as Record<string, CreatorStats>,
+    )
+
+    Object.values(stats).forEach((creator) => {
+      creator.videos.sort((a, b) => b.gmv - a.gmv)
+
+      const validCtrs = creator.videos
+        .map((v) => Number.parseFloat(v.affiliateCtr.replace("%", "")))
+        .filter((ctr) => !isNaN(ctr) && ctr > 0)
+
+      creator.avgCtr = validCtrs.length > 0 ? validCtrs.reduce((sum, ctr) => sum + ctr, 0) / validCtrs.length : 0
+    })
+
+    return Object.values(stats)
+      .filter((creator) => creator.username.toLowerCase().includes(searchTerm.toLowerCase()))
+      .sort((a, b) => b.totalGmv - a.totalGmv)
+  }, [videoData, searchTerm])
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("ko-KR", {
+      style: "currency",
+      currency: "USD",
+    }).format(amount)
+  }
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat("ko-KR").format(num)
+  }
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString("ko-KR")
+    } catch {
+      return dateString
+    }
+  }
+
+  // Excel 추출 함수
+  const exportToExcel = (data: any[], filename: string) => {
+    const headers = Object.keys(data[0] || {})
+    const csvContent = [
+      headers.join(","),
+      ...data.map((row) =>
+        headers
+          .map((header) => {
+            const value = row[header]
+            if (typeof value === "string" && (value.includes(",") || value.includes('"'))) {
+              return `"${value.replace(/"/g, '""')}"`
+            }
+            return value
+          })
+          .join(","),
+      ),
+    ].join("\n")
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" })
+    const link = document.createElement("a")
+    const url = URL.createObjectURL(blob)
+    link.setAttribute("href", url)
+    link.setAttribute("download", `${filename}.csv`)
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const exportCreatorData = () => {
+    const exportData = creatorStats.map((creator, index) => ({
+      순위: index + 1,
+      크리에이터: creator.username,
+      "영상 수": creator.videoCount,
+      "총 GMV (USD)": creator.totalGmv,
+      "총 수수료 (USD)": creator.totalCommission,
+      "총 주문": creator.totalOrders,
+      "총 노출": creator.totalImpressions,
+      "총 좋아요": creator.totalLikes,
+      "총 댓글": creator.totalComments,
+      "평균 CTR (%)": creator.avgCtr.toFixed(2),
+    }))
+
+    exportToExcel(exportData, `크리에이터_분석_${new Date().toISOString().split("T")[0]}`)
+  }
+
+  const exportCreatorVideos = () => {
+    if (!selectedCreator) return
+
+    const creatorInfo = creatorStats.find((creator) => creator.username === selectedCreator)
+    if (!creatorInfo) return
+
+    const exportData = creatorInfo.videos.map((video, index) => ({
+      순위: index + 1,
+      "영상 제목": video.videoName,
+      "Video ID": video.videoId,
+      "게시 날짜": video.videoPostDate,
+      "GMV (USD)": video.gmv,
+      "수수료 (USD)": video.estCommission,
+      "주문 수": video.affiliateOrders,
+      "판매 상품": video.affiliateItemsSold,
+      "노출 수": video.shoppableVideoImpressions,
+      CTR: video.affiliateCtr,
+      좋아요: video.shoppableVideoLikes,
+      댓글: video.shoppableVideoComments,
+      "영상 링크": video.videoLink,
+    }))
+
+    exportToExcel(exportData, `크리에이터_${selectedCreator}_영상분석_${new Date().toISOString().split("T")[0]}`)
+  }
+
+  if (loading) {
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">TikTok 데이터를 불러오는 중...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="text-red-600 text-xl mb-4">⚠️ 오류 발생</div>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>다시 시도</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const totalStats = {
+    totalVideos: videoData.length,
+    totalGmv: videoData.reduce((sum, video) => sum + video.gmv, 0),
+    totalCommission: videoData.reduce((sum, video) => sum + video.estCommission, 0),
+    totalOrders: videoData.reduce((sum, video) => sum + video.affiliateOrders, 0),
+    totalCreators: creatorStats.length,
+  }
+
+  if (selectedCreator) {
+    const creatorInfo = creatorStats.find((creator) => creator.username === selectedCreator)
+    const selectedCreatorVideos = creatorInfo?.videos || []
+
+    return (
+      <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <Button variant="outline" onClick={() => setSelectedCreator(null)}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              크리에이터 목록으로 돌아가기
+            </Button>
+            <Button onClick={exportCreatorVideos} variant="outline" size="sm">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              영상 데이터 Excel 추출
+            </Button>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">@{selectedCreator}</h1>
+          <p className="text-gray-600 mt-2">GMV 순위별 영상 목록 ({selectedCreatorVideos.length}개 영상)</p>
+        </div>
+
+        {/* 크리에이터 요약 통계 */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-green-600">{formatCurrency(creatorInfo?.totalGmv || 0)}</div>
+              <p className="text-sm text-gray-500">총 GMV</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold text-blue-600">{formatCurrency(creatorInfo?.totalCommission || 0)}</div>
+              <p className="text-sm text-gray-500">총 수수료</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold">{formatNumber(creatorInfo?.totalOrders || 0)}</div>
+              <p className="text-sm text-gray-500">총 주문</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-2xl font-bold">{creatorInfo?.avgCtr.toFixed(2) || 0}%</div>
+              <p className="text-sm text-gray-500">평균 CTR</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-6">
+          {selectedCreatorVideos.map((video, index) => (
+            <Card key={video.videoId} className="hover:shadow-lg transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="secondary" className="text-lg font-semibold">
+                      #{index + 1}
+                    </Badge>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">Video ID</p>
+                      <p className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{video.videoId}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">{formatDate(video.videoPostDate)}</span>
+                  </div>
+                </div>
+
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{video.videoName}</h3>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" />
+                      GMV
+                    </p>
+                    <p className="text-lg font-bold text-green-600">{formatCurrency(video.gmv)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <ShoppingCart className="w-3 h-3" />
+                      주문
+                    </p>
+                    <p className="text-lg font-semibold">{formatNumber(video.affiliateOrders)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <Eye className="w-3 h-3" />
+                      노출
+                    </p>
+                    <p className="text-lg font-semibold">{formatNumber(video.shoppableVideoImpressions)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <MousePointer className="w-3 h-3" />
+                      CTR
+                    </p>
+                    <p className="text-lg font-semibold">{video.affiliateCtr}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-4 border-t">
+                  <ExternalLink className="w-4 h-4 text-blue-500" />
+                  <a
+                    href={video.videoLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-sm"
+                  >
+                    TikTok에서 영상 보기
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">콘텐츠 분석</h2>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">크리에이터 분석</h1>
+        <p className="text-gray-600">TikTok Shop 크리에이터 성과 분석</p>
       </div>
 
-      {/* 필터 섹션 */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap gap-4">
-          <DatePickerWithRange date={date} setDate={setDate} />
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="카테고리 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">전체 카테고리</SelectItem>
-              <SelectItem value="beauty">뷰티</SelectItem>
-              <SelectItem value="skincare">스킨케어</SelectItem>
-              <SelectItem value="fragrance">향수</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="상태 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">전체 상태</SelectItem>
-              <SelectItem value="active">활성</SelectItem>
-              <SelectItem value="completed">완료</SelectItem>
-              <SelectItem value="pending">대기</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button>필터 적용</Button>
-        </div>
-      </div>
+      {/* 전체 통계 */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">총 영상 수</CardTitle>
+            <Video className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalStats.totalVideos}</div>
+          </CardContent>
+        </Card>
 
-      {/* 요약 카드 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">총 콘텐츠</p>
-              <p className="text-2xl font-bold">152</p>
-            </div>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">전월 대비 +12%</p>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">총 GMV</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalStats.totalGmv)}</div>
+          </CardContent>
         </Card>
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">총 조회수</p>
-              <p className="text-2xl font-bold">2.3M</p>
-            </div>
-            <Eye className="h-4 w-4 text-blue-600" />
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">평균 15.1K/콘텐츠</p>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">총 수수료</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{formatCurrency(totalStats.totalCommission)}</div>
+          </CardContent>
         </Card>
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">평균 참여율</p>
-              <p className="text-2xl font-bold">6.8%</p>
-            </div>
-            <Heart className="h-4 w-4 text-red-600" />
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">업계 평균 5.2%</p>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">총 주문</CardTitle>
+            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatNumber(totalStats.totalOrders)}</div>
+          </CardContent>
         </Card>
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">활성 크리에이터</p>
-              <p className="text-2xl font-bold">48</p>
-            </div>
-            <MessageCircle className="h-4 w-4 text-purple-600" />
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">신규 크리에이터 +5</p>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">크리에이터 수</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalStats.totalCreators}</div>
+          </CardContent>
         </Card>
       </div>
 
-      {/* 콘텐츠 테이블 */}
+      {/* 검색 */}
       <Card>
-        <div className="p-6">
-          <h3 className="text-lg font-medium mb-4">콘텐츠 상세 분석</h3>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>콘텐츠 ID</TableHead>
-                <TableHead>크리에이터</TableHead>
-                <TableHead>제품</TableHead>
-                <TableHead>발행일</TableHead>
-                <TableHead className="text-right">조회수</TableHead>
-                <TableHead className="text-right">좋아요</TableHead>
-                <TableHead className="text-right">댓글</TableHead>
-                <TableHead className="text-right">공유</TableHead>
-                <TableHead className="text-right">참여율</TableHead>
-                <TableHead>상태</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {contentData.map((content) => (
-                <TableRow key={content.id}>
-                  <TableCell className="font-medium">{content.contentId}</TableCell>
-                  <TableCell>{content.creator}</TableCell>
-                  <TableCell>{content.product}</TableCell>
-                  <TableCell>{content.publishDate}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Eye className="h-3 w-3 text-muted-foreground" />
-                      {formatNumber(content.views)}
+        <CardHeader>
+          <CardTitle>크리에이터 검색</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="크리에이터 사용자명으로 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 크리에이터 목록 */}
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>크리에이터 목록 (GMV 순)</CardTitle>
+              <CardDescription>
+                크리에이터를 클릭하면 해당 크리에이터의 영상을 GMV 순으로 볼 수 있습니다.
+              </CardDescription>
+            </div>
+            <Button onClick={exportCreatorData} variant="outline" size="sm">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Excel 추출
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            {creatorStats.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">
+                {searchTerm ? "검색 결과가 없습니다." : "데이터를 불러오는 중..."}
+              </p>
+            ) : (
+              creatorStats.map((creator, index) => (
+                <div
+                  key={creator.username}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={() => setSelectedCreator(creator.username)}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Badge variant="outline">#{index + 1}</Badge>
+                      <h3 className="font-semibold text-lg">@{creator.username}</h3>
+                      <Badge variant="secondary">{creator.videoCount}개 영상</Badge>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Heart className="h-3 w-3 text-muted-foreground" />
-                      {formatNumber(content.likes)}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500">총 GMV</p>
+                        <p className="font-semibold text-green-600">{formatCurrency(creator.totalGmv)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">총 수수료</p>
+                        <p className="font-semibold text-blue-600">{formatCurrency(creator.totalCommission)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">총 주문</p>
+                        <p className="font-semibold">{formatNumber(creator.totalOrders)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">평균 CTR</p>
+                        <p className="font-semibold">{creator.avgCtr.toFixed(2)}%</p>
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <MessageCircle className="h-3 w-3 text-muted-foreground" />
-                      {formatNumber(content.comments)}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Share2 className="h-3 w-3 text-muted-foreground" />
-                      {formatNumber(content.shares)}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Progress value={content.engagementRate * 10} className="w-16" />
-                      <span className="text-sm">{content.engagementRate}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>{getStatusBadge(content.status)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    영상 보기
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
       </Card>
     </div>
   )

@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, ShoppingCart, DollarSign, Users, Package, BarChart3 } from "lucide-react"
+import { TrendingUp, ShoppingCart, DollarSign, Users, Package, BarChart3, Wallet, Target } from "lucide-react"
 import {
   BarChart,
   Bar,
@@ -147,11 +147,11 @@ export default function GmvMaxPage() {
       </div>
 
       {/* 핵심 지표 카드 */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">총 GMV</p>
+              <p className="text-sm font-medium text-muted-foreground">총매출</p>
               <p className="text-2xl font-bold">{formatCurrency(301000)}</p>
             </div>
             <DollarSign className="h-4 w-4 text-green-600" />
@@ -161,32 +161,42 @@ export default function GmvMaxPage() {
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">총 주문수</p>
-              <p className="text-2xl font-bold">590</p>
+              <p className="text-sm font-medium text-muted-foreground">총 예산</p>
+              <p className="text-2xl font-bold">{formatCurrency(500000)}</p>
             </div>
-            <ShoppingCart className="h-4 w-4 text-blue-600" />
+            <Wallet className="h-4 w-4 text-blue-600" />
           </div>
-          <p className="text-xs text-muted-foreground mt-2">평균 주문가 ₩509,322</p>
+          <p className="text-xs text-muted-foreground mt-2">할당된 예산</p>
         </Card>
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">평균 전환율</p>
-              <p className="text-2xl font-bold">2.8%</p>
+              <p className="text-sm font-medium text-muted-foreground">총 광고비</p>
+              <p className="text-2xl font-bold">{formatCurrency(85000)}</p>
             </div>
-            <Users className="h-4 w-4 text-purple-600" />
+            <Target className="h-4 w-4 text-purple-600" />
           </div>
-          <p className="text-xs text-muted-foreground mt-2">업계 평균 2.1%</p>
+          <p className="text-xs text-muted-foreground mt-2">집행률 17%</p>
         </Card>
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">순이익</p>
-              <p className="text-2xl font-bold">{formatCurrency(92000)}</p>
+              <p className="text-sm font-medium text-muted-foreground">평균 ROI</p>
+              <p className="text-2xl font-bold">354%</p>
             </div>
             <TrendingUp className="h-4 w-4 text-orange-600" />
           </div>
-          <p className="text-xs text-muted-foreground mt-2">마진율 30.6%</p>
+          <p className="text-xs text-muted-foreground mt-2">투자 대비 수익률</p>
+        </Card>
+        <Card className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">활성 캠페인</p>
+              <p className="text-2xl font-bold">12</p>
+            </div>
+            <BarChart3 className="h-4 w-4 text-cyan-600" />
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">진행 중인 캠페인</p>
         </Card>
       </div>
 
