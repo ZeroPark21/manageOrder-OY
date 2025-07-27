@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Package, Video, Upload, BarChart3 } from "lucide-react"
+import { Package, Video, Upload, BarChart3, FileSearch, TrendingUp } from "lucide-react"
 
 // 메뉴 데이터
 const menuItems = [
@@ -30,6 +30,18 @@ const menuItems = [
     url: "/content",
     icon: Video,
     description: "시딩 콘텐츠 발행 추이 분석",
+  },
+  {
+    title: "콘텐츠 분석",
+    url: "/content-analysis",
+    icon: FileSearch,
+    description: "콘텐츠 성과 분석",
+  },
+  {
+    title: "GMV MAX 분석",
+    url: "/gmv-max",
+    icon: TrendingUp,
+    description: "GMV MAX 성과 분석",
   },
 ]
 
