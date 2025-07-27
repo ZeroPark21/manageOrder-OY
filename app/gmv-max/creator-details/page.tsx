@@ -38,27 +38,10 @@ import {
   DollarSign, 
   ShoppingCart,
   Video,
-  BarChart3,
   Search,
-  Target,
   Play,
   ExternalLink 
 } from "lucide-react"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts"
 
 interface CreatorData {
   account: string
@@ -230,17 +213,6 @@ export default function CreatorDetailsPage() {
     return matchesSearch && matchesCampaign
   })
 
-  // 차트 색상
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d']
-
-  // 크리에이터별 성과 비교 데이터 (필터링된 데이터 사용)
-  const creatorComparisonData = filteredCreatorsData.slice(0, 10).map((creator, index) => ({
-    name: creator.account.length > 10 ? creator.account.substring(0, 10) + '...' : creator.account,
-    revenue: creator.totalRevenue,
-    orders: creator.totalOrders,
-    videos: creator.videoCount,
-    clickRate: creator.avgClickRate * 100,
-  }))
 
   if (loading) {
     return (
@@ -329,108 +301,7 @@ export default function CreatorDetailsPage() {
         </div>
       </div>
 
-      {/* 캠페인 성과 요약 */}
-      {campaignSummary && (
-        <Card className="p-6">
-          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            {selectedCampaign === "all" ? "전체 캠페인" : selectedCampaign} 성과 요약
-          </h3>
-          <div className="grid gap-4 md:grid-cols-6">
-            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
-              <Video className="h-8 w-8 text-blue-600" />
-              <div>
-                <p className="text-sm font-medium text-blue-900">총 영상 수</p>
-                <p className="text-2xl font-bold text-blue-900">{campaignSummary.totalVideos}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg">
-              <DollarSign className="h-8 w-8 text-green-600" />
-              <div>
-                <p className="text-sm font-medium text-green-900">총 GMV</p>
-                <p className="text-xl font-bold text-green-900">
-                  {formatCurrency(campaignSummary.totalGMV)}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg">
-              <ShoppingCart className="h-8 w-8 text-orange-600" />
-              <div>
-                <p className="text-sm font-medium text-orange-900">총 주문</p>
-                <p className="text-2xl font-bold text-orange-900">{campaignSummary.totalOrders}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg">
-              <Eye className="h-8 w-8 text-purple-600" />
-              <div>
-                <p className="text-sm font-medium text-purple-900">총 노출</p>
-                <p className="text-xl font-bold text-purple-900">
-                  {campaignSummary.totalImpressions.toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 bg-cyan-50 rounded-lg">
-              <MousePointer className="h-8 w-8 text-cyan-600" />
-              <div>
-                <p className="text-sm font-medium text-cyan-900">총 클릭</p>
-                <p className="text-2xl font-bold text-cyan-900">
-                  {campaignSummary.totalClicks.toLocaleString()}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-4 bg-pink-50 rounded-lg">
-              <Users className="h-8 w-8 text-pink-600" />
-              <div>
-                <p className="text-sm font-medium text-pink-900">크리에이터 수</p>
-                <p className="text-2xl font-bold text-pink-900">{campaignSummary.totalCreators}</p>
-              </div>
-            </div>
-          </div>
-        </Card>
-      )}
 
-      {/* 크리에이터별 비교 차트 */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="p-6">
-          <h3 className="text-lg font-medium mb-4">크리에이터별 매출 비교</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={creatorComparisonData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
-                angle={-45}
-                textAnchor="end"
-                height={100}
-                fontSize={12}
-              />
-              <YAxis />
-              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Legend />
-              <Bar dataKey="revenue" fill="#8884d8" name="매출" />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-
-        <Card className="p-6">
-          <h3 className="text-lg font-medium mb-4">크리에이터별 주문 수 비교</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={creatorComparisonData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
-                angle={-45}
-                textAnchor="end"
-                height={100}
-                fontSize={12}
-              />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="orders" fill="#82ca9d" name="주문 수" />
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
-      </div>
 
       {/* 선택된 크리에이터 상세 정보 */}
       {selectedCreatorData && (
@@ -528,6 +399,7 @@ export default function CreatorDetailsPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="text-center w-12">순위</TableHead>
                 <TableHead>크리에이터</TableHead>
                 <TableHead className="text-right">영상 수</TableHead>
                 <TableHead className="text-right">총 주문수</TableHead>
@@ -550,6 +422,7 @@ export default function CreatorDetailsPage() {
                   }`}
                   onClick={() => setSelectedCreator(creator.account)}
                 >
+                  <TableCell className="text-center font-semibold">{index + 1}</TableCell>
                   <TableCell className="font-medium">{creator.account || '이름 없음'}</TableCell>
                   <TableCell className="text-right">{creator.videoCount}</TableCell>
                   <TableCell className="text-right">{creator.totalOrders}</TableCell>

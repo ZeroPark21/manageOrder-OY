@@ -269,7 +269,7 @@ export default function Dashboard() {
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="/">TTS 대시보드</BreadcrumbLink>
+              <BreadcrumbLink href="/">TTS Dashboard</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
@@ -285,7 +285,7 @@ export default function Dashboard() {
           {/* 페이지 헤더 */}
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold">TTS 제품 발송 현황</h1>
+              <h1 className="text-3xl font-bold">제품 발송 현황</h1>
               <p className="text-muted-foreground">상품 발송현황 분석 (2025년 6월 1일부터)</p>
             </div>
             <div className="flex gap-2">

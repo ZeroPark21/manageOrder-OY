@@ -308,3 +308,260 @@ Supabase 삽입 오류: {
  GET /gmv-max/creator-details 200 in 92ms
  ✓ Compiled in 915ms (2769 modules)
  GET /gmv-max/creator-details 200 in 55ms
+ GET /gmv-max 200 in 172ms
+ GET /gmv-max/creator-details 200 in 16ms
+ GET /api/gmv-data?groupBy=account 200 in 969ms
+ GET /api/gmv-data?groupBy=account 200 in 83ms
+ GET /api/gmv-data?groupBy=account 200 in 91ms
+ GET /api/gmv-data?groupBy=account 200 in 75ms
+ ✓ Compiled in 1544ms (2769 modules)
+ GET /gmv-max/creator-details 200 in 42ms
+ ✓ Compiled in 817ms (2769 modules)
+ GET /gmv-max/creator-details 200 in 52ms
+ GET /gmv-max 200 in 152ms
+ GET /api/gmv-data?groupBy=account 200 in 834ms
+ GET /api/gmv-data?groupBy=account 200 in 97ms
+ GET /gmv-max/creator-details 200 in 37ms
+ GET /api/gmv-data?groupBy=account 200 in 108ms
+ GET /api/gmv-data?groupBy=account 200 in 68ms
+ GET /gmv-max 200 in 17ms
+ GET /api/gmv-data?groupBy=account 200 in 154ms
+ GET /api/gmv-data?groupBy=account 200 in 74ms
+ GET /gmv-max/creator-details 200 in 19ms
+ GET /api/gmv-data?groupBy=account 200 in 84ms
+ GET /api/gmv-data?groupBy=account 200 in 75ms
+ GET /gmv-max 200 in 69ms
+ GET /api/gmv-data?groupBy=account 200 in 198ms
+ GET /api/gmv-data?groupBy=account 200 in 77ms
+ GET /gmv-max/creator-details 200 in 20ms
+ GET /api/gmv-data?groupBy=account 200 in 137ms
+ GET /api/gmv-data?groupBy=account 200 in 81ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 1849ms (2769 modules)
+ GET /gmv-max/creator-details 200 in 854ms
+ GET /api/gmv-data?groupBy=account 200 in 236ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 1489ms (2769 modules)
+ GET /gmv-max/creator-details 200 in 1114ms
+ GET /api/gmv-data?groupBy=account 200 in 634ms
+ GET /gmv-max 200 in 84ms
+ GET /api/gmv-data?groupBy=account 200 in 646ms
+ GET /api/gmv-data?groupBy=account 200 in 87ms
+ GET /gmv-max/creator-details 200 in 25ms
+ GET /api/gmv-data?groupBy=account 200 in 100ms
+ GET /api/gmv-data?groupBy=account 200 in 66ms
+ GET /gmv-max 200 in 14ms
+ GET /api/gmv-data?groupBy=account 200 in 79ms
+ GET /api/gmv-data?groupBy=account 200 in 76ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1933ms (1437 modules)
+ GET / 200 in 2172ms
+ ○ Compiling /api/orders ...
+ ✓ Compiled /api/orders in 865ms (1595 modules)
+ GET /api/orders?groupBy=daily 200 in 1117ms
+ ✓ Compiled /api/daily-matrix in 211ms (1598 modules)
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 453ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 73ms
+ GET /gmv-max 200 in 44ms
+ GET /api/gmv-data?groupBy=account 200 in 262ms
+ GET /api/gmv-data?groupBy=account 200 in 84ms
+ ✓ Compiled in 1692ms (2792 modules)
+ GET /gmv-max 200 in 42ms
+ GET /gmv-max 200 in 44ms
+ ✓ Compiled in 2.5s (2806 modules)
+ GET /gmv-max 200 in 190ms
+ GET /gmv-max 200 in 43ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 3.2s (2806 modules)
+ ⨯ ReferenceError: estimatedBudget is not defined
+    at calculateStats (app/gmv-max/page.tsx:120:19)
+    at GmvMaxPage (app/gmv-max/page.tsx:127:16)
+  118 |       totalVideos,
+  119 |       totalCreators: gmvData.length,
+> 120 |       totalBudget: estimatedBudget,
+      |                   ^
+  121 |       totalAdSpend: estimatedAdSpend,
+  122 |       avgROI: Math.round(avgROI),
+  123 |       activeCampaigns: campaigns.length {
+  digest: '1808112890'
+}
+ GET /gmv-max 500 in 410ms
+ ⨯ ReferenceError: estimatedBudget is not defined
+    at calculateStats (app/gmv-max/page.tsx:120:19)
+    at GmvMaxPage (app/gmv-max/page.tsx:127:16)
+  118 |       totalVideos,
+  119 |       totalCreators: gmvData.length,
+> 120 |       totalBudget: estimatedBudget,
+      |                   ^
+  121 |       totalAdSpend: estimatedAdSpend,
+  122 |       avgROI: Math.round(avgROI),
+  123 |       activeCampaigns: campaigns.length {
+  digest: '1808112890'
+}
+ GET /gmv-max 500 in 128ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 747ms (2806 modules)
+ GET /gmv-max 200 in 760ms
+ GET /gmv-max 200 in 86ms
+ GET /api/gmv-data?groupBy=account 200 in 736ms
+ GET /api/gmv-data?groupBy=account 200 in 86ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 2.2s (2806 modules)
+ GET /gmv-max 200 in 766ms
+ GET /gmv-max 200 in 162ms
+ GET /api/gmv-data?groupBy=account 200 in 762ms
+ GET /api/gmv-data?groupBy=account 200 in 116ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 857ms (2806 modules)
+ GET /gmv-max 200 in 629ms
+ GET /gmv-max 200 in 71ms
+ GET /api/gmv-data?groupBy=account 200 in 177ms
+ GET /api/gmv-data?groupBy=account 200 in 78ms
+ ✓ Compiled in 758ms (2806 modules)
+ GET /gmv-max 200 in 88ms
+ GET /gmv-max 200 in 29ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 1648ms (2806 modules)
+ GET /gmv-max 200 in 1032ms
+ GET /gmv-max 200 in 108ms
+ GET /api/gmv-data?groupBy=account 200 in 719ms
+ GET /api/gmv-data?groupBy=account 200 in 83ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled in 974ms (2806 modules)
+ GET /gmv-max 200 in 647ms
+ GET /gmv-max 200 in 75ms
+ GET /api/gmv-data?groupBy=account 200 in 180ms
+ GET /api/gmv-data?groupBy=account 200 in 76ms
+ ✓ Compiled in 3s (2806 modules)
+ GET /gmv-max 200 in 164ms
+ GET /gmv-max 200 in 26ms
+ ✓ Compiled in 881ms (2806 modules)
+ GET /gmv-max 200 in 72ms
+ GET /gmv-max 200 in 29ms
+ GET /gmv-max/creator-details 200 in 55ms
+ GET /api/gmv-data?groupBy=account 200 in 720ms
+ GET /api/gmv-data?groupBy=account 200 in 92ms
+ GET /gmv-max 200 in 42ms
+ GET /api/gmv-data?groupBy=account 200 in 142ms
+ GET /api/gmv-data?groupBy=account 200 in 81ms
+ GET /gmv-max/creator-details 200 in 23ms
+ GET /api/gmv-data?groupBy=account 200 in 65ms
+ GET /api/gmv-data?groupBy=account 200 in 89ms
+ GET /gmv-max 200 in 19ms
+ GET /api/gmv-data?groupBy=account 200 in 95ms
+ GET /api/gmv-data?groupBy=account 200 in 70ms
+ GET /gmv-max/creator-details 200 in 16ms
+ GET /api/gmv-data?groupBy=account 200 in 76ms
+ GET /api/gmv-data?groupBy=account 200 in 70ms
+ GET /gmv-max 200 in 76ms
+ GET /api/gmv-data?groupBy=account 200 in 93ms
+ GET /api/gmv-data?groupBy=account 200 in 61ms
+ GET /gmv-max/creator-details 200 in 26ms
+ GET /api/gmv-data?groupBy=account 200 in 78ms
+ GET /api/gmv-data?groupBy=account 200 in 75ms
+ ✓ Compiled in 1862ms (2806 modules)
+ GET /gmv-max/creator-details 200 in 93ms
+ GET /gmv-max 200 in 93ms
+ GET /gmv-max/creator-details 200 in 456ms
+ GET /api/gmv-data?groupBy=account 200 in 281ms
+ GET /gmv-max 200 in 92ms
+ GET /api/gmv-data?groupBy=account 200 in 494ms
+ GET /api/gmv-data?groupBy=account 200 in 72ms
+ GET /gmv-max/creator-details 200 in 18ms
+ GET /api/gmv-data?groupBy=account 200 in 69ms
+ GET /api/gmv-data?groupBy=account 200 in 75ms
+ GET /gmv-max/creator-details 200 in 155ms
+ GET /api/gmv-data?groupBy=account 200 in 155ms
+ ✓ Compiled in 1748ms (2804 modules)
+ GET /gmv-max 200 in 86ms
+ GET /gmv-max/creator-details 200 in 87ms
+ ✓ Compiled in 775ms (2804 modules)
+ GET /gmv-max/creator-details 200 in 96ms
+ GET /gmv-max 200 in 93ms
+ ✓ Compiled in 762ms (2804 modules)
+ GET /gmv-max/creator-details 200 in 70ms
+ GET /gmv-max 200 in 63ms
+ GET /content-analysis 200 in 106ms
+ ○ Compiling /api/contents ...
+ ✓ Compiled /api/contents in 517ms (251 modules)
+ GET /api/contents?groupBy=creator 200 in 1168ms
+ GET /api/contents?groupBy=creator 200 in 60ms
+ GET /content-analysis 200 in 26ms
+ ✓ Compiled in 3.1s (2804 modules)
+ GET /gmv-max 200 in 124ms
+ GET /content-analysis 200 in 127ms
+ GET /content-analysis 200 in 248ms
+ GET /api/contents?groupBy=creator 200 in 670ms
+ ✓ Compiled in 1658ms (2804 modules)
+ GET /gmv-max 200 in 105ms
+ GET /content-analysis 200 in 104ms
+ GET /content-analysis 200 in 335ms
+ GET /api/contents?groupBy=creator 200 in 208ms
+ GET /content-analysis 200 in 117ms
+ GET /api/contents?groupBy=creator 200 in 112ms
+ GET / 200 in 59ms
+ ✓ Compiled /api/orders in 472ms (254 modules)
+ GET /api/orders?groupBy=daily 200 in 768ms
+ ✓ Compiled /api/daily-matrix in 61ms (257 modules)
+ GET /api/orders?groupBy=daily 200 in 211ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 264ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 66ms
+ GET / 200 in 184ms
+ GET /api/orders?groupBy=daily 200 in 663ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 80ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 62ms
+ GET / 200 in 103ms
+ GET /api/orders?groupBy=daily 200 in 84ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 58ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 70ms
+ ✓ Compiled in 1723ms (2804 modules)
+ GET / 200 in 193ms
+ GET /gmv-max 200 in 190ms
+ GET / 200 in 381ms
+ GET /api/orders?groupBy=daily 200 in 620ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 212ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 54ms
+ GET / 200 in 69ms
+ GET /api/orders?groupBy=daily 200 in 72ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 61ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 64ms
+ GET / 200 in 61ms
+ GET /api/orders?groupBy=daily 200 in 102ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 100ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 114ms
+ GET / 200 in 184ms
+ GET /api/orders?groupBy=daily 200 in 118ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 59ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 56ms
+ GET / 200 in 293ms
+ GET /api/orders?groupBy=daily 200 in 912ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 64ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 56ms
+ ✓ Compiled in 1530ms (2804 modules)
+ GET / 200 in 121ms
+ GET /gmv-max 200 in 121ms
+ GET /gmv-max/creator-details 200 in 128ms
+ ✓ Compiled /api/gmv-data in 415ms (257 modules)
+ GET /api/gmv-data?groupBy=account 200 in 841ms
+ GET /api/gmv-data?groupBy=account 200 in 114ms
+ ✓ Compiled in 1009ms (1361 modules)
+ GET /gmv-max/creator-details 200 in 72ms
+ GET /gmv-max 200 in 72ms
+ ✓ Compiled in 1442ms (2804 modules)
+ GET /gmv-max 200 in 87ms
+ GET /gmv-max/creator-details 200 in 87ms
+ ✓ Compiled in 1043ms (2804 modules)
+ GET /gmv-max 200 in 129ms
+ GET /gmv-max/creator-details 200 in 128ms
+ ✓ Compiled in 916ms (2804 modules)
+ GET /gmv-max 200 in 101ms
+ GET /gmv-max/creator-details 200 in 105ms
+ ✓ Compiled in 1404ms (2804 modules)
+ GET /gmv-max 200 in 57ms
+ GET /gmv-max/creator-details 200 in 57ms

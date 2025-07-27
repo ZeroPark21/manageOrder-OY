@@ -8,8 +8,8 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "TTS 제품 발송 현황",
-  description: "TikTok 제품 발송 및 콘텐츠 발행 현황 대시보드",
+  title: "Cosudck Agency",
+  description: "TTS Dashboard",
     generator: 'v0.dev'
 }
 

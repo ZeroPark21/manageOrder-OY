@@ -433,7 +433,7 @@ export default function ContentAnalysisPage() {
   return (
     <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">크리에이터 분석</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">발행된 콘텐츠 분석</h1>
         <p className="text-gray-600">TikTok Shop 크리에이터 성과 분석</p>
       </div>
 
