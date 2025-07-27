@@ -66,99 +66,60 @@ export default function ContentAnalysisPage() {
     return match ? match[1] : ""
   }
 
-  // CSV 파싱 함수
-  function parseCSVLine(line: string): string[] {
-    const result: string[] = []
-    let current = ""
-    let inQuotes = false
 
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i]
-
-      if (char === '"') {
-        inQuotes = !inQuotes
-      } else if (char === "," && !inQuotes) {
-        result.push(current.trim())
-        current = ""
-      } else {
-        current += char
-      }
-    }
-
-    result.push(current.trim())
-    return result
-  }
-
-  // 크리에이터 데이터 로드
-  const loadCreatorData = async () => {
-    try {
-      const response = await fetch(
-        "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Video_List_20250525-20250621_20250623005810-zMEbPPZVk76TqJRVagNfZukFEHsDak.csv",
-      )
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const csvText = await response.text()
-      const lines = csvText.split("\n").filter((line) => line.trim())
-
-      if (lines.length < 2) {
-        throw new Error("크리에이터 CSV 파일에 데이터가 없습니다.")
-      }
-
-      const parsedData: VideoData[] = []
-
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim()
-        if (!line) continue
-
-        try {
-          const values = parseCSVLine(line)
-
-          if (values.length >= 17) {
-            const videoItem: VideoData = {
-              videoName: values[0]?.replace(/"/g, "") || "",
-              videoLink: values[1]?.replace(/"/g, "") || "",
-              videoId: extractVideoId(values[1]?.replace(/"/g, "") || ""),
-              videoPostDate: values[2]?.replace(/"/g, "") || "",
-              creatorUsername: values[3]?.replace(/"/g, "") || "",
-              gmv: Number.parseFloat(values[4]?.replace(/"/g, "") || "0") || 0,
-              affiliateItemsSold: Number.parseInt(values[5]?.replace(/"/g, "") || "0") || 0,
-              affiliateShoppableVideoGmv: Number.parseFloat(values[6]?.replace(/"/g, "") || "0") || 0,
-              shoppableVideoAvgOrderValue: values[7]?.replace(/"/g, "") || "--",
-              estCommission: Number.parseFloat(values[8]?.replace(/"/g, "") || "0") || 0,
-              affiliateOrders: Number.parseInt(values[9]?.replace(/"/g, "") || "0") || 0,
-              shoppableVideoImpressions: Number.parseInt(values[10]?.replace(/"/g, "") || "0") || 0,
-              affiliateCtr: values[11]?.replace(/"/g, "") || "0%",
-              shoppableVideoGpm: Number.parseFloat(values[12]?.replace(/"/g, "") || "0") || 0,
-              affiliateItemsRefunded: Number.parseInt(values[13]?.replace(/"/g, "") || "0") || 0,
-              affiliateRefundedGmv: Number.parseFloat(values[14]?.replace(/"/g, "") || "0") || 0,
-              shoppableVideoComments: Number.parseInt(values[15]?.replace(/"/g, "") || "0") || 0,
-              shoppableVideoLikes: Number.parseInt(values[16]?.replace(/"/g, "") || "0") || 0,
-            }
-
-            parsedData.push(videoItem)
-          }
-        } catch (lineError) {
-          console.warn(`크리에이터 데이터 라인 ${i} 파싱 오류:`, lineError)
-        }
-      }
-
-      setVideoData(parsedData)
-      return parsedData
-    } catch (error) {
-      console.error("크리에이터 데이터 로딩 오류:", error)
-      throw error
-    }
-  }
 
   useEffect(() => {
     async function loadAllData() {
       try {
         setLoading(true)
         setError(null)
-        await loadCreatorData()
+        
+        // Supabase contents 테이블에서 실제 데이터 로드
+        const response = await fetch('/api/contents?groupBy=creator')
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const result = await response.json()
+        console.log('API 응답:', result)
+        
+        // API 응답에서 개별 콘텐츠들을 추출하여 VideoData 형식으로 변환
+        const allContents: VideoData[] = []
+        
+        if (result.data && Array.isArray(result.data)) {
+          result.data.forEach((creatorGroup: any) => {
+            if (creatorGroup.contents && Array.isArray(creatorGroup.contents)) {
+              creatorGroup.contents.forEach((content: any) => {
+                const videoData: VideoData = {
+                  videoName: content.content_title || '',
+                  videoLink: content.video_link || '',
+                  videoId: extractVideoId(content.video_link || ''),
+                  videoPostDate: content.publish_date || '',
+                  creatorUsername: content.creator_name || '',
+                  gmv: Number(content.gmv) || 0,
+                  affiliateItemsSold: Number(content.affiliate_items_sold) || 0,
+                  affiliateShoppableVideoGmv: Number(content.affiliate_gmv) || 0,
+                  shoppableVideoAvgOrderValue: content.shoppable_avg_order_value?.toString() || '--',
+                  estCommission: Number(content.est_commission) || 0,
+                  affiliateOrders: Number(content.affiliate_orders) || 0,
+                  shoppableVideoImpressions: Number(content.shoppable_impressions) || 0,
+                  affiliateCtr: content.affiliate_ctr ? `${content.affiliate_ctr}%` : '0%',
+                  shoppableVideoGpm: Number(content.shoppable_gpm) || 0,
+                  affiliateItemsRefunded: Number(content.affiliate_items_refunded) || 0,
+                  affiliateRefundedGmv: Number(content.affiliate_refunded_gmv) || 0,
+                  shoppableVideoComments: Number(content.comment_count) || 0,
+                  shoppableVideoLikes: Number(content.like_count) || 0,
+                }
+                allContents.push(videoData)
+              })
+            }
+          })
+        }
+        
+        console.log('실제 데이터 로드 완료:', allContents.length, '개 비디오')
+        setVideoData(allContents)
+        
       } catch (error) {
         console.error("데이터 로딩 오류:", error)
         setError(error instanceof Error ? error.message : "데이터를 불러오는 중 오류가 발생했습니다.")

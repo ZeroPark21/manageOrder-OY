@@ -35,9 +35,6 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts"
 
 export default function GmvMaxPage() {
@@ -98,12 +95,14 @@ export default function GmvMaxPage() {
     },
   ]
 
-  // 카테고리별 GMV 분포
-  const categoryData = [
-    { name: "뷰티", value: 45, color: "#FF6B6B" },
-    { name: "스킨케어", value: 30, color: "#4ECDC4" },
-    { name: "향수", value: 15, color: "#45B7D1" },
-    { name: "기타", value: 10, color: "#96CEB4" },
+  // 예산 사용 추이 데이터
+  const budgetTrendData = [
+    { date: "12/01", allocated: 100000, used: 15000, remaining: 85000 },
+    { date: "12/05", allocated: 100000, used: 28000, remaining: 72000 },
+    { date: "12/10", allocated: 100000, used: 42000, remaining: 58000 },
+    { date: "12/15", allocated: 100000, used: 58000, remaining: 42000 },
+    { date: "12/20", allocated: 100000, used: 72000, remaining: 28000 },
+    { date: "12/25", allocated: 100000, used: 85000, remaining: 15000 },
   ]
 
   const formatCurrency = (value: number) => {
@@ -223,25 +222,27 @@ export default function GmvMaxPage() {
         </Card>
 
         <Card className="p-6">
-          <h3 className="text-lg font-medium mb-4">카테고리별 GMV 분포</h3>
+          <h3 className="text-lg font-medium mb-4">예산 사용 추이</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, value }) => `${name} ${value}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
+            <BarChart data={budgetTrendData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+              <Legend />
+              <Bar 
+                dataKey="used" 
+                stackId="budget"
+                fill="#FF6B6B" 
+                name="사용 예산"
+              />
+              <Bar 
+                dataKey="remaining" 
+                stackId="budget"
+                fill="#E5E7EB" 
+                name="잔여 예산"
+              />
+            </BarChart>
           </ResponsiveContainer>
         </Card>
       </div>
