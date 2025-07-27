@@ -41,7 +41,8 @@ import {
   BarChart3,
   Search,
   Target,
-  Play 
+  Play,
+  ExternalLink 
 } from "lucide-react"
 import {
   BarChart,
@@ -208,6 +209,14 @@ export default function CreatorDetailsPage() {
       videos: creator.videos || []
     })
     setShowVideoDialog(true)
+  }
+
+  // TikTok 영상 보기 핸들러
+  const handleWatchVideo = (videoId: string, creatorName: string, event: React.MouseEvent) => {
+    event.stopPropagation()
+    // TikTok 영상 URL 형식: https://www.tiktok.com/@username/video/videoId
+    const tiktokUrl = `https://www.tiktok.com/@${creatorName}/video/${videoId}`
+    window.open(tiktokUrl, '_blank')
   }
 
   // 크리에이터 검색 필터링
@@ -485,7 +494,7 @@ export default function CreatorDetailsPage() {
               </TableHeader>
               <TableBody>
                 {selectedCreatorData.videos.slice(0, 10).map((video, index) => (
-                  <TableRow key={video.video_id || index}>
+                  <TableRow key={`detail-${video.video_id}-${index}`}>
                     <TableCell className="font-medium">{video.video_id || '-'}</TableCell>
                     <TableCell className="max-w-[200px] truncate">
                       {video.video_title || '제목 없음'}
@@ -535,7 +544,7 @@ export default function CreatorDetailsPage() {
                 .filter(creator => creator.account && creator.account.trim() !== "")
                 .map((creator, index) => (
                 <TableRow 
-                  key={creator.account || `creator-${index}`} 
+                  key={`${creator.account}-${index}`} 
                   className={`cursor-pointer hover:bg-muted/50 ${
                     selectedCreator === creator.account ? 'bg-blue-50' : ''
                   }`}
@@ -577,7 +586,7 @@ export default function CreatorDetailsPage() {
 
       {/* 영상 상세 다이얼로그 */}
       <Dialog open={showVideoDialog} onOpenChange={setShowVideoDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogContent className="max-w-[90vw] w-full max-h-[90vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Video className="h-5 w-5" />
@@ -587,7 +596,7 @@ export default function CreatorDetailsPage() {
               총 {selectedCreatorVideos.videos.length}개의 영상
             </DialogDescription>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[60vh]">
+          <div className="overflow-y-auto max-h-[75vh]">
             <Table>
               <TableHeader className="sticky top-0 bg-background">
                 <TableRow>
@@ -603,11 +612,12 @@ export default function CreatorDetailsPage() {
                   <TableHead className="text-right">클릭수</TableHead>
                   <TableHead className="text-right">클릭률</TableHead>
                   <TableHead className="text-right">전환율</TableHead>
+                  <TableHead className="text-center">영상보기</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {selectedCreatorVideos.videos.map((video, index) => (
-                  <TableRow key={video.video_id || index}>
+                  <TableRow key={`${video.video_id}-${index}`}>
                     <TableCell className="font-medium">{video.video_id || '-'}</TableCell>
                     <TableCell className="max-w-[200px] truncate" title={video.video_title}>
                       {video.video_title || '제목 없음'}
@@ -641,6 +651,17 @@ export default function CreatorDetailsPage() {
                       <Badge variant={video.ad_conversion_rate > 0.03 ? "default" : "secondary"}>
                         {formatPercentage(video.ad_conversion_rate)}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={(e) => handleWatchVideo(video.video_id, selectedCreatorVideos.creator, e)}
+                        className="flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        영상보기
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
