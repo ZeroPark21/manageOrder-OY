@@ -48,6 +48,14 @@ interface CreatorData {
   videos?: any[]
 }
 
+interface BudgetPlan {
+  id: number
+  year: number
+  month: number
+  budget: number
+  ratio: number
+}
+
 export default function GmvMaxPage() {
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
@@ -56,27 +64,40 @@ export default function GmvMaxPage() {
   const [selectedCampaign, setSelectedCampaign] = useState<string>("all")
   const [gmvData, setGmvData] = useState<CreatorData[]>([])
   const [campaigns, setCampaigns] = useState<string[]>([])
+  const [budgetPlan, setBudgetPlan] = useState<BudgetPlan[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // 실제 GMV 데이터 로드
+  // 실제 GMV 데이터 및 예산 계획 데이터 로드
   useEffect(() => {
-    async function loadGmvData() {
+    async function loadData() {
       try {
         setLoading(true)
         setError(null)
         
-        const response = await fetch('/api/gmv-data?groupBy=account')
+        // GMV 데이터와 예산 계획 데이터를 병렬로 로드
+        const [gmvResponse, budgetResponse] = await Promise.all([
+          fetch('/api/gmv-data?groupBy=account'),
+          fetch('/api/budget-plan?year=2025')
+        ])
         
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+        if (!gmvResponse.ok) {
+          throw new Error(`GMV API error! status: ${gmvResponse.status}`)
         }
         
-        const result = await response.json()
-        console.log('GMV API 응답:', result)
+        if (!budgetResponse.ok) {
+          throw new Error(`Budget API error! status: ${budgetResponse.status}`)
+        }
         
-        const data = result.data || []
+        const gmvResult = await gmvResponse.json()
+        const budgetResult = await budgetResponse.json()
+        
+        console.log('GMV API 응답:', gmvResult)
+        console.log('Budget API 응답:', budgetResult)
+        
+        const data = gmvResult.data || []
         setGmvData(data)
+        setBudgetPlan(budgetResult.data || [])
         
         // 캠페인 목록 추출
         const allVideos = data.flatMap((creator: any) => creator.videos || [])
@@ -84,14 +105,14 @@ export default function GmvMaxPage() {
         setCampaigns(uniqueCampaigns)
         
       } catch (error) {
-        console.error("GMV 데이터 로딩 오류:", error)
+        console.error("데이터 로딩 오류:", error)
         setError(error instanceof Error ? error.message : "데이터를 불러오는 중 오류가 발생했습니다.")
       } finally {
         setLoading(false)
       }
     }
 
-    loadGmvData()
+    loadData()
   }, [])
 
   const formatCurrency = (value: number) => {
@@ -144,16 +165,6 @@ export default function GmvMaxPage() {
 
   const gmvTrendData = generateGmvTrendData()
 
-  // 월별 예산 계획 데이터
-  const monthlyBudgetPlan = [
-    { month: '7월', budget: 0, ratio: 0 },
-    { month: '8월', budget: 9000000, ratio: 9 },
-    { month: '9월', budget: 15000000, ratio: 15 },
-    { month: '10월', budget: 27000000, ratio: 27 },
-    { month: '11월', budget: 33000000, ratio: 33 },
-    { month: '12월', budget: 16000000, ratio: 16 }
-  ]
-
   // 예산 사용 추이 데이터 (실제 데이터 기반)
   const generateBudgetTrendData = () => {
     const currentAdSpend = stats.totalAdSpend
@@ -162,7 +173,7 @@ export default function GmvMaxPage() {
     let cumulativeAllocated = 0
     let cumulativeSpend = 0
     
-    return monthlyBudgetPlan.map((plan) => {
+    return budgetPlan.map((plan) => {
       cumulativeAllocated += plan.budget
       
       // 실제 광고비를 월별 계획 비중에 따라 분배
@@ -170,7 +181,7 @@ export default function GmvMaxPage() {
       cumulativeSpend += monthlySpend
       
       return {
-        date: plan.month,
+        date: `${plan.month}월`,
         allocated: cumulativeAllocated,
         used: Math.round(cumulativeSpend),
         remaining: Math.round(cumulativeAllocated - cumulativeSpend),
@@ -308,23 +319,25 @@ export default function GmvMaxPage() {
           <TableBody>
             <TableRow>
               <TableCell className="font-medium">계획</TableCell>
-              <TableCell className="text-right">₩0</TableCell>
-              <TableCell className="text-right">₩9,000,000</TableCell>
-              <TableCell className="text-right">₩15,000,000</TableCell>
-              <TableCell className="text-right">₩27,000,000</TableCell>
-              <TableCell className="text-right">₩33,000,000</TableCell>
-              <TableCell className="text-right">₩16,000,000</TableCell>
-              <TableCell className="text-right font-bold">₩100,000,000</TableCell>
+              {budgetPlan.map((plan) => (
+                <TableCell key={`budget-${plan.month}`} className="text-right">
+                  {formatCurrency(plan.budget)}
+                </TableCell>
+              ))}
+              <TableCell className="text-right font-bold">
+                {formatCurrency(budgetPlan.reduce((sum, plan) => sum + plan.budget, 0))}
+              </TableCell>
             </TableRow>
             <TableRow>
               <TableCell className="font-medium">비중</TableCell>
-              <TableCell className="text-right">0%</TableCell>
-              <TableCell className="text-right">9%</TableCell>
-              <TableCell className="text-right">15%</TableCell>
-              <TableCell className="text-right">27%</TableCell>
-              <TableCell className="text-right">33%</TableCell>
-              <TableCell className="text-right">16%</TableCell>
-              <TableCell className="text-right font-bold">100%</TableCell>
+              {budgetPlan.map((plan) => (
+                <TableCell key={`ratio-${plan.month}`} className="text-right">
+                  {plan.ratio}%
+                </TableCell>
+              ))}
+              <TableCell className="text-right font-bold">
+                {budgetPlan.reduce((sum, plan) => sum + plan.ratio, 0)}%
+              </TableCell>
             </TableRow>
           </TableBody>
         </Table>

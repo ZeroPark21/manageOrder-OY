@@ -565,3 +565,42 @@ Supabase 삽입 오류: {
  ✓ Compiled in 1404ms (2804 modules)
  GET /gmv-max 200 in 57ms
  GET /gmv-max/creator-details 200 in 57ms
+ ✓ Compiled in 872ms (1361 modules)
+ GET /gmv-max 200 in 132ms
+ GET /gmv-max/creator-details 200 in 131ms
+ ✓ Compiled in 1031ms (1361 modules)
+ GET /gmv-max/creator-details 200 in 54ms
+ GET /gmv-max 200 in 54ms
+ GET /gmv-max/creator-details 200 in 221ms
+ GET /gmv-max 200 in 222ms
+ ✓ Compiled in 1348ms (2790 modules)
+ ✓ Compiled in 1389ms (2804 modules)
+ ✓ Compiled /api/gmv-data in 1386ms (3055 modules)
+ GET /api/gmv-data?groupBy=account 200 in 940ms
+ ✓ Compiled in 973ms (2804 modules)
+ ✓ Compiled in 1405ms (2804 modules)
+ ✓ Compiled in 974ms (2804 modules)
+ GET /gmv-max/creator-details 200 in 581ms
+ GET /content-analysis 200 in 29ms
+ ✓ Compiled /api/contents in 404ms (254 modules)
+ GET /api/gmv-data?groupBy=account 200 in 1263ms
+ GET /api/contents?groupBy=creator 200 in 684ms
+ GET /api/contents?groupBy=creator 200 in 65ms
+ GET /gmv-max 200 in 119ms
+ ○ Compiling /api/budget-plan ...
+ GET /api/gmv-data?groupBy=account 200 in 754ms
+ GET /api/gmv-data?groupBy=account 200 in 129ms
+ ✓ Compiled /api/budget-plan in 1276ms (2810 modules)
+ GET /api/budget-plan?year=2025 200 in 1638ms
+ GET /api/budget-plan?year=2025 200 in 58ms
+ GET /gmv-max/creator-details 200 in 158ms
+ GET /api/gmv-data?groupBy=account 200 in 219ms
+ GET /api/gmv-data?groupBy=account 200 in 84ms
+ GET /gmv-max 200 in 35ms
+ GET /api/gmv-data?groupBy=account 200 in 82ms
+ GET /api/budget-plan?year=2025 200 in 89ms
+ GET /api/gmv-data?groupBy=account 200 in 74ms
+ GET /api/budget-plan?year=2025 200 in 67ms
+ GET /gmv-max/creator-details 200 in 116ms
+ GET /api/gmv-data?groupBy=account 200 in 621ms
+ GET /api/gmv-data?groupBy=account 200 in 77ms
