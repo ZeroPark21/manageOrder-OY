@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       creative_type: row['Creative type'] || '',
       status: row['Status'] || '',
       orders: Number(row['Orders (SKU)']) || 0,
-      gross_revenue: Number(row['Gross revenue']) || 0,
+      gross_revenue: parseFloat(String(row['Gross revenue']).replace(/,/g, '')) || 0,
       ad_impressions: Number(row['Product ad impressions']) || 0,
       ad_clicks: Number(row['Product ad clicks']) || 0,
       ad_click_rate: Number(row['Product ad click rate']) || 0,

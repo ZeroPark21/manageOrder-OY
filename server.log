@@ -153,3 +153,75 @@
  ✓ Compiled in 660ms (1362 modules)
  GET /gmv-max/creator-details 200 in 43ms
  GET /gmv-max/creator-details 200 in 307ms
+ GET /gmv-max 200 in 92ms
+ ✓ Compiled /api/gmv-data in 382ms (251 modules)
+ GET /api/gmv-data?groupBy=account 200 in 1221ms
+ GET /api/gmv-data?groupBy=account 200 in 173ms
+ GET /gmv-max/creator-details 200 in 49ms
+ GET /api/gmv-data?groupBy=account 200 in 116ms
+ GET /api/gmv-data?groupBy=account 200 in 102ms
+ GET /gmv-max/creator-details 200 in 63ms
+ ○ Compiling /upload-gmv ...
+ ✓ Compiled /upload-gmv in 1197ms (1421 modules)
+ GET /upload-gmv 200 in 1264ms
+ GET /upload-gmv 200 in 13ms
+ ○ Compiling /api/upload-gmv ...
+ ✓ Compiled /api/upload-gmv in 1371ms (2790 modules)
+🚀 GMV 데이터 업로드 API 시작
+📁 파일 정보: {
+  name: 'creative data for product campaigns 2025-07-20 00 ~ 2025-07-26 20.xlsx',
+  size: 41918,
+  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+}
+📊 Excel 파일 처리 완료: { totalRows: 245, sheetName: 'Sheet1' }
+🔄 데이터 변환 완료: 245 개 항목
+🔍 Supabase 연결 확인 중...
+✅ 테이블 존재 확인 완료
+📤 데이터 삽입 시작: 245 개 레코드
+Supabase 삽입 오류: {
+  code: 'PGRST204',
+  details: null,
+  hint: null,
+  message: "Could not find the 'authorization_type' column of 'gmv_data' in the schema cache"
+}
+ POST /api/upload-gmv 500 in 2105ms
+ ✓ Compiled in 555ms (2804 modules)
+ GET /upload-gmv 200 in 59ms
+ GET /gmv-max 200 in 106ms
+ GET /api/gmv-data?groupBy=account 200 in 680ms
+ GET /api/gmv-data?groupBy=account 200 in 48ms
+ GET /gmv-max/creator-details 200 in 94ms
+ GET /api/gmv-data?groupBy=account 200 in 95ms
+ GET /api/gmv-data?groupBy=account 200 in 60ms
+ GET /gmv-max 200 in 18ms
+ GET /api/gmv-data?groupBy=account 200 in 62ms
+ GET /api/gmv-data?groupBy=account 200 in 40ms
+ GET /upload-gmv 200 in 77ms
+🚀 GMV 데이터 업로드 API 시작
+📁 파일 정보: {
+  name: 'creative data for product campaigns 2025-07-20 00 ~ 2025-07-26 20.xlsx',
+  size: 41918,
+  type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+}
+📊 Excel 파일 처리 완료: { totalRows: 245, sheetName: 'Sheet1' }
+🔄 데이터 변환 완료: 245 개 항목
+🔍 Supabase 연결 확인 중...
+✅ 테이블 존재 확인 완료
+📤 데이터 삽입 시작: 245 개 레코드
+✅ Supabase 저장 완료
+ POST /api/upload-gmv 200 in 550ms
+ GET /gmv-max/creator-details 200 in 17ms
+ GET /api/gmv-data?groupBy=account 200 in 82ms
+ GET /api/gmv-data?groupBy=account 200 in 83ms
+ ✓ Compiled in 1008ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 21ms
+ ✓ Compiled in 1180ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 14ms
+ ✓ Compiled in 881ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 29ms
+ ✓ Compiled in 1475ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 19ms
+ ✓ Compiled in 935ms (2783 modules)
+ GET /gmv-max/creator-details 200 in 196ms
+ ✓ Compiled in 772ms (1362 modules)
+ GET /gmv-max/creator-details 200 in 28ms
