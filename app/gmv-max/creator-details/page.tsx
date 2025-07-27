@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 import { 
   Users, 
   TrendingUp, 
@@ -30,7 +31,9 @@ import {
   DollarSign, 
   ShoppingCart,
   Video,
-  BarChart3 
+  BarChart3,
+  Search,
+  Target 
 } from "lucide-react"
 import {
   BarChart,
@@ -69,6 +72,17 @@ interface VideoData {
   ad_clicks: number
   ad_click_rate: number
   ad_conversion_rate: number
+  creative_type?: string
+  status?: string
+}
+
+interface CampaignSummary {
+  totalVideos: number
+  totalGMV: number
+  totalOrders: number
+  totalImpressions: number
+  totalClicks: number
+  totalCreators: number
 }
 
 export default function CreatorDetailsPage() {
@@ -77,8 +91,12 @@ export default function CreatorDetailsPage() {
     to: new Date(),
   })
   const [selectedCreator, setSelectedCreator] = useState<string>("all")
+  const [selectedCampaign, setSelectedCampaign] = useState<string>("all")
+  const [creatorSearchQuery, setCreatorSearchQuery] = useState<string>("")
   const [creatorsData, setCreatorsData] = useState<CreatorData[]>([])
   const [selectedCreatorData, setSelectedCreatorData] = useState<CreatorData | null>(null)
+  const [campaigns, setCampaigns] = useState<string[]>([])
+  const [campaignSummary, setCampaignSummary] = useState<CampaignSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -98,7 +116,16 @@ export default function CreatorDetailsPage() {
         const result = await response.json()
         console.log('크리에이터 데이터 로드:', result)
         
-        setCreatorsData(result.data || [])
+        const creators = result.data || []
+        
+        // 캠페인 목록 추출 (creative_type 기준)
+        const allVideos = creators.flatMap((creator: CreatorData) => creator.videos || [])
+        const uniqueCampaigns = [...new Set(allVideos.map((video: VideoData) => video.creative_type).filter(Boolean))]
+        setCampaigns(uniqueCampaigns)
+        
+        // GMV 기준 내림차순 정렬
+        const sortedCreators = creators.sort((a: CreatorData, b: CreatorData) => b.totalRevenue - a.totalRevenue)
+        setCreatorsData(sortedCreators)
         
       } catch (error) {
         console.error("크리에이터 데이터 로딩 오류:", error)
@@ -110,6 +137,36 @@ export default function CreatorDetailsPage() {
 
     loadCreatorsData()
   }, [])
+
+  // 캠페인 성과 계산
+  useEffect(() => {
+    if (creatorsData.length > 0) {
+      const allVideos = creatorsData.flatMap(creator => creator.videos || [])
+      
+      let filteredVideos = allVideos
+      if (selectedCampaign !== "all") {
+        filteredVideos = allVideos.filter(video => video.creative_type === selectedCampaign)
+      }
+      
+      const summary: CampaignSummary = {
+        totalVideos: filteredVideos.length,
+        totalGMV: filteredVideos.reduce((sum, video) => sum + (video.gross_revenue || 0), 0),
+        totalOrders: filteredVideos.reduce((sum, video) => sum + (video.orders || 0), 0),
+        totalImpressions: filteredVideos.reduce((sum, video) => sum + (video.ad_impressions || 0), 0),
+        totalClicks: filteredVideos.reduce((sum, video) => sum + (video.ad_clicks || 0), 0),
+        totalCreators: new Set(
+          creatorsData
+            .filter(creator => 
+              selectedCampaign === "all" || 
+              creator.videos?.some(video => video.creative_type === selectedCampaign)
+            )
+            .map(creator => creator.account)
+        ).size
+      }
+      
+      setCampaignSummary(summary)
+    }
+  }, [selectedCampaign, creatorsData])
 
   // 선택된 크리에이터 데이터 업데이트
   useEffect(() => {
@@ -129,11 +186,22 @@ export default function CreatorDetailsPage() {
     return `${(value * 100).toFixed(2)}%`
   }
 
+  // 크리에이터 검색 필터링
+  const filteredCreatorsData = creatorsData.filter(creator => {
+    const matchesSearch = creatorSearchQuery === "" || 
+      creator.account.toLowerCase().includes(creatorSearchQuery.toLowerCase())
+    
+    const matchesCampaign = selectedCampaign === "all" || 
+      creator.videos?.some(video => video.creative_type === selectedCampaign)
+    
+    return matchesSearch && matchesCampaign
+  })
+
   // 차트 색상
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d']
 
-  // 크리에이터별 성과 비교 데이터
-  const creatorComparisonData = creatorsData.slice(0, 10).map((creator, index) => ({
+  // 크리에이터별 성과 비교 데이터 (필터링된 데이터 사용)
+  const creatorComparisonData = filteredCreatorsData.slice(0, 10).map((creator, index) => ({
     name: creator.account.length > 10 ? creator.account.substring(0, 10) + '...' : creator.account,
     revenue: creator.totalRevenue,
     orders: creator.totalOrders,
@@ -181,13 +249,40 @@ export default function CreatorDetailsPage() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-4">
           <DatePickerWithRange date={date} setDate={setDate} />
+          
+          {/* 캠페인 선택 */}
+          <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="캠페인 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체 캠페인</SelectItem>
+              {campaigns.map((campaign) => (
+                <SelectItem key={campaign} value={campaign}>
+                  {campaign}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {/* 크리에이터 검색 */}
+          <div className="relative w-[250px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              placeholder="크리에이터 검색..."
+              value={creatorSearchQuery}
+              onChange={(e) => setCreatorSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          
           <Select value={selectedCreator} onValueChange={setSelectedCreator}>
-            <SelectTrigger className="w-[250px]">
+            <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="크리에이터 선택" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">전체 크리에이터</SelectItem>
-              {creatorsData
+              {filteredCreatorsData
                 .filter(creator => creator.account && creator.account.trim() !== "")
                 .map((creator) => (
                 <SelectItem key={creator.account} value={creator.account}>
@@ -196,9 +291,70 @@ export default function CreatorDetailsPage() {
               ))}
             </SelectContent>
           </Select>
+          
           <Button>필터 적용</Button>
         </div>
       </div>
+
+      {/* 캠페인 성과 요약 */}
+      {campaignSummary && (
+        <Card className="p-6">
+          <h3 className="text-lg font-medium mb-4 flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            {selectedCampaign === "all" ? "전체 캠페인" : selectedCampaign} 성과 요약
+          </h3>
+          <div className="grid gap-4 md:grid-cols-6">
+            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
+              <Video className="h-8 w-8 text-blue-600" />
+              <div>
+                <p className="text-sm font-medium text-blue-900">총 영상 수</p>
+                <p className="text-2xl font-bold text-blue-900">{campaignSummary.totalVideos}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg">
+              <DollarSign className="h-8 w-8 text-green-600" />
+              <div>
+                <p className="text-sm font-medium text-green-900">총 GMV</p>
+                <p className="text-xl font-bold text-green-900">
+                  {formatCurrency(campaignSummary.totalGMV)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg">
+              <ShoppingCart className="h-8 w-8 text-orange-600" />
+              <div>
+                <p className="text-sm font-medium text-orange-900">총 주문</p>
+                <p className="text-2xl font-bold text-orange-900">{campaignSummary.totalOrders}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg">
+              <Eye className="h-8 w-8 text-purple-600" />
+              <div>
+                <p className="text-sm font-medium text-purple-900">총 노출</p>
+                <p className="text-xl font-bold text-purple-900">
+                  {campaignSummary.totalImpressions.toLocaleString()}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-cyan-50 rounded-lg">
+              <MousePointer className="h-8 w-8 text-cyan-600" />
+              <div>
+                <p className="text-sm font-medium text-cyan-900">총 클릭</p>
+                <p className="text-2xl font-bold text-cyan-900">
+                  {campaignSummary.totalClicks.toLocaleString()}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-pink-50 rounded-lg">
+              <Users className="h-8 w-8 text-pink-600" />
+              <div>
+                <p className="text-sm font-medium text-pink-900">크리에이터 수</p>
+                <p className="text-2xl font-bold text-pink-900">{campaignSummary.totalCreators}</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* 크리에이터별 비교 차트 */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -350,7 +506,7 @@ export default function CreatorDetailsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {creatorsData
+              {filteredCreatorsData
                 .filter(creator => creator.account && creator.account.trim() !== "")
                 .map((creator, index) => (
                 <TableRow 
