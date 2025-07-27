@@ -13,9 +13,27 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { Package, Video, Upload, BarChart3, FileSearch, TrendingUp } from "lucide-react"
+import { 
+  Package, 
+  Video, 
+  Upload, 
+  BarChart3, 
+  FileSearch, 
+  TrendingUp, 
+  ChevronRight,
+  Users,
+  PieChart 
+} from "lucide-react"
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 // 메뉴 데이터
 const menuItems = [
@@ -37,12 +55,30 @@ const menuItems = [
     icon: FileSearch,
     description: "콘텐츠 성과 분석",
   },
+]
+
+// GMV MAX 분석 하위 메뉴
+const gmvMaxItems = [
   {
     title: "GMV MAX 분석",
     url: "/gmv-max",
     icon: TrendingUp,
     description: "GMV MAX 성과 분석",
-  },
+    subItems: [
+      {
+        title: "전체 현황",
+        url: "/gmv-max",
+        icon: PieChart,
+        description: "GMV MAX 전체 성과 대시보드",
+      },
+      {
+        title: "크리에이터별 GMV 상세",
+        url: "/gmv-max/creator-details",
+        icon: Users,
+        description: "크리에이터별 상세 GMV 분석",
+      },
+    ]
+  }
 ]
 
 const utilityItems = [
@@ -97,6 +133,35 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+              ))}
+              
+              {/* GMV MAX 분석 - 콜랩시블 메뉴 */}
+              {gmvMaxItems.map((item) => (
+                <Collapsible key={item.title} defaultOpen={pathname.startsWith('/gmv-max')}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                        <ChevronRight className="ml-auto transition-transform data-[state=open]:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {item.subItems?.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
+                              <Link href={subItem.url}>
+                                <subItem.icon className="size-4" />
+                                <span>{subItem.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
