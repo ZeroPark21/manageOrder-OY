@@ -180,20 +180,13 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
     console.log("🔗 Supabase 클라이언트 생성 완료")
 
-    // 기존 데이터 삭제 (선택사항)
-    const { error: deleteError } = await supabase
-      .from("contents")
-      .delete()
-      .gte("publish_date", "2000-01-01")
-
-    if (deleteError) {
-      console.warn("기존 데이터 삭제 실패:", deleteError)
-    }
-
-    // 새 데이터 삽입
+    // upsert를 사용하여 기존 데이터는 업데이트하고 새 데이터는 추가
     const { data, error: insertError } = await supabase
       .from("contents")
-      .insert(contents)
+      .upsert(contents, {
+        onConflict: 'video_link', // video_link를 기준으로 중복 체크
+        ignoreDuplicates: false // 중복 시 업데이트
+      })
       .select()
 
     if (insertError) {
@@ -201,11 +194,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
-    console.log("✅ 콘텐츠 업로드 완료")
+    console.log("✅ 콘텐츠 업서트 완료")
+
+    // 업서트 후 전체 레코드 수 확인
+    const { count } = await supabase
+      .from('contents')
+      .select('*', { count: 'exact', head: true })
 
     return NextResponse.json({
-      message: "콘텐츠 데이터가 성공적으로 업로드되었습니다.",
-      uploadedCount: contents.length,
+      message: "콘텐츠 데이터가 성공적으로 업서트되었습니다.",
+      processedCount: contents.length,
+      totalRecordsInDB: count,
       data: data
     })
 

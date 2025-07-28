@@ -604,3 +604,79 @@ Supabase 삽입 오류: {
  GET /gmv-max/creator-details 200 in 116ms
  GET /api/gmv-data?groupBy=account 200 in 621ms
  GET /api/gmv-data?groupBy=account 200 in 77ms
+ GET /gmv-max 200 in 110ms
+ GET /api/gmv-data?groupBy=account 200 in 657ms
+ GET /api/budget-plan?year=2025 200 in 702ms
+ GET /api/gmv-data?groupBy=account 200 in 134ms
+ GET /api/budget-plan?year=2025 200 in 79ms
+ GET /gmv-max/creator-details 200 in 42ms
+ GET /api/gmv-data?groupBy=account 200 in 147ms
+ GET /api/gmv-data?groupBy=account 200 in 89ms
+ GET / 200 in 3088ms
+ ○ Compiling /content ...
+ ✓ Compiled /content in 8s (2809 modules)
+ GET /content 200 in 9644ms
+ GET /api/contents?groupBy=daily 200 in 1078ms
+ ○ Compiling /api/gmv-total ...
+ GET /api/contents?groupBy=daily 200 in 893ms
+ ✓ Compiled /api/gmv-total in 3s (2829 modules)
+ GET /api/gmv-total 200 in 4075ms
+ GET /api/gmv-total 200 in 255ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 279ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 58ms
+ GET /gmv-max 200 in 212ms
+ ○ Compiling /api/budget-plan ...
+ GET /api/gmv-data?groupBy=account 200 in 842ms
+ ✓ Compiled /api/budget-plan in 569ms (1476 modules)
+ GET /api/budget-plan?year=2025 200 in 992ms
+ GET /api/budget-plan?year=2025 200 in 166ms
+ GET /api/gmv-data?groupBy=account 200 in 331ms
+ GET /gmv-max/creator-details 200 in 154ms
+ GET /api/gmv-data?groupBy=account 200 in 157ms
+ GET /api/gmv-data?groupBy=account 200 in 87ms
+ GET / 200 in 121ms
+ ○ Compiling /api/orders ...
+ ✓ Compiled /api/orders in 994ms (251 modules)
+ GET /api/orders?groupBy=daily 200 in 1723ms
+ GET /api/orders?groupBy=daily 200 in 111ms
+ ✓ Compiled /api/daily-matrix in 291ms (254 modules)
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 547ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 64ms
+ GET /content 200 in 109ms
+ ✓ Compiled /api/contents in 83ms (257 modules)
+ GET /api/contents?groupBy=daily 200 in 322ms
+ GET /api/contents?groupBy=daily 200 in 79ms
+ GET /api/gmv-total 200 in 224ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 67ms
+ GET /api/gmv-total 200 in 90ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 74ms
+ GET /content-analysis 200 in 39ms
+ GET /api/contents?groupBy=creator 200 in 64ms
+ GET /api/contents?groupBy=creator 200 in 68ms
+ GET /gmv-max/creator-details 200 in 123ms
+ ✓ Compiled /api/gmv-data in 185ms (260 modules)
+ GET /api/gmv-data?groupBy=account 200 in 508ms
+ GET /api/gmv-data?groupBy=account 200 in 144ms
+ GET /upload-gmv 200 in 102ms
+ GET /content-analysis 200 in 29ms
+ GET /api/contents?groupBy=creator 200 in 407ms
+ GET /api/contents?groupBy=creator 200 in 119ms
+ GET /content-analysis 200 in 24ms
+ GET / 200 in 477ms
+ GET /api/orders?groupBy=daily 200 in 1370ms
+ GET /api/orders?groupBy=daily 200 in 234ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 305ms
+ GET /api/daily-matrix?startDate=2025-07-01&endDate=2025-07-31 200 in 196ms
+ GET /content 200 in 140ms
+ GET /api/contents?groupBy=daily 200 in 1071ms
+ GET /api/contents?groupBy=daily 200 in 132ms
+ GET /api/gmv-total 200 in 823ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 135ms
+ GET /api/gmv-total 200 in 155ms
+ GET /api/contents?groupBy=daily&startDate=2025-07-01&endDate=2025-07-31 200 in 79ms
+ ✓ Compiled in 5.7s (1369 modules)
+ ✓ Compiled in 532ms (1369 modules)
+ ✓ Compiled in 437ms (1369 modules)
+ ✓ Compiled in 441ms (1369 modules)
+ ✓ Compiled in 367ms (1369 modules)
+ ✓ Compiled in 253ms (1369 modules)

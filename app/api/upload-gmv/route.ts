@@ -114,18 +114,15 @@ export async function POST(request: NextRequest) {
 
     console.log("✅ 테이블 존재 확인 완료")
 
-    // 기존 데이터 삭제 (선택사항 - 전체 교체하려면)
-    const { error: deleteError } = await supabase.from('gmv_data').delete().neq('id', 0)
-    if (deleteError) {
-      console.log("기존 데이터 삭제 중 오류 (무시 가능):", deleteError.message)
-    }
+    console.log("📤 데이터 업서트 시작:", gmvDataList.length, "개 레코드")
 
-    console.log("📤 데이터 삽입 시작:", gmvDataList.length, "개 레코드")
-
-    // 새 데이터 삽입
+    // upsert를 사용하여 기존 데이터는 업데이트하고 새 데이터는 추가
     const { data, error } = await supabase
       .from('gmv_data')
-      .insert(gmvDataList)
+      .upsert(gmvDataList, {
+        onConflict: 'video_id', // video_id를 기준으로 중복 체크
+        ignoreDuplicates: false // 중복 시 업데이트
+      })
 
     if (error) {
       console.error("Supabase 삽입 오류:", error)
@@ -146,13 +143,19 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log("✅ Supabase 저장 완료")
+    console.log("✅ Supabase 업서트 완료")
+
+    // 업서트 후 전체 레코드 수 확인
+    const { count } = await supabase
+      .from('gmv_data')
+      .select('*', { count: 'exact', head: true })
 
     return NextResponse.json({
       message: "GMV 데이터 업로드 성공",
       fileName: file.name,
       fileSize: file.size,
-      totalRecords: gmvDataList.length,
+      processedRecords: gmvDataList.length,
+      totalRecordsInDB: count,
       uploadedAt: new Date().toISOString()
     })
 

@@ -94,15 +94,6 @@ export async function POST(request: NextRequest) {
 
     const supabase = createServerClient()
 
-    // 기존 데이터 완전 삭제
-    console.log("🗑️ Clearing existing data...")
-    const { error: deleteError } = await supabase.from("orders").delete().neq("id", -1)
-
-    if (deleteError) {
-      console.error("❌ Failed to clear data:", deleteError)
-      return NextResponse.json({ error: `데이터 삭제 실패: ${deleteError.message}` }, { status: 500 })
-    }
-
     const orders = []
     let processedRows = 0
     let skippedRows = 0
@@ -224,28 +215,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `유효한 주문 데이터를 찾을 수 없습니다.` }, { status: 400 })
     }
 
-    // 배치 삽입
-    console.log("💾 Inserting orders into database...")
+    // 배치 업서트
+    console.log("💾 Upserting orders into database...")
     const batchSize = 50
-    let insertedCount = 0
+    let upsertedCount = 0
 
     for (let i = 0; i < orders.length; i += batchSize) {
       const batch = orders.slice(i, i + batchSize)
       const batchNumber = Math.floor(i / batchSize) + 1
 
       try {
-        const { data: insertData, error: insertError } = await supabase.from("orders").insert(batch).select("id")
+        const { data: upsertData, error: upsertError } = await supabase
+          .from("orders")
+          .upsert(batch, {
+            onConflict: 'order_id', // order_id를 기준으로 중복 체크
+            ignoreDuplicates: false // 중복 시 업데이트
+          })
+          .select("id")
 
-        if (insertError) {
-          console.error(`❌ Batch ${batchNumber} error:`, insertError)
+        if (upsertError) {
+          console.error(`❌ Batch ${batchNumber} error:`, upsertError)
           if (i === 0) {
-            return NextResponse.json({ error: `데이터 삽입 실패: ${insertError.message}` }, { status: 500 })
+            return NextResponse.json({ error: `데이터 업서트 실패: ${upsertError.message}` }, { status: 500 })
           }
           continue
         }
 
-        insertedCount += insertData ? insertData.length : batch.length
-        console.log(`✅ Batch ${batchNumber} success: ${insertData?.length || batch.length} records`)
+        upsertedCount += upsertData ? upsertData.length : batch.length
+        console.log(`✅ Batch ${batchNumber} success: ${upsertData?.length || batch.length} records`)
 
         await new Promise((resolve) => setTimeout(resolve, 100))
       } catch (batchError) {
@@ -264,11 +261,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `TikTok 주문 데이터 업로드 완료!`,
-      count: finalCount || insertedCount,
+      message: `TikTok 주문 데이터 업서트 완료!`,
+      count: finalCount || upsertedCount,
       processed: processedRows,
       skipped: skippedRows,
-      totalRecords: finalCount || insertedCount,
+      totalRecords: finalCount || upsertedCount,
     })
   } catch (error) {
     console.error("💥 Upload error:", error)
