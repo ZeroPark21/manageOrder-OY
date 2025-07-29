@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, BarChart3, TrendingUp, Video, DollarSign, Users } from "lucide-react"
+import { Upload, BarChart3, TrendingUp, Eye, DollarSign, Users, Heart } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -33,6 +33,8 @@ interface ContentData {
   totalContents: number
   totalCount: number
   uniqueCreators: number
+  totalShoppableImpressions?: number
+  totalLikeCount?: number
 }
 
 export default function ContentDashboard() {
@@ -44,14 +46,29 @@ export default function ContentDashboard() {
   const fetchSummaryData = async () => {
     setLoading(true)
     try {
+      // 현재 월 데이터 가져오기 (테이블 표시용)
       const response = await fetch(`/api/contents?groupBy=daily`)
       const data = await response.json()
-      setSummaryData(data)
+      
+      // 전체 기간 통계 가져오기 (요약 카드용)
+      const totalResponse = await fetch(`/api/contents?groupBy=daily&startDate=2025-06-01`)
+      const totalData = await totalResponse.json()
+      
+      setSummaryData({
+        ...data,
+        totalContents: totalData.totalContents,
+        totalCount: totalData.totalCount,
+        uniqueCreators: totalData.uniqueCreators,
+        totalShoppableImpressions: totalData.totalShoppableImpressions,
+        totalLikeCount: totalData.totalLikeCount,
+      })
 
       console.log("📊 Content data loaded:", {
-        totalContents: data.totalContents,
-        totalCount: data.totalCount,
-        uniqueCreators: data.uniqueCreators,
+        totalContents: totalData.totalContents,
+        totalCount: totalData.totalCount,
+        uniqueCreators: totalData.uniqueCreators,
+        totalShoppableImpressions: totalData.totalShoppableImpressions,
+        totalLikeCount: totalData.totalLikeCount,
         dataPoints: data.data?.length,
       })
       
@@ -310,17 +327,7 @@ export default function ContentDashboard() {
           </div>
 
           {/* 요약 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">총 콘텐츠 수</CardTitle>
-                <Video className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summaryData?.totalContents?.toLocaleString() || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 누적</p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">총 발행 수</CardTitle>
@@ -328,7 +335,17 @@ export default function ContentDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summaryData?.totalCount?.toLocaleString() || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">전체 콘텐츠 발행량</p>
+                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 누적</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total GMV</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₩{totalGmv.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 총 GMV</p>
               </CardContent>
             </Card>
             <Card>
@@ -343,12 +360,22 @@ export default function ContentDashboard() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total GMV</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">총 노출 수</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₩{totalGmv.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 총 GMV</p>
+                <div className="text-2xl font-bold">{summaryData?.totalShoppableImpressions?.toLocaleString() || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 누적</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">총 좋아요 수</CardTitle>
+                <Heart className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{summaryData?.totalLikeCount?.toLocaleString() || 0}</div>
+                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 누적</p>
               </CardContent>
             </Card>
           </div>

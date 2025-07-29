@@ -270,6 +270,18 @@ export async function GET(request: NextRequest) {
 
     // 고유 크리에이터 수 계산
     const uniqueCreators = new Set(safeContents.map((c) => c.creator_name)).size
+    
+    // 총 노출 수 계산
+    const totalShoppableImpressions = safeContents.reduce(
+      (sum, content) => sum + (content.shoppable_impressions || 0), 
+      0
+    )
+    
+    // 총 좋아요 수 계산
+    const totalLikeCount = safeContents.reduce(
+      (sum, content) => sum + (content.like_count || 0), 
+      0
+    )
 
     let groupedData
 
@@ -295,6 +307,8 @@ export async function GET(request: NextRequest) {
       totalContents: safeContents.length,
       totalCount: safeContents.length,
       uniqueCreators: uniqueCreators,
+      totalShoppableImpressions: totalShoppableImpressions,
+      totalLikeCount: totalLikeCount,
     })
   } catch (err: any) {
     console.error("API /api/contents error:", err)
