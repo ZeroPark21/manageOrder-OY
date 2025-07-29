@@ -35,6 +35,8 @@ import {
   LineChart,
   Line,
 } from "recharts"
+import { GMVTrendChart } from "@/components/gmv-trend-chart"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface CreatorData {
   account: string
@@ -437,6 +439,72 @@ export default function GmvMaxPage() {
               )}
             </TableBody>
           </Table>
+        </div>
+      </Card>
+
+      {/* 시계열 분석 차트 섹션 */}
+      <Card>
+        <div className="p-6">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold">시계열 분석</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              일별/주별/월별 GMV 추이 및 성과 지표를 확인하세요
+            </p>
+          </div>
+          
+          <Tabs defaultValue="trends" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="trends">트렌드 분석</TabsTrigger>
+              <TabsTrigger value="existing">기존 차트</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="trends" className="space-y-4">
+              <GMVTrendChart />
+            </TabsContent>
+            
+            <TabsContent value="existing" className="space-y-4">
+              {/* 기존 차트들 이동 */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <Card>
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">GMV 추이</h3>
+                    <div className="h-[350px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={gmvTrendData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <Tooltip formatter={(value: any) => formatCurrency(value)} />
+                          <Legend />
+                          <Line type="monotone" dataKey="gmv" stroke="#8884d8" name="GMV" />
+                          <Line type="monotone" dataKey="orders" stroke="#82ca9d" name="주문수" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card>
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">예산 사용 현황</h3>
+                    <div className="h-[350px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={budgetTrendData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <Tooltip formatter={(value: any) => formatCurrency(value)} />
+                          <Legend />
+                          <Bar dataKey="allocated" fill="#8884d8" name="할당 예산" />
+                          <Bar dataKey="used" fill="#82ca9d" name="사용 예산" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </Card>
     </div>

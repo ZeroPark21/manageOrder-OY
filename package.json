@@ -6,7 +6,11 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "collect:gmv": "ts-node scripts/gmv-collector/scheduler.ts",
+    "collect:gmv:yesterday": "ts-node scripts/gmv-collector/scheduler.ts yesterday",
+    "collect:gmv:range": "ts-node scripts/gmv-collector/scheduler.ts range",
+    "collect:gmv:schedule": "ts-node scripts/gmv-collector/scheduler.ts schedule"
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^1.0.61",
@@ -43,6 +47,7 @@
     "date-fns": "^4.1.0",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",
+    "node-cron": "^4.2.1",
     "react": "19.0.0",
     "react-day-picker": "^9.8.1",
     "react-dom": "19.0.0",
@@ -52,12 +57,16 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "@types/node": "^22",
+    "@types/node-cron": "^3.0.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.16",
+    "playwright": "^1.54.1",
     "postcss": "^8.5",
     "tailwindcss": "^3.3.5",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }
