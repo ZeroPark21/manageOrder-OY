@@ -39,12 +39,16 @@ export async function GET(request: NextRequest) {
     const defaultEndDate = endDate || now.toISOString().split('T')[0]
 
     // 데이터 조회 - 샘플만 조회 (sku_unit_original_price = 0)
+    // 날짜에 시간을 추가하여 전체 날짜 범위를 포함하도록 수정
+    const startDateTime = `${defaultStartDate}T00:00:00`
+    const endDateTime = `${defaultEndDate}T23:59:59`
+    
     const { data, error: dbError } = await supabase
       .from("orders")
       .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
       .eq("sku_unit_original_price", 0)  // 샘플만 필터링
-      .gte("created_time", defaultStartDate)
-      .lte("created_time", defaultEndDate)
+      .gte("created_time", startDateTime)
+      .lte("created_time", endDateTime)
       .order("created_time", { ascending: true })
 
     if (dbError) {
