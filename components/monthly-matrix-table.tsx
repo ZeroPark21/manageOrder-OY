@@ -111,8 +111,8 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
             <table className="border-collapse relative" style={{ minWidth: "max-content" }}>
             <thead>
               <tr className="bg-purple-600 text-white">
-                <th className="sticky top-0 left-0 z-30 bg-purple-600 border border-purple-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap">순위</th>
-                <th className="sticky top-0 left-[60px] z-30 bg-purple-600 border border-purple-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
+                <th className="sticky top-0 left-0 z-30 bg-purple-600 border border-purple-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ width: "50px" }}>순위</th>
+                <th className="sticky top-0 left-[50px] z-30 bg-purple-600 border border-purple-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
                   Product Name
                 </th>
                 <th className="sticky top-0 z-20 bg-purple-600 border border-purple-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "120px" }}>
@@ -139,8 +139,8 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
 
                 return (
                   <tr key={product} className={isEvenRow ? "bg-gray-50" : "bg-white"}>
-                    <td className={`sticky left-0 z-10 border border-gray-300 px-3 py-2 text-center text-sm font-medium ${isEvenRow ? "bg-gray-50" : "bg-white"}`}>{index + 1}</td>
-                    <td className={`sticky left-[60px] z-10 border border-gray-300 px-3 py-2 text-sm ${isEvenRow ? "bg-gray-50" : "bg-white"}`} title={product}>
+                    <td className={`sticky left-0 z-10 border border-gray-300 px-3 py-2 text-center text-sm font-medium ${isEvenRow ? "bg-gray-50" : "bg-white"}`} style={{ width: "50px" }}>{index + 1}</td>
+                    <td className={`sticky left-[50px] z-10 border border-gray-300 px-3 py-2 text-sm ${isEvenRow ? "bg-gray-50" : "bg-white"}`} title={product}>
                       <div className="truncate" style={{ maxWidth: "230px" }}>{product}</div>
                     </td>
                     <td className="border border-gray-300 px-3 py-2 text-sm text-center">
@@ -168,8 +168,8 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
               })}
               {/* Monthly Totals Row */}
               <tr className="bg-purple-800 text-white font-bold">
-                <td className="sticky left-0 z-10 bg-purple-800 border border-purple-600 px-3 py-2 text-center text-sm"></td>
-                <td className="sticky left-[60px] z-10 bg-purple-800 border border-purple-600 px-3 py-2 text-sm whitespace-nowrap">Monthly 발송 수량</td>
+                <td className="sticky left-0 z-10 bg-purple-800 border border-purple-600 px-3 py-2 text-center text-sm" style={{ width: "50px" }}></td>
+                <td className="sticky left-[50px] z-10 bg-purple-800 border border-purple-600 px-3 py-2 text-sm whitespace-nowrap">Monthly 발송 수량</td>
                 <td className="border border-purple-600 px-3 py-2 text-sm"></td>
                 <td className="border border-purple-600 px-3 py-2 text-sm"></td>
                 {data.months.map((month) => {
