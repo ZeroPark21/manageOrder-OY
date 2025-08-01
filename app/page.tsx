@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DailyMatrixTable } from "@/components/daily-matrix-table"
 import { WeeklyMatrixTable } from "@/components/weekly-matrix-table"
 import { MonthlyMatrixTable } from "@/components/monthly-matrix-table"
-import { Upload, BarChart3, TrendingUp, Package, Box, DollarSign, Wallet } from "lucide-react"
+import { Upload, BarChart3, Package, Wallet } from "lucide-react"
 import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel } from "@/lib/excel-utils"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -72,7 +72,6 @@ interface SalesStats {
 }
 
 export default function Dashboard() {
-  const [summaryData, setSummaryData] = useState<DashboardData | null>(null)
   const [salesStats, setSalesStats] = useState<SalesStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloadLoading, setDownloadLoading] = useState(false)
@@ -80,23 +79,12 @@ export default function Dashboard() {
   const fetchSummaryData = async () => {
     setLoading(true)
     try {
-      // 기존 데이터와 판매 통계를 병렬로 로드
-      const [ordersResponse, salesResponse] = await Promise.all([
-        fetch(`/api/orders?groupBy=daily`),
-        fetch('/api/gmv-sales-stats')
-      ])
-      
-      const ordersData = await ordersResponse.json()
+      const salesResponse = await fetch('/api/gmv-sales-stats')
       const salesData = await salesResponse.json()
       
-      setSummaryData(ordersData)
       setSalesStats(salesData.data || null)
 
       console.log("📊 Dashboard data loaded:", {
-        totalOrders: ordersData.totalOrders,
-        totalQuantity: ordersData.totalQuantity,
-        uniqueProducts: ordersData.uniqueProducts,
-        dataPoints: ordersData.data?.length,
         salesStats: salesData.data
       })
     } catch (error: any) {
@@ -350,76 +338,39 @@ export default function Dashboard() {
 
           {/* 샘플 발송 현황 */}
           {salesStats && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4">샘플 발송 현황 (SKU Unit Original Price = 0)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="border-purple-200 bg-purple-50/50">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">총 샘플 발송</CardTitle>
-                    <Package className="h-4 w-4 text-purple-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{salesStats.samples.totalQuantity.toLocaleString()}개</div>
-                    <p className="text-xs text-muted-foreground mt-1">주문 건수: {salesStats.samples.totalOrders.toLocaleString()}건</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-orange-200 bg-orange-50/50">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">취소된 샘플</CardTitle>
-                    <Package className="h-4 w-4 text-orange-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{salesStats.samples.cancelledQuantity.toLocaleString()}개</div>
-                    <p className="text-xs text-muted-foreground mt-1">취소 건수: {salesStats.samples.cancelledOrders.toLocaleString()}건</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">실제 발송된 샘플</CardTitle>
-                    <Wallet className="h-4 w-4 text-cyan-600" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{salesStats.samples.activeQuantity.toLocaleString()}개</div>
-                    <p className="text-xs text-muted-foreground mt-1">발송 건수: {salesStats.samples.activeOrders.toLocaleString()}건</p>
-                  </CardContent>
-                </Card>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="border-purple-200 bg-purple-50/50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">총 샘플 발송</CardTitle>
+                  <Package className="h-4 w-4 text-purple-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{salesStats.samples.totalQuantity.toLocaleString()}개</div>
+                  <p className="text-xs text-muted-foreground mt-1">주문 건수: {salesStats.samples.totalOrders.toLocaleString()}건</p>
+                </CardContent>
+              </Card>
+              <Card className="border-orange-200 bg-orange-50/50">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">취소된 샘플</CardTitle>
+                  <Package className="h-4 w-4 text-orange-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{salesStats.samples.cancelledQuantity.toLocaleString()}개</div>
+                  <p className="text-xs text-muted-foreground mt-1">취소 건수: {salesStats.samples.cancelledOrders.toLocaleString()}건</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">실제 발송된 샘플</CardTitle>
+                  <Wallet className="h-4 w-4 text-cyan-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{salesStats.samples.activeQuantity.toLocaleString()}개</div>
+                  <p className="text-xs text-muted-foreground mt-1">발송 건수: {salesStats.samples.activeOrders.toLocaleString()}건</p>
+                </CardContent>
+              </Card>
             </div>
           )}
-          
-          {/* 요약 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">총 샘플 주문 수</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summaryData?.totalOrders?.toLocaleString() || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">샘플 주문 건수 누적</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">총 샘플 발송 수량</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summaryData?.totalQuantity?.toLocaleString() || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">샘플 발송 개수 누적</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">샘플 상품 종류</CardTitle>
-                <Box className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summaryData?.uniqueProducts || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">샘플이 발송된 상품 수</p>
-              </CardContent>
-            </Card>
-          </div>
 
           {/* 매트릭스 테이블 탭 */}
           <Tabs defaultValue="daily" className="space-y-4">
