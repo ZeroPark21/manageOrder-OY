@@ -264,22 +264,22 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
       </CardHeader>
       <CardContent className="p-4">
         <div className="overflow-hidden border rounded-lg">
-          <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
-            <table className="border-collapse" style={{ minWidth: "max-content" }}>
-            <thead className="sticky top-0 z-10">
+          <div className="overflow-x-auto overflow-y-auto max-h-[600px] relative">
+            <table className="border-collapse relative" style={{ minWidth: "max-content" }}>
+            <thead>
               <tr className="bg-blue-600 text-white">
-                <th className="sticky left-0 z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap">순위</th>
-                <th className="sticky left-[60px] z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
+                <th className="sticky top-0 left-0 z-30 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap">순위</th>
+                <th className="sticky top-0 left-[60px] z-30 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
                   Product Name
                 </th>
-                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "120px" }}>Seller SKU</th>
-                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "100px" }}>SKU ID</th>
+                <th className="sticky top-0 z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "120px" }}>Seller SKU</th>
+                <th className="sticky top-0 z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "100px" }}>SKU ID</th>
                 {data.dates.map((date) => (
-                  <th key={date} className="border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
+                  <th key={date} className="sticky top-0 z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
                     {formatDate(date)}
                   </th>
                 ))}
-                <th className="border border-blue-500 px-3 py-2 text-center text-sm font-medium bg-blue-700 whitespace-nowrap" style={{ minWidth: "80px" }}>
+                <th className="sticky top-0 z-20 bg-blue-700 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
                   총수량
                 </th>
               </tr>

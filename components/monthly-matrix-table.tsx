@@ -105,27 +105,28 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="relative overflow-auto max-h-[calc(100vh-300px)] border rounded-lg">
-          <table className="border-collapse" style={{ minWidth: "100%" }}>
-            <thead className="sticky top-0 z-10">
+      <CardContent className="p-4">
+        <div className="overflow-hidden border rounded-lg">
+          <div className="overflow-x-auto overflow-y-auto max-h-[600px] relative">
+            <table className="border-collapse relative" style={{ minWidth: "max-content" }}>
+            <thead>
               <tr className="bg-purple-600 text-white">
-                <th className="sticky left-0 z-20 bg-purple-600 border border-purple-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap">순위</th>
-                <th className="sticky left-[48px] z-20 bg-purple-600 border border-purple-500 px-3 py-2 text-left text-sm font-medium min-w-[300px] whitespace-nowrap">
+                <th className="sticky top-0 left-0 z-30 bg-purple-600 border border-purple-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap">순위</th>
+                <th className="sticky top-0 left-[60px] z-30 bg-purple-600 border border-purple-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
                   Product Name
                 </th>
-                <th className="border border-purple-500 px-3 py-2 text-left text-sm font-medium min-w-[150px]">
+                <th className="sticky top-0 z-20 bg-purple-600 border border-purple-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "120px" }}>
                   Seller SKU
                 </th>
-                <th className="border border-purple-500 px-3 py-2 text-left text-sm font-medium min-w-[80px]">
+                <th className="sticky top-0 z-20 bg-purple-600 border border-purple-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "100px" }}>
                   SKU ID
                 </th>
                 {data.months.map((month) => (
-                  <th key={month} className="border border-purple-500 px-3 py-2 text-center text-sm font-medium w-20">
+                  <th key={month} className="sticky top-0 z-20 bg-purple-600 border border-purple-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
                     {month}
                   </th>
                 ))}
-                <th className="border border-purple-500 px-3 py-2 text-center text-sm font-medium w-20 bg-purple-700">
+                <th className="sticky top-0 z-20 bg-purple-700 border border-purple-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
                   총수량
                 </th>
               </tr>
@@ -139,8 +140,8 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
                 return (
                   <tr key={product} className={isEvenRow ? "bg-gray-50" : "bg-white"}>
                     <td className={`sticky left-0 z-10 border border-gray-300 px-3 py-2 text-center text-sm font-medium ${isEvenRow ? "bg-gray-50" : "bg-white"}`}>{index + 1}</td>
-                    <td className={`sticky left-[48px] z-10 border border-gray-300 px-3 py-2 text-sm ${isEvenRow ? "bg-gray-50" : "bg-white"}`} title={product}>
-                      <div className="truncate max-w-[280px]">{product}</div>
+                    <td className={`sticky left-[60px] z-10 border border-gray-300 px-3 py-2 text-sm ${isEvenRow ? "bg-gray-50" : "bg-white"}`} title={product}>
+                      <div className="truncate" style={{ maxWidth: "230px" }}>{product}</div>
                     </td>
                     <td className="border border-gray-300 px-3 py-2 text-sm text-center">
                       {skuInfo.seller_sku || "-"}
@@ -168,7 +169,7 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
               {/* Monthly Totals Row */}
               <tr className="bg-purple-800 text-white font-bold">
                 <td className="sticky left-0 z-10 bg-purple-800 border border-purple-600 px-3 py-2 text-center text-sm"></td>
-                <td className="sticky left-[48px] z-10 bg-purple-800 border border-purple-600 px-3 py-2 text-sm whitespace-nowrap">Monthly 발송 수량</td>
+                <td className="sticky left-[60px] z-10 bg-purple-800 border border-purple-600 px-3 py-2 text-sm whitespace-nowrap">Monthly 발송 수량</td>
                 <td className="border border-purple-600 px-3 py-2 text-sm"></td>
                 <td className="border border-purple-600 px-3 py-2 text-sm"></td>
                 {data.months.map((month) => {
@@ -187,6 +188,7 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* 요약 정보 */}
