@@ -7,10 +7,10 @@
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "collect:gmv": "ts-node scripts/gmv-collector/scheduler.ts",
-    "collect:gmv:yesterday": "ts-node scripts/gmv-collector/scheduler.ts yesterday",
-    "collect:gmv:range": "ts-node scripts/gmv-collector/scheduler.ts range",
-    "collect:gmv:schedule": "ts-node scripts/gmv-collector/scheduler.ts schedule"
+    "collect:gmv": "ts-node --project tsconfig.node.json scripts/gmv-collector/scheduler.ts",
+    "collect:gmv:yesterday": "ts-node --project tsconfig.node.json scripts/gmv-collector/scheduler.ts yesterday",
+    "collect:gmv:range": "ts-node --project tsconfig.node.json scripts/gmv-collector/scheduler.ts range",
+    "collect:gmv:schedule": "ts-node --project tsconfig.node.json scripts/gmv-collector/scheduler.ts schedule"
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^1.0.61",

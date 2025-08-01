@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>TikTok GMV Auto Collector</title>
+  <link rel="stylesheet" href="styles/popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>GMV Auto Collector</h1>
+    
+    <div class="status-section">
+      <h3>상태</h3>
+      <div id="status" class="status">대기 중...</div>
+      <div class="info-text">
+        <p>📌 사용 방법:</p>
+        <ol>
+          <li>TikTok Seller Center Ads Dashboard 열기</li>
+          <li>"지금 수집" 클릭</li>
+          <li>자동으로 6월 17일부터 오늘까지 데이터 수집</li>
+          <li>각 캠페인의 View details 페이지 자동 방문</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="config-section">
+      <h3>설정</h3>
+      
+      <div class="form-group">
+        <label for="supabaseUrl">Supabase URL:</label>
+        <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co">
+      </div>
+      
+      <div class="form-group">
+        <label for="supabaseKey">Supabase Anon Key:</label>
+        <input type="password" id="supabaseKey" placeholder="your-anon-key">
+      </div>
+      
+      <div class="form-group">
+        <label for="autoCollect">자동 수집:</label>
+        <input type="checkbox" id="autoCollect">
+        <span class="checkbox-label">매일 자동으로 데이터 수집</span>
+      </div>
+      
+      <div class="form-group">
+        <label for="collectTime">수집 시간:</label>
+        <input type="time" id="collectTime" value="02:00">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="saveConfig" class="btn btn-primary">설정 저장</button>
+      <button id="collectNow" class="btn btn-success">지금 수집</button>
+      <button id="collectRange" class="btn btn-secondary">기간 수집</button>
+    </div>
+
+    <div class="logs-section">
+      <h3>최근 로그</h3>
+      <div id="logs" class="logs"></div>
+    </div>
+  </div>
+  
+  <script src="scripts/popup.js"></script>
+</body>
+</html>

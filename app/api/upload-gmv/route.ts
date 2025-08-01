@@ -63,33 +63,49 @@ export async function POST(request: NextRequest) {
       sheetName: sheetName
     })
 
-    // 데이터 변환
-    const gmvDataList: GmvData[] = jsonData.map((row: any) => ({
-      video_id: row['Video ID'] || '',
-      video_title: row['Video title'] || '',
-      tiktok_account: row['TikTok account'] || '',
-      creative_type: row['Creative type'] || '',
-      status: row['Status'] || '',
-      orders: Number(row['Orders (SKU)']) || 0,
-      gross_revenue: parseFloat(String(row['Gross revenue']).replace(/,/g, '')) || 0,
-      ad_impressions: Number(row['Product ad impressions']) || 0,
-      ad_clicks: Number(row['Product ad clicks']) || 0,
-      ad_click_rate: Number(row['Product ad click rate']) || 0,
-      ad_conversion_rate: Number(row['Ad conversion rate']) || 0,
-      video_view_rate_2s: Number(row['2-second ad video view rate']) || 0,
-      video_view_rate_6s: Number(row['6-second ad video view rate']) || 0,
-      video_view_rate_25: Number(row['25% ad video view rate']) || 0,
-      video_view_rate_50: Number(row['50% ad video view rate']) || 0,
-      video_view_rate_75: Number(row['75% ad video view rate']) || 0,
-      video_view_rate_100: Number(row['100% ad video view rate']) || 0,
-      currency: row['Currency'] || 'KRW',
-      campaign_name: row['Campaign name'] || '',
-      campaign_id: row['Campaign ID'] || '',
-      product_id: row['Product ID'] || '',
-      authorization_type: row['Authorization type'] || ''
-    }))
+    // 데이터 변환 및 중복 제거
+    const videoIdMap = new Map<string, GmvData>()
+    
+    jsonData.forEach((row: any) => {
+      const videoId = row['Video ID'] || ''
+      if (!videoId) return // video_id가 없으면 건너뛰기
+      
+      const gmvData: GmvData = {
+        video_id: videoId,
+        video_title: row['Video title'] || '',
+        tiktok_account: row['TikTok account'] || '',
+        creative_type: row['Creative type'] || '',
+        status: row['Status'] || '',
+        orders: Number(row['Orders (SKU)']) || 0,
+        gross_revenue: parseFloat(String(row['Gross revenue']).replace(/,/g, '')) || 0,
+        ad_impressions: Number(row['Product ad impressions']) || 0,
+        ad_clicks: Number(row['Product ad clicks']) || 0,
+        ad_click_rate: Number(row['Product ad click rate']) || 0,
+        ad_conversion_rate: Number(row['Ad conversion rate']) || 0,
+        video_view_rate_2s: Number(row['2-second ad video view rate']) || 0,
+        video_view_rate_6s: Number(row['6-second ad video view rate']) || 0,
+        video_view_rate_25: Number(row['25% ad video view rate']) || 0,
+        video_view_rate_50: Number(row['50% ad video view rate']) || 0,
+        video_view_rate_75: Number(row['75% ad video view rate']) || 0,
+        video_view_rate_100: Number(row['100% ad video view rate']) || 0,
+        currency: row['Currency'] || 'KRW',
+        campaign_name: row['Campaign name'] || '',
+        campaign_id: row['Campaign ID'] || '',
+        product_id: row['Product ID'] || '',
+        authorization_type: row['Authorization type'] || ''
+      }
+      
+      // 중복된 video_id가 있으면 나중 것으로 덮어쓰기
+      videoIdMap.set(videoId, gmvData)
+    })
+    
+    const gmvDataList: GmvData[] = Array.from(videoIdMap.values())
 
-    console.log("🔄 데이터 변환 완료:", gmvDataList.length, "개 항목")
+    console.log("🔄 데이터 변환 완료:", {
+      originalRows: jsonData.length,
+      uniqueVideos: gmvDataList.length,
+      duplicatesRemoved: jsonData.length - gmvDataList.length
+    })
 
     // Supabase에 저장
     const supabase = createServerClient()

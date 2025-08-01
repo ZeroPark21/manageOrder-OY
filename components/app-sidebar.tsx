@@ -41,10 +41,10 @@ const isDevelopment = process.env.NODE_ENV === "development"
 // 메뉴 데이터
 const menuItems = [
   {
-    title: "제품 발송 현황",
+    title: "샘플 발송 현황",
     url: "/",
     icon: Package,
-    description: "TikTok 제품 발송 데이터 분석",
+    description: "TikTok 샘플 발송 데이터 분석",
   },
   {
     title: "콘텐츠 발행 현황",

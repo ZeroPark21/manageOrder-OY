@@ -7,14 +7,8 @@ function parseCSVDate(dateString: string): string | null {
   if (!dateString || dateString.trim() === "" || dateString === "\t") {
     return null
   }
-
-  try {
-    // TikTok 날짜 형식: "07/03/2025 1:18:49 AM"
-    const date = new Date(dateString)
-    return isNaN(date.getTime()) ? null : date.toISOString()
-  } catch {
-    return null
-  }
+  // 날짜를 그대로 문자열로 저장 (데이터베이스에서 TEXT 타입으로 저장)
+  return dateString.trim()
 }
 
 function parseNumber(value: string): number {
@@ -95,8 +89,11 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
 
     const orders = []
+    const orderIdSet = new Set<string>() // 중복 체크용
+    const duplicateOrderIds = new Set<string>()
     let processedRows = 0
     let skippedRows = 0
+    let duplicateRows = 0
 
     // Process all data rows
     for (let i = 1; i < lines.length; i++) {
@@ -111,40 +108,45 @@ export async function POST(request: NextRequest) {
           rowData[header] = values[index] || ""
         })
 
-        const orderId = rowData["Order ID"]?.toString().trim()
+        const orderIdRaw = rowData["Order ID"]?.toString().trim()
         const productName = rowData["Product Name"]?.toString().trim()
         const quantity = parseInteger(rowData["Quantity"])
 
-        if (!orderId || !productName || quantity <= 0) {
+        if (!orderIdRaw || !productName || quantity <= 0) {
           skippedRows++
           continue
         }
+        
+        // order_id를 문자열로 변환하여 정밀도 문제 해결
+        const orderId = String(orderIdRaw)
+        
+        // CSV 내에서 중복 체크
+        if (orderIdSet.has(orderId)) {
+          duplicateOrderIds.add(orderId)
+          duplicateRows++
+          console.log(`⚠️ Duplicate order_id in CSV: ${orderId} at row ${i + 1}`)
+          continue // 중복된 경우 건너뛰기
+        }
+        orderIdSet.add(orderId)
 
-        // 완전한 주문 데이터 매핑
-        orders.push({
-          // 기본 정보
+        // CSV 컴럼명을 데이터베이스 컴럼명으로 매핑
+        const orderData: any = {
           order_id: orderId,
           order_status: rowData["Order Status"] || null,
           order_substatus: rowData["Order Substatus"] || null,
           cancelation_return_type: rowData["Cancelation/Return Type"] || null,
           normal_or_preorder: rowData["Normal or Pre-order"] || null,
-
-          // 상품 정보
-          sku_id: rowData["SKU ID"] ? parseInteger(rowData["SKU ID"]) : null,
+          sku_id: rowData["SKU ID"] || null,
           seller_sku: rowData["Seller SKU"] || null,
           product_name: productName,
           variation: rowData["Variation"] || null,
           quantity: quantity,
           sku_quantity_of_return: parseInteger(rowData["Sku Quantity of return"]),
-
-          // 가격 정보
           sku_unit_original_price: parseNumber(rowData["SKU Unit Original Price"]),
           sku_subtotal_before_discount: parseNumber(rowData["SKU Subtotal Before Discount"]),
           sku_platform_discount: parseNumber(rowData["SKU Platform Discount"]),
           sku_seller_discount: parseNumber(rowData["SKU Seller Discount"]),
           sku_subtotal_after_discount: parseNumber(rowData["SKU Subtotal After Discount"]),
-
-          // 배송비 정보
           shipping_fee_after_discount: parseNumber(rowData["Shipping Fee After Discount"]),
           original_shipping_fee: parseNumber(rowData["Original Shipping Fee"]),
           shipping_fee_seller_discount: parseNumber(rowData["Shipping Fee Seller Discount"]),
@@ -153,32 +155,22 @@ export async function POST(request: NextRequest) {
           payment_platform_discount: parseNumber(rowData["Payment platform discount"]),
           retail_delivery_fee: parseNumber(rowData["Retail Delivery Fee"]),
           taxes: parseNumber(rowData["Taxes"]),
-
-          // 주문 금액
           order_amount: parseNumber(rowData["Order Amount"]),
           order_refund_amount: parseNumber(rowData["Order Refund Amount"]),
-
-          // 날짜 정보
-          created_time: parseCSVDate(rowData["Created Time"]),
-          paid_time: parseCSVDate(rowData["Paid Time"]),
-          rts_time: parseCSVDate(rowData["RTS Time"]),
-          shipped_time: parseCSVDate(rowData["Shipped Time"]),
-          delivered_time: parseCSVDate(rowData["Delivered Time"]),
-          cancelled_time: parseCSVDate(rowData["Cancelled Time"]),
-
-          // 취소 정보
+          created_time: rowData["Created Time"] || null,
+          paid_time: rowData["Paid Time"] || null,
+          rts_time: rowData["RTS Time"] || null,
+          shipped_time: rowData["Shipped Time"] || null,
+          delivered_time: rowData["Delivered Time"] || null,
+          cancelled_time: rowData["Cancelled Time"] || null,
           cancel_by: rowData["Cancel By"] || null,
           cancel_reason: rowData["Cancel Reason"] || null,
-
-          // 배송 정보
           fulfillment_type: rowData["Fulfillment Type"] || null,
           warehouse_name: rowData["Warehouse Name"] || null,
           tracking_id: rowData["Tracking ID"] || null,
           delivery_option_type: rowData["Delivery Option Type"] || null,
           delivery_option: rowData["Delivery Option"] || null,
           shipping_provider_name: rowData["Shipping Provider Name"] || null,
-
-          // 구매자 정보
           buyer_message: rowData["Buyer Message"] || null,
           buyer_username: rowData["Buyer Username"] || null,
           recipient: rowData["Recipient"] || null,
@@ -191,15 +183,15 @@ export async function POST(request: NextRequest) {
           address_line_2: rowData["Address Line 2"] || null,
           delivery_instruction: rowData["Delivery Instruction"] || null,
           payment_method: rowData["Payment Method"] || null,
-
-          // 기타 정보
           weight_kg: parseNumber(rowData["Weight(kg)"]),
           product_category: rowData["Product Category"] || null,
-          package_id: rowData["Package ID"] ? parseInteger(rowData["Package ID"]) : null,
+          package_id: rowData["Package ID"] || null,
           seller_note: rowData["Seller Note"] || null,
           shipping_information: rowData["Shipping Information"] || null,
           combined_listing: rowData["Combined Listing"] || null,
-        })
+        }
+        
+        orders.push(orderData)
 
         processedRows++
       } catch (rowError) {
@@ -209,10 +201,27 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log("📈 Processing summary:", { processedRows, skippedRows, validOrders: orders.length })
+    console.log("📈 Processing summary:", { 
+      processedRows, 
+      skippedRows, 
+      duplicateRows,
+      validOrders: orders.length,
+      duplicateOrderIds: Array.from(duplicateOrderIds).slice(0, 5) // 처음 5개만 로그
+    })
 
     if (orders.length === 0) {
-      return NextResponse.json({ error: `유효한 주문 데이터를 찾을 수 없습니다.` }, { status: 400 })
+      return NextResponse.json({ 
+        error: `유효한 주문 데이터를 찾을 수 없습니다.`,
+        details: {
+          totalRows: lines.length - 1,
+          skippedRows,
+          duplicateRows
+        }
+      }, { status: 400 })
+    }
+    
+    if (duplicateRows > 0) {
+      console.warn(`⚠️ Found ${duplicateRows} duplicate order_ids in CSV file`)
     }
 
     // 배치 업서트
@@ -225,24 +234,76 @@ export async function POST(request: NextRequest) {
       const batchNumber = Math.floor(i / batchSize) + 1
 
       try {
-        const { data: upsertData, error: upsertError } = await supabase
+        // 먼저 기존 order_id들을 조회
+        const orderIds = batch.map(order => String(order.order_id))
+        console.log(`🔍 Checking existing orders for batch ${batchNumber}:`, orderIds.slice(0, 3), '...')
+        
+        const { data: existingOrders, error: selectError } = await supabase
           .from("orders")
-          .upsert(batch, {
-            onConflict: 'order_id', // order_id를 기준으로 중복 체크
-            ignoreDuplicates: false // 중복 시 업데이트
-          })
-          .select("id")
-
-        if (upsertError) {
-          console.error(`❌ Batch ${batchNumber} error:`, upsertError)
-          if (i === 0) {
-            return NextResponse.json({ error: `데이터 업서트 실패: ${upsertError.message}` }, { status: 500 })
+          .select("id, order_id")
+          .in("order_id", orderIds)
+        
+        if (selectError) {
+          console.error(`❌ Select error in batch ${batchNumber}:`, selectError)
+          throw selectError
+        }
+        
+        const existingOrderMap = new Map(
+          existingOrders?.map(order => [String(order.order_id), order.id]) || []
+        )
+        
+        console.log(`📊 Batch ${batchNumber}: Found ${existingOrders?.length || 0} existing orders out of ${batch.length} total`)
+        
+        // 업데이트할 주문과 새로 추가할 주문 분리
+        const ordersToUpdate = []
+        const ordersToInsert = []
+        
+        batch.forEach(order => {
+          const orderIdStr = String(order.order_id)
+          const existingId = existingOrderMap.get(orderIdStr)
+          if (existingId) {
+            ordersToUpdate.push({ ...order, id: existingId })
+          } else {
+            ordersToInsert.push(order)
           }
-          continue
+        })
+        
+        console.log(`📦 Batch ${batchNumber}: ${ordersToUpdate.length} to update, ${ordersToInsert.length} to insert`)
+        
+        let upsertData = []
+        
+        // 업데이트 실행
+        if (ordersToUpdate.length > 0) {
+          const { data: updateData, error: updateError } = await supabase
+            .from("orders")
+            .upsert(ordersToUpdate)
+            .select("id")
+          
+          if (updateError) {
+            console.error(`❌ Update error in batch ${batchNumber}:`, updateError)
+            throw updateError
+          }
+          upsertData.push(...(updateData || []))
+        }
+        
+        // 삽입 실행
+        if (ordersToInsert.length > 0) {
+          const { data: insertData, error: insertError } = await supabase
+            .from("orders")
+            .insert(ordersToInsert)
+            .select("id")
+          
+          if (insertError) {
+            console.error(`❌ Insert error in batch ${batchNumber}:`, insertError)
+            throw insertError
+          }
+          upsertData.push(...(insertData || []))
         }
 
-        upsertedCount += upsertData ? upsertData.length : batch.length
-        console.log(`✅ Batch ${batchNumber} success: ${upsertData?.length || batch.length} records`)
+
+        const actualUpserted = ordersToUpdate.length + ordersToInsert.length
+        upsertedCount += actualUpserted
+        console.log(`✅ Batch ${batchNumber} success: ${actualUpserted} records (${ordersToUpdate.length} updated, ${ordersToInsert.length} inserted)`)
 
         await new Promise((resolve) => setTimeout(resolve, 100))
       } catch (batchError) {
@@ -265,6 +326,7 @@ export async function POST(request: NextRequest) {
       count: finalCount || upsertedCount,
       processed: processedRows,
       skipped: skippedRows,
+      duplicatesInFile: duplicateRows,
       totalRecords: finalCount || upsertedCount,
     })
   } catch (error) {

@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase"
 
 export const runtime = "edge"
+export const dynamic = 'force-dynamic'
 
 interface OrderSimple {
   id: number
@@ -113,7 +114,7 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerClient()
 
-    // orders 테이블에서 모든 데이터 조회 (7월 1일부터)
+    // orders 테이블에서 샘플 데이터만 조회 (7월 1일부터)
     const { data, error: dbError } = await supabase
       .from("orders")
       .select(
@@ -122,10 +123,12 @@ export async function GET(request: NextRequest) {
         product_name,
         quantity,
         created_time,
-        order_amount
+        order_amount,
+        sku_unit_original_price
       `,
       )
-      .gte("created_time", "2025-07-01")
+      .eq("sku_unit_original_price", 0)  // 샘플만 필터링
+      .gte("created_time", "2025-06-01")
       .order("created_time", { ascending: true })
 
     if (dbError) {

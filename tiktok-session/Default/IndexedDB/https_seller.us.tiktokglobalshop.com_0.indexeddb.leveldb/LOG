@@ -1,0 +1,4 @@
+2025/07/29-17:37:35.128 352b2b9 Reusing MANIFEST /Users/sero/Documents/GitHub/manageOrder-OY/manageOrder-OY/tiktok-session/Default/IndexedDB/https_seller.us.tiktokglobalshop.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/07/29-17:37:35.128 352b2b9 Recovering log #4
+2025/07/29-17:37:35.130 352b2b9 Reusing old log /Users/sero/Documents/GitHub/manageOrder-OY/manageOrder-OY/tiktok-session/Default/IndexedDB/https_seller.us.tiktokglobalshop.com_0.indexeddb.leveldb/000004.log 
+2025/07/29-17:37:35.371 352b2c9 Manual compaction at level-0 from '\x00\x06\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x07\x00\x00\x00' @ 0 : 0; will stop at (end)

@@ -151,8 +151,8 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
     return (
       <Card>
         <CardHeader>
-          <CardTitle>일별 상품 발송현황</CardTitle>
-          <CardDescription>상품별 일일 발송 수량 매트릭스</CardDescription>
+          <CardTitle>일별 샘플 발송현황</CardTitle>
+          <CardDescription>상품별 일일 샘플 발송 수량 매트릭스 (SKU Unit Original Price = 0)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-32">
@@ -170,8 +170,8 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
           <div className="flex flex-col gap-4">
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle>일별 상품 발송현황</CardTitle>
-                <CardDescription>상품별 일일 발송 수량 매트릭스</CardDescription>
+                <CardTitle>일별 샘플 발송현황</CardTitle>
+                <CardDescription>상품별 일일 샘플 발송 수량 매트릭스 (SKU Unit Original Price = 0)</CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -224,8 +224,8 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>일별 상품 발송현황</CardTitle>
-              <CardDescription>상품별 일일 발송 수량 매트릭스 (총 {data.products.length}개 상품)</CardDescription>
+              <CardTitle>일별 샘플 발송현황</CardTitle>
+              <CardDescription>상품별 일일 샘플 발송 수량 매트릭스 (총 {data.products.length}개 상품)</CardDescription>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -262,13 +262,13 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
+      <CardContent className="p-0">
+        <div className="relative overflow-auto max-h-[calc(100vh-300px)] border rounded-lg">
+          <table className="border-collapse" style={{ minWidth: "100%" }}>
+            <thead className="sticky top-0 z-10">
               <tr className="bg-blue-600 text-white">
-                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium w-12">순위</th>
-                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium min-w-[250px]">
+                <th className="sticky left-0 z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap">순위</th>
+                <th className="sticky left-[48px] z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium min-w-[250px] whitespace-nowrap">
                   Product Name
                 </th>
                 <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium w-32">Seller SKU</th>
@@ -291,8 +291,8 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
 
                 return (
                   <tr key={product} className={isEvenRow ? "bg-gray-50" : "bg-white"}>
-                    <td className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">{index + 1}</td>
-                    <td className="border border-gray-300 px-3 py-2 text-sm" title={product}>
+                    <td className={`sticky left-0 z-10 border border-gray-300 px-3 py-2 text-center text-sm font-medium ${isEvenRow ? "bg-gray-50" : "bg-white"}`}>{index + 1}</td>
+                    <td className={`sticky left-[48px] z-10 border border-gray-300 px-3 py-2 text-sm ${isEvenRow ? "bg-gray-50" : "bg-white"}`} title={product}>
                       <div className="truncate max-w-[230px]">{product}</div>
                     </td>
                     <td className="border border-gray-300 px-3 py-2 text-sm" title={skuInfo.seller_sku}>
@@ -320,8 +320,8 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
               })}
               {/* Daily Totals Row */}
               <tr className="bg-gray-800 text-white font-bold">
-                <td className="border border-gray-600 px-3 py-2 text-center text-sm"></td>
-                <td className="border border-gray-600 px-3 py-2 text-sm">Daily 발송 수량</td>
+                <td className="sticky left-0 z-10 bg-gray-800 border border-gray-600 px-3 py-2 text-center text-sm"></td>
+                <td className="sticky left-[48px] z-10 bg-gray-800 border border-gray-600 px-3 py-2 text-sm whitespace-nowrap">Daily 발송 수량</td>
                 <td className="border border-gray-600 px-3 py-2 text-sm"></td>
                 <td className="border border-gray-600 px-3 py-2 text-sm"></td>
                 {data.dates.map((date) => {

@@ -58,6 +58,42 @@ interface BudgetPlan {
   ratio: number
 }
 
+interface SalesStats {
+  sales: {
+    totalOrders: number
+    totalAmount: number
+    totalQuantity: number
+    cancelledOrders: number
+    cancelledAmount: number
+    cancelledQuantity: number
+    activeOrders: number
+    activeAmount: number
+  }
+  samples: {
+    totalOrders: number
+    totalQuantity: number
+    cancelledOrders: number
+    cancelledQuantity: number
+    activeOrders: number
+    activeQuantity: number
+  }
+  invalid: {
+    totalOrders: number
+    totalQuantity: number
+    cancelledOrders: number
+    cancelledQuantity: number
+    activeOrders: number
+    activeQuantity: number
+  }
+  total: {
+    orders: number
+    sales: number
+    samples: number
+    invalid: number
+    cancelled: number
+  }
+}
+
 export default function GmvMaxPage() {
   const [date, setDate] = useState<DateRange | undefined>({
     from: addDays(new Date(), -30),
@@ -67,6 +103,7 @@ export default function GmvMaxPage() {
   const [gmvData, setGmvData] = useState<CreatorData[]>([])
   const [campaigns, setCampaigns] = useState<string[]>([])
   const [budgetPlan, setBudgetPlan] = useState<BudgetPlan[]>([])
+  const [salesStats, setSalesStats] = useState<SalesStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -77,10 +114,11 @@ export default function GmvMaxPage() {
         setLoading(true)
         setError(null)
         
-        // GMV 데이터와 예산 계획 데이터를 병렬로 로드
-        const [gmvResponse, budgetResponse] = await Promise.all([
+        // GMV 데이터, 예산 계획, 판매 통계 데이터를 병렬로 로드
+        const [gmvResponse, budgetResponse, salesResponse] = await Promise.all([
           fetch('/api/gmv-data?groupBy=account'),
-          fetch('/api/budget-plan?year=2025')
+          fetch('/api/budget-plan?year=2025'),
+          fetch('/api/gmv-sales-stats')
         ])
         
         if (!gmvResponse.ok) {
@@ -91,8 +129,13 @@ export default function GmvMaxPage() {
           throw new Error(`Budget API error! status: ${budgetResponse.status}`)
         }
         
+        if (!salesResponse.ok) {
+          throw new Error(`Sales Stats API error! status: ${salesResponse.status}`)
+        }
+        
         const gmvResult = await gmvResponse.json()
         const budgetResult = await budgetResponse.json()
+        const salesResult = await salesResponse.json()
         
         console.log('GMV API 응답:', gmvResult)
         console.log('Budget API 응답:', budgetResult)
@@ -100,6 +143,7 @@ export default function GmvMaxPage() {
         const data = gmvResult.data || []
         setGmvData(data)
         setBudgetPlan(budgetResult.data || [])
+        setSalesStats(salesResult.data || null)
         
         // 캠페인 목록 추출
         const allVideos = data.flatMap((creator: any) => creator.videos || [])
@@ -245,6 +289,119 @@ export default function GmvMaxPage() {
             </SelectContent>
           </Select>
           <Button>필터 적용</Button>
+        </div>
+      </div>
+
+      {/* 제품 발송 현황 */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold mb-4">제품 발송 현황</h3>
+        
+        {/* 판매 통계 */}
+        <div className="mb-4">
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">판매 건 (SKU Unit Original Price > 0)</h4>
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* 실제 판매 통계 */}
+            <Card className="p-6 border-green-200 bg-green-50/50">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-muted-foreground">총 판매 건</p>
+                  <DollarSign className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-2xl font-bold">{salesStats?.sales.totalOrders.toLocaleString() || 0}건</p>
+                    <p className="text-sm text-muted-foreground">{formatCurrency(salesStats?.sales.totalAmount || 0)}</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+            
+            {/* 취소된 판매 */}
+            <Card className="p-6 border-red-200 bg-red-50/50">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-muted-foreground">판매 취소 건</p>
+                  <DollarSign className="h-4 w-4 text-red-600" />
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-2xl font-bold">{salesStats?.sales.cancelledOrders.toLocaleString() || 0}건</p>
+                    <p className="text-sm text-muted-foreground">{formatCurrency(salesStats?.sales.cancelledAmount || 0)}</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+            
+            {/* 진행 중인 판매 */}
+            <Card className="p-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-muted-foreground">진행 중인 판매</p>
+                  <TrendingUp className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-2xl font-bold">{salesStats?.sales.activeOrders.toLocaleString() || 0}건</p>
+                    <p className="text-sm text-muted-foreground">{formatCurrency(salesStats?.sales.activeAmount || 0)}</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+        
+        {/* 샘플 통계 */}
+        <div>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">샘플 발송 (SKU Unit Original Price = 0)</h4>
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* 총 샘플 발송 */}
+            <Card className="p-6 border-purple-200 bg-purple-50/50">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-muted-foreground">총 샘플 발송</p>
+                  <BarChart3 className="h-4 w-4 text-purple-600" />
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-2xl font-bold">{salesStats?.samples.totalOrders.toLocaleString() || 0}건</p>
+                    <p className="text-sm text-muted-foreground">수량: {salesStats?.samples.totalQuantity.toLocaleString() || 0}개</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+            
+            {/* 샘플 취소 */}
+            <Card className="p-6 border-orange-200 bg-orange-50/50">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-muted-foreground">샘플 취소 건</p>
+                  <BarChart3 className="h-4 w-4 text-orange-600" />
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-2xl font-bold">{salesStats?.samples.cancelledOrders.toLocaleString() || 0}건</p>
+                    <p className="text-sm text-muted-foreground">수량: {salesStats?.samples.cancelledQuantity.toLocaleString() || 0}개</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+            
+            {/* 진행 중인 샘플 */}
+            <Card className="p-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium text-muted-foreground">진행 중인 샘플</p>
+                  <Wallet className="h-4 w-4 text-cyan-600" />
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-2xl font-bold">{salesStats?.samples.activeOrders.toLocaleString() || 0}건</p>
+                    <p className="text-sm text-muted-foreground">수량: {salesStats?.samples.activeQuantity.toLocaleString() || 0}개</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
         </div>
       </div>
 

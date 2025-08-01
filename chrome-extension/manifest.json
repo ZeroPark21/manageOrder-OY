@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "TikTok GMV Auto Collector",
+  "version": "1.0.0",
+  "description": "TikTok Seller Center에서 GMV 데이터를 자동으로 수집하고 Supabase에 업로드합니다.",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "downloads",
+    "webRequest",
+    "cookies",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://*.tiktokglobalshop.com/*",
+    "https://*.supabase.co/*"
+  ],
+  "background": {
+    "service_worker": "scripts/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://seller.us.tiktokglobalshop.com/*",
+        "https://seller.tiktokglobalshop.com/*"
+      ],
+      "js": ["scripts/content.js"],
+      "css": ["styles/content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  }
+}

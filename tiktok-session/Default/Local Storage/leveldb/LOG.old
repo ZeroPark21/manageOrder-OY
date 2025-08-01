@@ -1,0 +1,6 @@
+2025/07/29-17:32:04.425 352949e Reusing MANIFEST /Users/sero/Documents/GitHub/manageOrder-OY/manageOrder-OY/tiktok-session/Default/Local Storage/leveldb/MANIFEST-000001
+2025/07/29-17:32:04.451 352949e Recovering log #9
+2025/07/29-17:32:04.452 352949e Reusing old log /Users/sero/Documents/GitHub/manageOrder-OY/manageOrder-OY/tiktok-session/Default/Local Storage/leveldb/000009.log 
+2025/07/29-17:32:14.179 35294a0 Level-0 table #13: started
+2025/07/29-17:32:14.183 35294a0 Level-0 table #13: 107940 bytes OK
+2025/07/29-17:32:14.194 35294a0 Delete type=0 #9
