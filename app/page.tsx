@@ -314,8 +314,8 @@ export default function Dashboard() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="space-y-8">
+      <div className="flex flex-1 flex-col gap-4 p-4 min-w-0">
+        <div className="space-y-8 max-w-full overflow-hidden">
           {/* 페이지 헤더 */}
           <div className="flex justify-between items-center">
             <div>
@@ -380,15 +380,15 @@ export default function Dashboard() {
               <TabsTrigger value="monthly">월별 매트릭스</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="daily" className="space-y-4">
+            <TabsContent value="daily" className="space-y-4 overflow-hidden">
               <DailyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
             </TabsContent>
 
-            <TabsContent value="weekly" className="space-y-4">
+            <TabsContent value="weekly" className="space-y-4 overflow-hidden">
               <WeeklyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
             </TabsContent>
 
-            <TabsContent value="monthly" className="space-y-4">
+            <TabsContent value="monthly" className="space-y-4 overflow-hidden">
               <MonthlyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
             </TabsContent>
           </Tabs>
