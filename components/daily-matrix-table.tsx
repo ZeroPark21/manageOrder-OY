@@ -263,22 +263,23 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="relative overflow-auto max-h-[calc(100vh-300px)] border rounded-lg">
-          <table className="border-collapse" style={{ minWidth: "100%" }}>
+        <div className="w-full overflow-hidden">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-350px)] border rounded-lg">
+            <table className="min-w-full border-collapse">
             <thead className="sticky top-0 z-10">
               <tr className="bg-blue-600 text-white">
-                <th className="sticky left-0 z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap">순위</th>
-                <th className="sticky left-[48px] z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium min-w-[250px] whitespace-nowrap">
+                <th className="sticky left-0 z-20 bg-blue-600 border border-blue-500 px-2 py-2 text-left text-xs font-medium whitespace-nowrap min-w-[40px]">순위</th>
+                <th className="sticky left-[40px] z-20 bg-blue-600 border border-blue-500 px-2 py-2 text-left text-xs font-medium min-w-[200px] whitespace-nowrap">
                   Product Name
                 </th>
-                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium w-32">Seller SKU</th>
-                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium w-24">SKU ID</th>
+                <th className="border border-blue-500 px-2 py-2 text-left text-xs font-medium min-w-[100px]">Seller SKU</th>
+                <th className="border border-blue-500 px-2 py-2 text-left text-xs font-medium min-w-[80px]">SKU ID</th>
                 {data.dates.map((date) => (
-                  <th key={date} className="border border-blue-500 px-3 py-2 text-center text-sm font-medium w-20">
+                  <th key={date} className="border border-blue-500 px-2 py-2 text-center text-xs font-medium min-w-[60px]">
                     {formatDate(date)}
                   </th>
                 ))}
-                <th className="border border-blue-500 px-3 py-2 text-center text-sm font-medium w-20 bg-blue-700">
+                <th className="border border-blue-500 px-2 py-2 text-center text-xs font-medium min-w-[60px] bg-blue-700">
                   총수량
                 </th>
               </tr>
@@ -291,20 +292,20 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
 
                 return (
                   <tr key={product} className={isEvenRow ? "bg-gray-50" : "bg-white"}>
-                    <td className={`sticky left-0 z-10 border border-gray-300 px-3 py-2 text-center text-sm font-medium ${isEvenRow ? "bg-gray-50" : "bg-white"}`}>{index + 1}</td>
-                    <td className={`sticky left-[48px] z-10 border border-gray-300 px-3 py-2 text-sm ${isEvenRow ? "bg-gray-50" : "bg-white"}`} title={product}>
-                      <div className="truncate max-w-[230px]">{product}</div>
+                    <td className={`sticky left-0 z-10 border border-gray-300 px-2 py-1 text-center text-xs font-medium ${isEvenRow ? "bg-gray-50" : "bg-white"}`}>{index + 1}</td>
+                    <td className={`sticky left-[40px] z-10 border border-gray-300 px-2 py-1 text-xs ${isEvenRow ? "bg-gray-50" : "bg-white"}`} title={product}>
+                      <div className="truncate max-w-[180px]">{product}</div>
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 text-sm" title={skuInfo.seller_sku}>
-                      <div className="truncate max-w-[120px]">{skuInfo.seller_sku || "-"}</div>
+                    <td className="border border-gray-300 px-2 py-1 text-xs" title={skuInfo.seller_sku}>
+                      <div className="truncate max-w-[90px]">{skuInfo.seller_sku || "-"}</div>
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 text-center text-sm">{skuInfo.sku_id || "-"}</td>
+                    <td className="border border-gray-300 px-2 py-1 text-center text-xs">{skuInfo.sku_id || "-"}</td>
                     {data.dates.map((date) => {
                       const quantity = productData[date] || 0
                       return (
                         <td
                           key={date}
-                          className={`border border-gray-300 px-3 py-2 text-center text-sm ${
+                          className={`border border-gray-300 px-2 py-1 text-center text-xs ${
                             quantity > 0 ? "font-semibold" : "text-gray-400"
                           }`}
                         >
@@ -312,7 +313,7 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
                         </td>
                       )
                     })}
-                    <td className="border border-gray-300 px-3 py-2 text-center text-sm font-bold bg-blue-50">
+                    <td className="border border-gray-300 px-2 py-1 text-center text-xs font-bold bg-blue-50">
                       {productData.total}
                     </td>
                   </tr>
@@ -320,26 +321,27 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
               })}
               {/* Daily Totals Row */}
               <tr className="bg-gray-800 text-white font-bold">
-                <td className="sticky left-0 z-10 bg-gray-800 border border-gray-600 px-3 py-2 text-center text-sm"></td>
-                <td className="sticky left-[48px] z-10 bg-gray-800 border border-gray-600 px-3 py-2 text-sm whitespace-nowrap">Daily 발송 수량</td>
-                <td className="border border-gray-600 px-3 py-2 text-sm"></td>
-                <td className="border border-gray-600 px-3 py-2 text-sm"></td>
+                <td className="sticky left-0 z-10 bg-gray-800 border border-gray-600 px-2 py-1 text-center text-xs"></td>
+                <td className="sticky left-[40px] z-10 bg-gray-800 border border-gray-600 px-2 py-1 text-xs whitespace-nowrap">Daily 발송 수량</td>
+                <td className="border border-gray-600 px-2 py-1 text-xs"></td>
+                <td className="border border-gray-600 px-2 py-1 text-xs"></td>
                 {data.dates.map((date) => {
                   const dailyTotal = data.products.reduce((sum, product) => {
                     return sum + (data.matrix[product][date] || 0)
                   }, 0)
                   return (
-                    <td key={date} className="border border-gray-600 px-3 py-2 text-center text-sm font-bold">
+                    <td key={date} className="border border-gray-600 px-2 py-1 text-center text-xs font-bold">
                       {dailyTotal}
                     </td>
                   )
                 })}
-                <td className="border border-gray-600 px-3 py-2 text-center text-sm font-bold bg-gray-900">
+                <td className="border border-gray-600 px-2 py-1 text-center text-xs font-bold bg-gray-900">
                   {data.products.reduce((sum, product) => sum + data.matrix[product].total, 0)}
                 </td>
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* 요약 정보 */}
