@@ -105,8 +105,16 @@ export async function GET(request: NextRequest) {
       dateSet.add(date)
     })
 
-    // 날짜 정렬
-    const sortedDates = Array.from(dateSet).sort()
+    // 날짜 범위 생성 (빈 날짜도 포함)
+    const startDateObj = new Date(defaultStartDate)
+    const endDateObj = new Date(defaultEndDate)
+    const allDates: string[] = []
+    
+    for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
+      allDates.push(new Date(d).toISOString().split("T")[0])
+    }
+    
+    const sortedDates = allDates
     const products = Array.from(productSet)
 
     // 각 상품별 총 수량 계산 및 정렬
