@@ -122,9 +122,9 @@ export async function GET(request: NextRequest) {
     }
     
     // 클라이언트 측에서 날짜 필터링
-    const startDate = new Date(defaultStartDate)
-    const endDate = new Date(defaultEndDate)
-    endDate.setHours(23, 59, 59, 999)
+    const filterStartDate = new Date(defaultStartDate)
+    const filterEndDate = new Date(defaultEndDate)
+    filterEndDate.setHours(23, 59, 59, 999)
     
     console.log(`[daily-matrix] Filter range: ${defaultStartDate} to ${defaultEndDate}`)
     
@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
         console.log(`[daily-matrix] Failed to parse date: ${order.created_time}`)
         return false
       }
-      return orderDate >= startDate && orderDate <= endDate
+      return orderDate >= filterStartDate && orderDate <= filterEndDate
     })
     
     console.log(`[daily-matrix] Filtered ${orders.length} orders from ${allOrders.length} total samples`)
