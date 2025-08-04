@@ -13,6 +13,42 @@ interface OrderData {
   created_time: string
 }
 
+// 날짜 파싱 함수: 다양한 형식 처리
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null
+  
+  try {
+    // ISO 형식 (2025-07-30T23:29:27.000Z)
+    if (dateStr.includes('T') || dateStr.includes('-')) {
+      return new Date(dateStr)
+    }
+    
+    // MM/DD/YYYY HH:MM:SS AM/PM 형식
+    if (dateStr.includes('/')) {
+      // "07/31/2025 10:14:33 AM" -> Date 객체로 변환
+      const parts = dateStr.split(' ')
+      const datePart = parts[0] // "07/31/2025"
+      const timePart = parts[1] // "10:14:33"
+      const ampm = parts[2] // "AM" or "PM"
+      
+      const [month, day, year] = datePart.split('/')
+      const [hours, minutes, seconds] = timePart.split(':')
+      
+      let hour = parseInt(hours)
+      if (ampm === 'PM' && hour !== 12) hour += 12
+      if (ampm === 'AM' && hour === 12) hour = 0
+      
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes), parseInt(seconds))
+    }
+    
+    // 기타 형식 시도
+    return new Date(dateStr)
+  } catch (e) {
+    console.error('Date parsing error:', dateStr, e)
+    return null
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
@@ -43,12 +79,11 @@ export async function GET(request: NextRequest) {
     const startDateTime = `${defaultStartDate}T00:00:00`
     const endDateTime = `${defaultEndDate}T23:59:59`
     
+    // 모든 샘플 데이터를 가져온 후 클라이언트 측에서 필터링
     const { data, error: dbError } = await supabase
       .from("orders")
       .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
       .eq("sku_unit_original_price", 0)  // 샘플만 필터링
-      .gte("created_time", startDateTime)
-      .lte("created_time", endDateTime)
       .order("created_time", { ascending: true })
 
     if (dbError) {
@@ -63,7 +98,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: dbError.message }, { status: 500 })
     }
 
-    const orders = (data || []) as OrderData[]
+    const allOrders = (data || []) as OrderData[]
+    
+    // 클라이언트 측에서 날짜 필터링
+    const startDate = new Date(defaultStartDate)
+    const endDate = new Date(defaultEndDate)
+    endDate.setHours(23, 59, 59, 999)
+    
+    const orders = allOrders.filter(order => {
+      const orderDate = parseDate(order.created_time)
+      if (!orderDate) return false
+      return orderDate >= startDate && orderDate <= endDate
+    })
+    
+    console.log(`Filtered ${orders.length} orders from ${allOrders.length} total samples`)
 
     if (orders.length === 0) {
       return NextResponse.json({
@@ -84,7 +132,10 @@ export async function GET(request: NextRequest) {
     orders.forEach((order) => {
       if (!order.created_time || !order.product_name) return
 
-      const date = new Date(order.created_time).toISOString().split("T")[0] // YYYY-MM-DD
+      const parsedDate = parseDate(order.created_time)
+      if (!parsedDate) return
+      
+      const date = parsedDate.toISOString().split("T")[0] // YYYY-MM-DD
       const product = order.product_name
       const quantity = Number(order.quantity) || 0
 

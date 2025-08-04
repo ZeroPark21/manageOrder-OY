@@ -13,6 +13,42 @@ interface OrderData {
   created_time: string
 }
 
+// 날짜 파싱 함수: 다양한 형식 처리
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null
+  
+  try {
+    // ISO 형식 (2025-07-30T23:29:27.000Z)
+    if (dateStr.includes('T') || dateStr.includes('-')) {
+      return new Date(dateStr)
+    }
+    
+    // MM/DD/YYYY HH:MM:SS AM/PM 형식
+    if (dateStr.includes('/')) {
+      // "07/31/2025 10:14:33 AM" -> Date 객체로 변환
+      const parts = dateStr.split(' ')
+      const datePart = parts[0] // "07/31/2025"
+      const timePart = parts[1] // "10:14:33"
+      const ampm = parts[2] // "AM" or "PM"
+      
+      const [month, day, year] = datePart.split('/')
+      const [hours, minutes, seconds] = timePart.split(':')
+      
+      let hour = parseInt(hours)
+      if (ampm === 'PM' && hour !== 12) hour += 12
+      if (ampm === 'AM' && hour === 12) hour = 0
+      
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes), parseInt(seconds))
+    }
+    
+    // 기타 형식 시도
+    return new Date(dateStr)
+  } catch (e) {
+    console.error('Date parsing error:', dateStr, e)
+    return null
+  }
+}
+
 function getWeekKey(date: Date): string {
   // 월요일을 주의 시작으로 설정
   const startOfWeek = new Date(date)
@@ -93,7 +129,9 @@ export async function GET(request: NextRequest) {
     orders.forEach((order) => {
       if (!order.created_time || !order.product_name) return
 
-      const date = new Date(order.created_time)
+      const date = parseDate(order.created_time)
+      if (!date) return
+      
       const weekKey = getWeekKey(date) // 해당 날짜가 속한 주의 월요일
       const product = order.product_name
       const quantity = Number(order.quantity) || 0
