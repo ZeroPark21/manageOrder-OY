@@ -180,14 +180,59 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
     console.log("🔗 Supabase 클라이언트 생성 완료")
 
-    // upsert를 사용하여 기존 데이터는 업데이트하고 새 데이터는 추가
-    const { data, error: insertError } = await supabase
+    // 먼저 upsert 시도
+    let { data, error: insertError } = await supabase
       .from("contents")
       .upsert(contents, {
-        onConflict: 'video_link', // video_link를 기준으로 중복 체크
-        ignoreDuplicates: false // 중복 시 업데이트
+        onConflict: 'video_link',
+        ignoreDuplicates: false
       })
       .select()
+
+    // ON CONFLICT 오류가 발생하면 대체 방법 사용
+    if (insertError && insertError.message.includes('ON CONFLICT')) {
+      console.log("🔄 ON CONFLICT 오류 발생, 대체 방법으로 처리...")
+      
+      // 각 콘텐츠를 개별적으로 처리
+      const processedData = []
+      
+      for (const content of contents) {
+        // 먼저 기존 데이터 확인
+        const { data: existing } = await supabase
+          .from("contents")
+          .select("*")
+          .eq('video_link', content.video_link)
+          .single()
+        
+        if (existing) {
+          // 기존 데이터가 있으면 업데이트
+          const { data: updated, error: updateError } = await supabase
+            .from("contents")
+            .update(content)
+            .eq('video_link', content.video_link)
+            .select()
+            .single()
+          
+          if (!updateError && updated) {
+            processedData.push(updated)
+          }
+        } else {
+          // 기존 데이터가 없으면 삽입
+          const { data: inserted, error: insertErr } = await supabase
+            .from("contents")
+            .insert(content)
+            .select()
+            .single()
+          
+          if (!insertErr && inserted) {
+            processedData.push(inserted)
+          }
+        }
+      }
+      
+      data = processedData
+      insertError = null
+    }
 
     if (insertError) {
       console.error("데이터 삽입 실패:", insertError)
