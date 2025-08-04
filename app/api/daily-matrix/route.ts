@@ -18,31 +18,47 @@ function parseDate(dateStr: string): Date | null {
   if (!dateStr) return null
   
   try {
-    // ISO 형식 (2025-07-30T23:29:27.000Z)
-    if (dateStr.includes('T') || dateStr.includes('-')) {
-      return new Date(dateStr)
-    }
-    
-    // MM/DD/YYYY HH:MM:SS AM/PM 형식
+    // MM/DD/YYYY HH:MM:SS AM/PM 형식 (가장 먼저 체크)
     if (dateStr.includes('/')) {
       // "07/31/2025 10:14:33 AM" -> Date 객체로 변환
       const parts = dateStr.split(' ')
       const datePart = parts[0] // "07/31/2025"
-      const timePart = parts[1] // "10:14:33"
-      const ampm = parts[2] // "AM" or "PM"
+      const timePart = parts[1] || "00:00:00" // "10:14:33"
+      const ampm = parts[2] || "" // "AM" or "PM"
       
       const [month, day, year] = datePart.split('/')
-      const [hours, minutes, seconds] = timePart.split(':')
       
-      let hour = parseInt(hours)
-      if (ampm === 'PM' && hour !== 12) hour += 12
-      if (ampm === 'AM' && hour === 12) hour = 0
-      
-      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes), parseInt(seconds))
+      // 시간이 있는 경우
+      if (timePart !== "00:00:00") {
+        const [hours, minutes, seconds] = timePart.split(':')
+        let hour = parseInt(hours)
+        if (ampm === 'PM' && hour !== 12) hour += 12
+        if (ampm === 'AM' && hour === 12) hour = 0
+        
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes) || 0, parseInt(seconds) || 0)
+      } else {
+        // 시간이 없는 경우
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+      }
+    }
+    
+    // ISO 형식 (2025-07-30T23:29:27.000Z) 또는 YYYY-MM-DD
+    if (dateStr.includes('T')) {
+      return new Date(dateStr)
+    }
+    
+    // YYYY-MM-DD 형식
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return new Date(dateStr + 'T00:00:00')
     }
     
     // 기타 형식 시도
-    return new Date(dateStr)
+    const date = new Date(dateStr)
+    if (!isNaN(date.getTime())) {
+      return date
+    }
+    
+    return null
   } catch (e) {
     console.error('Date parsing error:', dateStr, e)
     return null
@@ -100,18 +116,28 @@ export async function GET(request: NextRequest) {
 
     const allOrders = (data || []) as OrderData[]
     
+    console.log(`[daily-matrix] Total samples from DB: ${allOrders.length}`)
+    if (allOrders.length > 0) {
+      console.log(`[daily-matrix] Sample created_time formats:`, allOrders.slice(0, 3).map(o => o.created_time))
+    }
+    
     // 클라이언트 측에서 날짜 필터링
     const startDate = new Date(defaultStartDate)
     const endDate = new Date(defaultEndDate)
     endDate.setHours(23, 59, 59, 999)
     
+    console.log(`[daily-matrix] Filter range: ${defaultStartDate} to ${defaultEndDate}`)
+    
     const orders = allOrders.filter(order => {
       const orderDate = parseDate(order.created_time)
-      if (!orderDate) return false
+      if (!orderDate) {
+        console.log(`[daily-matrix] Failed to parse date: ${order.created_time}`)
+        return false
+      }
       return orderDate >= startDate && orderDate <= endDate
     })
     
-    console.log(`Filtered ${orders.length} orders from ${allOrders.length} total samples`)
+    console.log(`[daily-matrix] Filtered ${orders.length} orders from ${allOrders.length} total samples`)
 
     if (orders.length === 0) {
       return NextResponse.json({
