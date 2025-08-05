@@ -70,7 +70,7 @@ export default function UploadContentPage() {
 
       setMessage({
         type: "success",
-        text: `✅ 콘텐츠 데이터 업로드 완료!\n📊 업로드된 콘텐츠: ${result.processedCount}개\n📈 처리된 행: ${result.processedCount}개`,
+        text: `✅ 콘텐츠 데이터 업로드 완료!\n📊 업로드된 콘텐츠: ${result.uploadedCount || result.processedCount || 0}개\n📈 처리된 행: ${result.processedCount || result.uploadedCount || 0}개`,
       })
       setFile(null)
 

@@ -180,59 +180,87 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
     console.log("🔗 Supabase 클라이언트 생성 완료")
 
-    // 먼저 upsert 시도
-    let { data, error: insertError } = await supabase
-      .from("contents")
-      .upsert(contents, {
-        onConflict: 'video_link',
-        ignoreDuplicates: false
-      })
-      .select()
+    // 배치 처리를 위한 함수
+    const processBatch = async (batch: ContentData[]) => {
+      // 먼저 upsert 시도
+      let { data, error: insertError } = await supabase
+        .from("contents")
+        .upsert(batch, {
+          onConflict: 'video_link',
+          ignoreDuplicates: false
+        })
+        .select()
 
-    // ON CONFLICT 오류가 발생하면 대체 방법 사용
-    if (insertError && insertError.message.includes('ON CONFLICT')) {
-      console.log("🔄 ON CONFLICT 오류 발생, 대체 방법으로 처리...")
-      
-      // 각 콘텐츠를 개별적으로 처리
-      const processedData = []
-      
-      for (const content of contents) {
-        // 먼저 기존 데이터 확인
-        const { data: existing } = await supabase
-          .from("contents")
-          .select("*")
-          .eq('video_link', content.video_link)
-          .single()
+      // ON CONFLICT 오류가 발생하면 대체 방법 사용
+      if (insertError && insertError.message.includes('ON CONFLICT')) {
+        console.log("🔄 ON CONFLICT 오류 발생, 대체 방법으로 처리...")
         
-        if (existing) {
-          // 기존 데이터가 있으면 업데이트
-          const { data: updated, error: updateError } = await supabase
+        // 각 콘텐츠를 개별적으로 처리
+        const processedData = []
+        
+        for (const content of batch) {
+          // 먼저 기존 데이터 확인
+          const { data: existing } = await supabase
             .from("contents")
-            .update(content)
+            .select("*")
             .eq('video_link', content.video_link)
-            .select()
             .single()
           
-          if (!updateError && updated) {
-            processedData.push(updated)
-          }
-        } else {
-          // 기존 데이터가 없으면 삽입
-          const { data: inserted, error: insertErr } = await supabase
-            .from("contents")
-            .insert(content)
-            .select()
-            .single()
-          
-          if (!insertErr && inserted) {
-            processedData.push(inserted)
+          if (existing) {
+            // 기존 데이터가 있으면 업데이트
+            const { data: updated, error: updateError } = await supabase
+              .from("contents")
+              .update(content)
+              .eq('video_link', content.video_link)
+              .select()
+              .single()
+            
+            if (!updateError && updated) {
+              processedData.push(updated)
+            }
+          } else {
+            // 기존 데이터가 없으면 삽입
+            const { data: inserted, error: insertErr } = await supabase
+              .from("contents")
+              .insert(content)
+              .select()
+              .single()
+            
+            if (!insertErr && inserted) {
+              processedData.push(inserted)
+            }
           }
         }
+        
+        data = processedData
+        insertError = null
       }
-      
-      data = processedData
-      insertError = null
+
+      return { data, error: insertError }
     }
+
+    // 배치 크기 설정 (50개씩 처리)
+    const BATCH_SIZE = 50
+    let allData: any[] = []
+    let lastError: any = null
+
+    // 배치로 나누어 처리
+    for (let i = 0; i < contents.length; i += BATCH_SIZE) {
+      const batch = contents.slice(i, i + BATCH_SIZE)
+      console.log(`📦 배치 처리 중: ${i + 1} ~ ${Math.min(i + BATCH_SIZE, contents.length)} / ${contents.length}`)
+      
+      const { data, error } = await processBatch(batch)
+      
+      if (error) {
+        lastError = error
+        console.error(`❌ 배치 처리 오류 (${i + 1} ~ ${Math.min(i + BATCH_SIZE, contents.length)}):`, error)
+      } else if (data) {
+        allData = allData.concat(data)
+      }
+    }
+
+    let data = allData
+    let insertError = lastError
 
     if (insertError) {
       console.error("데이터 삽입 실패:", insertError)
@@ -246,9 +274,12 @@ export async function POST(request: NextRequest) {
       .from('contents')
       .select('*', { count: 'exact', head: true })
 
+    console.log(`✅ API 응답 준비: processedCount=${contents.length}, dataLength=${data?.length || 0}`)
+
     return NextResponse.json({
       message: "콘텐츠 데이터가 성공적으로 업서트되었습니다.",
       processedCount: contents.length,
+      uploadedCount: contents.length, // 프론트엔드 호환성을 위해 추가
       totalRecordsInDB: count,
       data: data
     })
