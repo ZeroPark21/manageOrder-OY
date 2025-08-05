@@ -78,12 +78,11 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
 
-    // 6월 1일부터 데이터 조회 - 샘플만 조회 (sku_unit_original_price = 0)
+    // 샘플 데이터 조회 (sku_unit_original_price = 0)
     const { data, error: dbError } = await supabase
       .from("orders")
       .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
       .eq("sku_unit_original_price", 0)  // 샘플만 필터링
-      .gte("created_time", "2025-06-01T00:00:00")
       .order("created_time", { ascending: true })
 
     if (dbError) {
@@ -98,12 +97,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: dbError.message }, { status: 500 })
     }
 
-    const orders = (data || []) as OrderData[]
+    const allOrders = (data || []) as OrderData[]
     
-    console.log(`[monthly-matrix] Total samples from DB: ${orders.length}`)
-    if (orders.length > 0) {
-      console.log(`[monthly-matrix] Sample created_time formats:`, orders.slice(0, 3).map(o => o.created_time))
+    console.log(`[monthly-matrix] Total samples from DB: ${allOrders.length}`)
+    if (allOrders.length > 0) {
+      console.log(`[monthly-matrix] Sample created_time formats:`, allOrders.slice(0, 3).map(o => o.created_time))
     }
+    
+    // 6월 1일 이후 데이터만 필터링
+    const startDate = new Date(2025, 5, 1) // 2025년 6월 1일
+    const orders = allOrders.filter(order => {
+      const orderDate = parseDate(order.created_time)
+      return orderDate && orderDate >= startDate
+    })
+    
+    console.log(`[monthly-matrix] Filtered to ${orders.length} orders from June 1st`)
 
     if (orders.length === 0) {
       return NextResponse.json({
