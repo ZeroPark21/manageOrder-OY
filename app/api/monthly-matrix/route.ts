@@ -99,6 +99,11 @@ export async function GET(request: NextRequest) {
     }
 
     const orders = (data || []) as OrderData[]
+    
+    console.log(`[monthly-matrix] Total samples from DB: ${orders.length}`)
+    if (orders.length > 0) {
+      console.log(`[monthly-matrix] Sample created_time formats:`, orders.slice(0, 3).map(o => o.created_time))
+    }
 
     if (orders.length === 0) {
       return NextResponse.json({
@@ -116,12 +121,20 @@ export async function GET(request: NextRequest) {
     // 상품별 SKU 정보 저장
     const productSkuMap: { [product: string]: { seller_sku: string; sku_id: number } } = {}
 
+    let parsedCount = 0
+    let failedCount = 0
+    
     orders.forEach((order) => {
       if (!order.created_time || !order.product_name) return
 
       const date = parseDate(order.created_time)
-      if (!date) return
+      if (!date) {
+        failedCount++
+        console.log(`[monthly-matrix] Failed to parse date: ${order.created_time}`)
+        return
+      }
       
+      parsedCount++
       const monthKey = getMonthKey(date)
       const product = order.product_name
       const quantity = Number(order.quantity) || 0
@@ -149,6 +162,9 @@ export async function GET(request: NextRequest) {
     // 월 정렬
     const sortedMonths = Array.from(monthSet).sort()
     const products = Array.from(productSet)
+    
+    console.log(`[monthly-matrix] Parsed ${parsedCount} orders, failed ${failedCount}`)
+    console.log(`[monthly-matrix] Unique months: ${sortedMonths.join(', ')}`)
 
     // 각 상품별 총 수량 계산 및 정렬
     const productTotals = products.map((product) => {

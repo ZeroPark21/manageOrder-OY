@@ -125,6 +125,11 @@ export async function GET(request: NextRequest) {
     }
 
     const orders = (data || []) as OrderData[]
+    
+    console.log(`[weekly-matrix] Total samples from DB: ${orders.length}`)
+    if (orders.length > 0) {
+      console.log(`[weekly-matrix] Sample created_time formats:`, orders.slice(0, 3).map(o => o.created_time))
+    }
 
     if (orders.length === 0) {
       return NextResponse.json({
@@ -142,12 +147,20 @@ export async function GET(request: NextRequest) {
     // 상품별 SKU 정보 저장
     const productSkuMap: { [product: string]: { seller_sku: string; sku_id: number } } = {}
 
+    let parsedCount = 0
+    let failedCount = 0
+    
     orders.forEach((order) => {
       if (!order.created_time || !order.product_name) return
 
       const date = parseDate(order.created_time)
-      if (!date) return
+      if (!date) {
+        failedCount++
+        console.log(`[weekly-matrix] Failed to parse date: ${order.created_time}`)
+        return
+      }
       
+      parsedCount++
       const weekKey = getWeekKey(date) // 해당 날짜가 속한 주의 월요일
       const product = order.product_name
       const quantity = Number(order.quantity) || 0
@@ -176,7 +189,8 @@ export async function GET(request: NextRequest) {
     const sortedWeeks = Array.from(weekSet).sort()
     const products = Array.from(productSet)
 
-    console.log("📅 Weekly data summary:", {
+    console.log(`[weekly-matrix] Parsed ${parsedCount} orders, failed ${failedCount}`)
+    console.log("[weekly-matrix] Weekly data summary:", {
       totalWeeks: sortedWeeks.length,
       weekKeys: sortedWeeks,
       weekRanges: sortedWeeks.map((week) => `${formatWeekDisplay(week)} (${formatWeekRange(week)})`),
