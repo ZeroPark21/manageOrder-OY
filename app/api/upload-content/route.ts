@@ -3,6 +3,7 @@ import { createServerClient } from "@/lib/supabase"
 import * as XLSX from "xlsx"
 
 export const runtime = "nodejs"
+export const maxDuration = 60 // 60초 타임아웃
 
 interface ContentData {
   content_title: string
@@ -29,6 +30,10 @@ export async function POST(request: NextRequest) {
   try {
     console.log("🚀 콘텐츠 업로드 API 시작")
     
+    // Content-Type 확인
+    const contentType = request.headers.get("content-type")
+    console.log("📝 Content-Type:", contentType)
+    
     const formData = await request.formData()
     const file = formData.get("file") as File
 
@@ -40,6 +45,11 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: "파일이 없습니다." }, { status: 400 })
+    }
+    
+    // 파일 크기 제한 체크 (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: "파일 크기가 10MB를 초과합니다." }, { status: 400 })
     }
 
     // 파일 처리 - Excel 또는 CSV
@@ -286,8 +296,29 @@ export async function POST(request: NextRequest) {
 
   } catch (err: any) {
     console.error("콘텐츠 업로드 API 오류:", err)
+    console.error("오류 스택:", err.stack)
+    
+    // 더 자세한 오류 메시지 반환
+    const errorMessage = err.message || "Internal server error"
+    
+    // Supabase 관련 오류 처리
+    if (errorMessage.includes("duplicate key") || errorMessage.includes("unique constraint")) {
+      return NextResponse.json({ 
+        error: "중복된 비디오 링크가 있습니다. 데이터를 확인해주세요.",
+        details: errorMessage
+      }, { status: 400 })
+    }
+    
+    if (errorMessage.includes("invalid input syntax")) {
+      return NextResponse.json({ 
+        error: "잘못된 데이터 형식입니다. CSV/Excel 파일 형식을 확인해주세요.",
+        details: errorMessage
+      }, { status: 400 })
+    }
+    
     return NextResponse.json({ 
-      error: err.message || "Internal server error"
+      error: errorMessage,
+      type: err.name || "UnknownError"
     }, { status: 500 })
   }
 } 

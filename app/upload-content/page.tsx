@@ -61,7 +61,19 @@ export default function UploadContentPage() {
         body: formData,
       })
 
-      const result = await response.json()
+      // 응답이 JSON인지 확인
+      const contentType = response.headers.get("content-type")
+      console.log("응답 Content-Type:", contentType)
+      
+      let result
+      if (contentType && contentType.includes("application/json")) {
+        result = await response.json()
+      } else {
+        // JSON이 아닌 경우 텍스트로 읽기
+        const text = await response.text()
+        console.error("JSON이 아닌 응답:", text)
+        throw new Error(`서버 오류가 발생했습니다: ${text.substring(0, 100)}...`)
+      }
 
       if (!response.ok) {
         console.error("업로드 오류 응답:", result)
