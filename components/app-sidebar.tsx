@@ -35,9 +35,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 
-// 개발 환경인지 확인
-const isDevelopment = process.env.NODE_ENV === "development"
-
 // 메뉴 데이터
 const menuItems = [
   {
@@ -52,19 +49,16 @@ const menuItems = [
     icon: Video,
     description: "시딩 콘텐츠 발행 추이 분석",
   },
-  // 개발 환경에서만 표시
-  ...(isDevelopment ? [
-    {
-      title: "콘텐츠 분석",
-      url: "/content-analysis",
-      icon: FileSearch,
-      description: "콘텐츠 성과 분석",
-    },
-  ] : []),
+  {
+    title: "콘텐츠 분석",
+    url: "/content-analysis",
+    icon: FileSearch,
+    description: "콘텐츠 성과 분석",
+  },
 ]
 
-// GMV MAX 분석 하위 메뉴 - 개발 환경에서만 표시
-const gmvMaxItems = isDevelopment ? [
+// GMV MAX 분석 하위 메뉴
+const gmvMaxItems = [
   {
     title: "GMV MAX 분석",
     url: "/gmv-max",
@@ -85,7 +79,7 @@ const gmvMaxItems = isDevelopment ? [
       },
     ]
   }
-] : []
+]
 
 const utilityItems = [
   {
@@ -100,15 +94,12 @@ const utilityItems = [
     icon: BarChart3,
     description: "콘텐츠 발행 데이터 업로드",
   },
-  // 개발 환경에서만 표시
-  ...(isDevelopment ? [
-    {
-      title: "GMV 데이터 업로드",
-      url: "/upload-gmv",
-      icon: TrendingUp,
-      description: "GMV 광고 데이터 업로드",
-    },
-  ] : []),
+  {
+    title: "GMV 데이터 업로드",
+    url: "/upload-gmv",
+    icon: TrendingUp,
+    description: "GMV 광고 데이터 업로드",
+  },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
