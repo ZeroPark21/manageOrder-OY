@@ -201,7 +201,7 @@ export default function UploadContentPage() {
                   <li>CSV 파일의 첫 번째 행은 헤더로 처리됩니다</li>
                   <li>필수 컬럼: Video name, Creator username, Video post date 등</li>
                   <li>날짜 형식: MM/DD/YYYY 또는 YYYY-MM-DD</li>
-                  <li className="text-yellow-600">Excel 파일은 먼저 CSV로 저장해주세요 (파일 > 다른 이름으로 저장 > CSV)</li>
+                  <li className="text-yellow-600">Excel 파일은 먼저 CSV로 저장해주세요 (파일 → 다른 이름으로 저장 → CSV)</li>
                   <li>빈 행이나 유효하지 않은 데이터는 자동으로 건너뜁니다</li>
                   <li>대용량 파일의 경우 처리 시간이 오래 걸릴 수 있습니다</li>
                 </ul>
