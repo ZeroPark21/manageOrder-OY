@@ -67,19 +67,26 @@ export async function POST(request: NextRequest) {
     
     try {
       const text = await file.text()
-      console.log("📊 파일 텍스트 읽기 완료")
+      console.log("📊 파일 텍스트 읽기 완료, 길이:", text.length)
       
-      const lines = text.split("\n")
+      // 다양한 줄바꿈 처리 (Windows \r\n, Mac \r, Unix \n)
+      const lines = text.split(/\r?\n|\r/).map(line => line.trim())
+      
+      console.log(`📊 전체 라인 수: ${lines.length}`)
       
       // 헤더 확인
       if (lines.length > 0) {
-        console.log("📊 헤더 행:", lines[0])
-        const headerColumns = lines[0].split(",")
-        console.log(`📊 헤더 컬럼 수: ${headerColumns.length}`)
-        console.log("📊 헤더 컬럼:", headerColumns.slice(0, 5).map(h => h.trim()))
+        console.log("📊 헤더 행 길이:", lines[0].length)
+        console.log("📊 헤더 행 (처음 200자):", lines[0].substring(0, 200))
+        
+        // 간단한 split으로 컬럼 수 확인
+        const simpleColumns = lines[0].split(",")
+        console.log(`📊 단순 split 헤더 컬럼 수: ${simpleColumns.length}`)
+        console.log("📊 헤더 컬럼 (처음 5개):", simpleColumns.slice(0, 5).map(h => `"${h.trim()}"`).join(", "))
       }
       
-      dataLines = lines.slice(1).filter((line: string) => line.trim())
+      // 빈 줄 제거
+      dataLines = lines.slice(1).filter((line: string) => line.length > 0)
       
       console.log(`📊 데이터 행 수: ${dataLines.length}`)
     } catch (readError) {
@@ -106,23 +113,20 @@ export async function POST(request: NextRequest) {
         continue
       }
       
-      // CSV 파싱 (쉼표가 포함된 텍스트 처리)
-      const columns: string[] = []
-      let current = ""
-      let inQuotes = false
+      // CSV 파싱 - 더 강력한 방법
+      let columns: string[] = []
       
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i]
-        if (char === '"') {
-          inQuotes = !inQuotes
-        } else if (char === ',' && !inQuotes) {
-          columns.push(current.trim())
-          current = ""
-        } else {
-          current += char
-        }
+      // 쉼표가 따옴표 안에 있는 경우를 처리
+      const regex = /("([^"]*)"|([^,]*))(,|$)/g
+      let match
+      while ((match = regex.exec(line)) !== null) {
+        const value = match[2] !== undefined ? match[2] : match[3]
+        columns.push(value.trim())
+        if (match[4] === '') break // 마지막 컬럼
       }
-      columns.push(current.trim()) // 마지막 컬럼
+      
+      // 빈 문자열 컬럼 제거
+      columns = columns.filter(col => col !== undefined)
       
       processedCount++
       if (processedCount <= 3) {
@@ -174,26 +178,31 @@ export async function POST(request: NextRequest) {
           console.log(`⚠️ 날짜 형식 변환 실패: ${publish_date}`)
         }
         
-        contents.push({
-          content_title: content_title || "제목 없음",
-          creator_name: creator_name || "크리에이터 없음",
-          publish_date: formattedDate,
-          video_link: video_link || "",
-          gmv: parseFloat(gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
-          affiliate_items_sold: parseInt(affiliate_items_sold.toString().replace(/[^0-9-]/g, '')) || 0,
-          affiliate_gmv: parseFloat(affiliate_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
-          shoppable_avg_order_value: parseFloat(shoppable_avg_order_value.toString().replace(/[^0-9.-]/g, '')) || 0,
-          est_commission: parseFloat(est_commission.toString().replace(/[^0-9.-]/g, '')) || 0,
-          est_flat_fee: est_flat_fee || "--",
-          affiliate_orders: parseInt(affiliate_orders.toString().replace(/[^0-9-]/g, '')) || 0,
-          shoppable_impressions: parseInt(shoppable_impressions.toString().replace(/[^0-9-]/g, '')) || 0,
-          affiliate_ctr: parseFloat(affiliate_ctr.toString().replace(/[^0-9.-]/g, '').replace('%', '')) || 0,
-          shoppable_gpm: parseFloat(shoppable_gpm.toString().replace(/[^0-9.-]/g, '')) || 0,
-          affiliate_items_refunded: parseInt(affiliate_items_refunded.toString().replace(/[^0-9-]/g, '')) || 0,
-          affiliate_refunded_gmv: parseFloat(affiliate_refunded_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
-          comment_count: parseInt(comment_count.toString().replace(/[^0-9-]/g, '')) || 0,
-          like_count: parseInt(like_count.toString().replace(/[^0-9-]/g, '')) || 0,
-        })
+        // 필수 필드가 있는지 확인
+        if (content_title && video_link) {
+          contents.push({
+            content_title: content_title || "제목 없음",
+            creator_name: creator_name || "크리에이터 없음",
+            publish_date: formattedDate,
+            video_link: video_link || "",
+            gmv: parseFloat(gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
+            affiliate_items_sold: parseInt(affiliate_items_sold.toString().replace(/[^0-9-]/g, '')) || 0,
+            affiliate_gmv: parseFloat(affiliate_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
+            shoppable_avg_order_value: parseFloat(shoppable_avg_order_value.toString().replace(/[^0-9.-]/g, '')) || 0,
+            est_commission: parseFloat(est_commission.toString().replace(/[^0-9.-]/g, '')) || 0,
+            est_flat_fee: est_flat_fee || "--",
+            affiliate_orders: parseInt(affiliate_orders.toString().replace(/[^0-9-]/g, '')) || 0,
+            shoppable_impressions: parseInt(shoppable_impressions.toString().replace(/[^0-9-]/g, '')) || 0,
+            affiliate_ctr: parseFloat(affiliate_ctr.toString().replace(/[^0-9.-]/g, '').replace('%', '')) || 0,
+            shoppable_gpm: parseFloat(shoppable_gpm.toString().replace(/[^0-9.-]/g, '')) || 0,
+            affiliate_items_refunded: parseInt(affiliate_items_refunded.toString().replace(/[^0-9-]/g, '')) || 0,
+            affiliate_refunded_gmv: parseFloat(affiliate_refunded_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
+            comment_count: parseInt(comment_count.toString().replace(/[^0-9-]/g, '')) || 0,
+            like_count: parseInt(like_count.toString().replace(/[^0-9-]/g, '')) || 0,
+          })
+        } else {
+          console.log(`⚠️ 행 ${processedCount} 건너뜀 - 필수 필드 누락 (title: "${content_title}", link: "${video_link}")`)
+        }
       }
     }
 
