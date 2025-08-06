@@ -13,12 +13,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "파일이 없습니다." }, { status: 400 })
     }
 
-    // CSV 텍스트 읽기
-    const text = await file.text()
+    // CSV 텍스트 읽기 (UTF-8 인코딩 강제)
+    let text: string
+    try {
+      const buffer = await file.arrayBuffer()
+      const decoder = new TextDecoder('utf-8', { fatal: false })
+      text = decoder.decode(buffer)
+      
+      // BOM 제거
+      if (text.charCodeAt(0) === 0xFEFF) {
+        text = text.slice(1)
+      }
+    } catch (e) {
+      return NextResponse.json({ error: "파일을 읽을 수 없습니다." }, { status: 400 })
+    }
+    
     const lines = text.split(/\r?\n|\r/)
     
     // 헤더 제거
-    const dataLines = lines.slice(1).filter(line => line.trim())
+    const dataLines = lines.slice(1).filter(line => line.trim() && !line.includes('\x00'))
     
     if (dataLines.length === 0) {
       return NextResponse.json({ error: "데이터가 없습니다." }, { status: 400 })
@@ -32,26 +45,44 @@ export async function POST(request: NextRequest) {
       const line = dataLines[i]
       const columns = line.split(',').map(col => col.trim().replace(/^"|"$/g, ''))
       
-      if (columns.length >= 4) {
+      if (columns.length >= 4 && columns[0] && columns[1]) {
+        // 날짜 파싱
+        let publishDate = new Date().toISOString()
+        if (columns[2]) {
+          try {
+            // MM/DD/YYYY 형식 처리
+            if (columns[2].includes('/')) {
+              const [month, day, year] = columns[2].split('/')
+              if (month && day && year) {
+                publishDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+              }
+            } else if (columns[2].includes('-')) {
+              publishDate = columns[2]
+            }
+          } catch (e) {
+            // 날짜 파싱 실패 시 기본값 사용
+          }
+        }
+        
         contents.push({
-          content_title: columns[0] || `콘텐츠 ${i + 1}`,
-          video_link: columns[1] || '',
-          publish_date: columns[2] || new Date().toISOString(),
-          creator_name: columns[3] || '알 수 없음',
-          gmv: parseFloat(columns[4] || '0') || 0,
-          affiliate_items_sold: parseInt(columns[5] || '0') || 0,
-          affiliate_gmv: parseFloat(columns[6] || '0') || 0,
-          shoppable_avg_order_value: parseFloat(columns[7] || '0') || 0,
-          est_commission: parseFloat(columns[8] || '0') || 0,
-          est_flat_fee: columns[9] || '--',
-          affiliate_orders: parseInt(columns[10] || '0') || 0,
-          shoppable_impressions: parseInt(columns[11] || '0') || 0,
-          affiliate_ctr: parseFloat(columns[12] || '0') || 0,
-          shoppable_gpm: parseFloat(columns[13] || '0') || 0,
-          affiliate_items_refunded: parseInt(columns[14] || '0') || 0,
-          affiliate_refunded_gmv: parseFloat(columns[15] || '0') || 0,
-          comment_count: parseInt(columns[16] || '0') || 0,
-          like_count: parseInt(columns[17] || '0') || 0,
+          content_title: columns[0].substring(0, 255) || `콘텐츠 ${i + 1}`,
+          video_link: columns[1].substring(0, 255) || '',
+          publish_date: publishDate,
+          creator_name: (columns[3] || '알 수 없음').substring(0, 100),
+          gmv: parseFloat(columns[4]?.replace(/[^0-9.-]/g, '') || '0') || 0,
+          affiliate_items_sold: parseInt(columns[5]?.replace(/[^0-9]/g, '') || '0') || 0,
+          affiliate_gmv: parseFloat(columns[6]?.replace(/[^0-9.-]/g, '') || '0') || 0,
+          shoppable_avg_order_value: parseFloat(columns[7]?.replace(/[^0-9.-]/g, '') || '0') || 0,
+          est_commission: parseFloat(columns[8]?.replace(/[^0-9.-]/g, '') || '0') || 0,
+          est_flat_fee: (columns[9] || '--').substring(0, 50),
+          affiliate_orders: parseInt(columns[10]?.replace(/[^0-9]/g, '') || '0') || 0,
+          shoppable_impressions: parseInt(columns[11]?.replace(/[^0-9]/g, '') || '0') || 0,
+          affiliate_ctr: parseFloat(columns[12]?.replace(/[^0-9.-]/g, '') || '0') || 0,
+          shoppable_gpm: parseFloat(columns[13]?.replace(/[^0-9.-]/g, '') || '0') || 0,
+          affiliate_items_refunded: parseInt(columns[14]?.replace(/[^0-9]/g, '') || '0') || 0,
+          affiliate_refunded_gmv: parseFloat(columns[15]?.replace(/[^0-9.-]/g, '') || '0') || 0,
+          comment_count: parseInt(columns[16]?.replace(/[^0-9]/g, '') || '0') || 0,
+          like_count: parseInt(columns[17]?.replace(/[^0-9]/g, '') || '0') || 0,
         })
       }
     }
