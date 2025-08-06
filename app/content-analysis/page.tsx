@@ -59,6 +59,7 @@ export default function ContentAnalysisPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null })
 
   // Video ID 추출 함수
   const extractVideoId = (url: string): string => {
@@ -119,6 +120,15 @@ export default function ContentAnalysisPage() {
         
         console.log('실제 데이터 로드 완료:', allContents.length, '개 비디오')
         setVideoData(allContents)
+        
+        // 데이터의 날짜 범위 계산
+        if (allContents.length > 0) {
+          const dates = allContents.map(v => v.videoPostDate).filter(d => d).sort()
+          setDateRange({
+            start: dates[0],
+            end: dates[dates.length - 1]
+          })
+        }
         
       } catch (error) {
         console.error("데이터 로딩 오류:", error)
@@ -435,6 +445,12 @@ export default function ContentAnalysisPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">발행된 콘텐츠 분석</h1>
         <p className="text-gray-600">TikTok Shop 크리에이터 성과 분석</p>
+        {dateRange.start && dateRange.end && (
+          <p className="text-sm text-gray-500 mt-2">
+            <Calendar className="w-4 h-4 inline mr-1" />
+            분석 기간: {formatDate(dateRange.start)} ~ {formatDate(dateRange.end)}
+          </p>
+        )}
       </div>
 
       {/* 전체 통계 */}
