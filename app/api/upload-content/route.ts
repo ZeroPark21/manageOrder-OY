@@ -70,6 +70,15 @@ export async function POST(request: NextRequest) {
       console.log("📊 파일 텍스트 읽기 완료")
       
       const lines = text.split("\n")
+      
+      // 헤더 확인
+      if (lines.length > 0) {
+        console.log("📊 헤더 행:", lines[0])
+        const headerColumns = lines[0].split(",")
+        console.log(`📊 헤더 컬럼 수: ${headerColumns.length}`)
+        console.log("📊 헤더 컬럼:", headerColumns.slice(0, 5).map(h => h.trim()))
+      }
+      
       dataLines = lines.slice(1).filter((line: string) => line.trim())
       
       console.log(`📊 데이터 행 수: ${dataLines.length}`)
@@ -84,11 +93,19 @@ export async function POST(request: NextRequest) {
     console.log(`📊 파일 처리 완료: ${file.name}, 데이터 행 수: ${dataLines.length}`)
     if (dataLines.length > 0) {
       console.log("📊 첫 번째 데이터 행:", dataLines[0])
+      console.log("📊 두 번째 데이터 행:", dataLines[1] || "없음")
     }
 
     const contents: ContentData[] = []
+    let processedCount = 0
+    let skippedCount = 0
     
     for (const line of dataLines) {
+      if (!line || line.trim() === '') {
+        skippedCount++
+        continue
+      }
+      
       // CSV 파싱 (쉼표가 포함된 텍스트 처리)
       const columns: string[] = []
       let current = ""
@@ -107,28 +124,34 @@ export async function POST(request: NextRequest) {
       }
       columns.push(current.trim()) // 마지막 컬럼
       
-      console.log(`🔍 컬럼 수: ${columns.length}, 첫 번째 컬럼: ${columns[0]}`)
+      processedCount++
+      if (processedCount <= 3) {
+        console.log(`🔍 행 ${processedCount} - 컬럼 수: ${columns.length}`)
+        console.log(`🔍 컬럼 내용:`, columns.slice(0, 5).map((col, idx) => `[${idx}]: "${col}"`).join(", "))
+      }
       
-      if (columns.length >= 18) {
+      // 최소 4개 컬럼만 있어도 처리 (Video name, link, date, creator)
+      if (columns.length >= 4) {
+        // 컬럼이 부족한 경우를 대비한 기본값 설정
         const [
-          content_title, // Video name
-          video_link, // Video link
-          publish_date, // Video post date
-          creator_name, // Creator username
-          gmv,
-          affiliate_items_sold,
-          affiliate_gmv, // Affiliate shoppable video GMV
-          shoppable_avg_order_value,
-          est_commission,
-          est_flat_fee,
-          affiliate_orders,
-          shoppable_impressions,
-          affiliate_ctr,
-          shoppable_gpm,
-          affiliate_items_refunded,
-          affiliate_refunded_gmv,
-          comment_count, // Shoppable video comments
-          like_count // Shoppable video likes
+          content_title = "", // Video name
+          video_link = "", // Video link
+          publish_date = "", // Video post date
+          creator_name = "", // Creator username
+          gmv = "0",
+          affiliate_items_sold = "0",
+          affiliate_gmv = "0", // Affiliate shoppable video GMV
+          shoppable_avg_order_value = "0",
+          est_commission = "0",
+          est_flat_fee = "--",
+          affiliate_orders = "0",
+          shoppable_impressions = "0",
+          affiliate_ctr = "0",
+          shoppable_gpm = "0",
+          affiliate_items_refunded = "0",
+          affiliate_refunded_gmv = "0",
+          comment_count = "0", // Shoppable video comments
+          like_count = "0" // Shoppable video likes
         ] = columns
         
         // 날짜 형식 처리
@@ -174,9 +197,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`📊 처리된 콘텐츠 수: ${contents.length}`)
+    console.log(`📊 처리 결과:`)
+    console.log(`  - 전체 행: ${dataLines.length}`)
+    console.log(`  - 처리된 행: ${processedCount}`)
+    console.log(`  - 빈 행: ${skippedCount}`)
+    console.log(`  - 유효한 콘텐츠: ${contents.length}`)
+    
     if (contents.length > 0) {
       console.log("🔍 첫 번째 콘텐츠 데이터:", JSON.stringify(contents[0], null, 2))
+    } else {
+      console.log("❌ 유효한 콘텐츠가 없습니다. 컬럼 수가 4개 미만이거나 데이터 형식이 맞지 않습니다.")
     }
 
     if (contents.length === 0) {
