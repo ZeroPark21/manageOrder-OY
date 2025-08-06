@@ -124,10 +124,12 @@ export default function ContentAnalysisPage() {
         // 데이터의 날짜 범위 계산
         if (allContents.length > 0) {
           const dates = allContents.map(v => v.videoPostDate).filter(d => d).sort()
-          setDateRange({
-            start: dates[0],
-            end: dates[dates.length - 1]
-          })
+          if (dates.length > 0) {
+            setDateRange({
+              start: dates[0],
+              end: dates[dates.length - 1]
+            })
+          }
         }
         
       } catch (error) {
@@ -186,7 +188,7 @@ export default function ContentAnalysisPage() {
         .map((v) => Number.parseFloat(v.affiliateCtr.replace("%", "")))
         .filter((ctr) => !isNaN(ctr) && ctr > 0)
 
-      creator.avgCtr = validCtrs.length > 0 ? validCtrs.reduce((sum, ctr) => sum + ctr, 0) / validCtrs.length : 0
+      creator.avgCtr = validCtrs && validCtrs.length > 0 ? validCtrs.reduce((sum, ctr) => sum + ctr, 0) / validCtrs.length : 0
     })
 
     return Object.values(stats)
