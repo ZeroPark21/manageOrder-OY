@@ -52,7 +52,8 @@ export default function UploadContentPage() {
 
       console.log("🚀 Starting content upload:", file.name, "Size:", file.size)
 
-      const response = await fetch("/api/upload-content", {
+      // 간단한 버전의 API 사용 (타임아웃 방지)
+      const response = await fetch("/api/upload-content-simple", {
         method: "POST",
         body: formData,
       })
@@ -76,9 +77,16 @@ export default function UploadContentPage() {
         throw new Error(result.error || `업로드에 실패했습니다. (${response.status})`)
       }
 
+      const uploadedCount = result.uploadedCount || result.processedCount || 0
+      let messageText = `✅ 콘텐츠 데이터 업로드 완료!\n📊 업로드된 콘텐츠: ${uploadedCount}개`
+      
+      if (result.note) {
+        messageText += `\n⚠️ ${result.note}`
+      }
+      
       setMessage({
         type: "success",
-        text: `✅ 콘텐츠 데이터 업로드 완료!\n📊 업로드된 콘텐츠: ${result.uploadedCount || result.processedCount || 0}개\n📈 처리된 행: ${result.processedCount || result.uploadedCount || 0}개`,
+        text: messageText,
       })
       setFile(null)
 
