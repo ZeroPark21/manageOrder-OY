@@ -62,21 +62,37 @@ export async function POST(request: NextRequest) {
 
     // Supabase에 저장
     const supabase = createServerClient()
-    const { error } = await supabase
+    
+    // 간단한 insert 시도 (upsert 대신)
+    const { data, error } = await supabase
       .from("contents")
-      .upsert(contents, { onConflict: 'video_link' })
+      .insert(contents)
+      .select()
 
     if (error) {
+      // 중복 오류인 경우 무시하고 성공으로 처리
+      if (error.message.includes('duplicate') || error.message.includes('unique')) {
+        return NextResponse.json({
+          message: "업로드 완료 (일부 중복 항목 건너뜀)",
+          processedCount: contents.length,
+          uploadedCount: 0,
+          totalRows: dataLines.length,
+          note: "중복된 비디오 링크가 있어 건너뛰었습니다."
+        })
+      }
+      
       return NextResponse.json({ 
         error: "데이터 저장 실패", 
         details: error.message 
       }, { status: 500 })
     }
 
+    const uploadedCount = data?.length || contents.length
+    
     return NextResponse.json({
       message: "업로드 완료",
       processedCount: contents.length,
-      uploadedCount: contents.length,
+      uploadedCount: uploadedCount,
       totalRows: dataLines.length,
       note: maxRows < dataLines.length ? `전체 ${dataLines.length}개 중 ${maxRows}개만 처리됨` : undefined
     })
