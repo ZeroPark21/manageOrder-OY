@@ -1,9 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase"
-import * as XLSX from "xlsx"
 
-export const runtime = "nodejs"
-export const maxDuration = 60 // 60초 타임아웃
+// Edge Runtime 사용
+export const runtime = "edge"
 
 interface ContentData {
   content_title: string
@@ -27,14 +26,24 @@ interface ContentData {
 }
 
 export async function POST(request: NextRequest) {
+  console.log("🚀 콘텐츠 업로드 API 시작")
+  
   try {
-    console.log("🚀 콘텐츠 업로드 API 시작")
-    
     // Content-Type 확인
     const contentType = request.headers.get("content-type")
     console.log("📝 Content-Type:", contentType)
     
-    const formData = await request.formData()
+    let formData
+    try {
+      formData = await request.formData()
+    } catch (formError) {
+      console.error("FormData 파싱 오류:", formError)
+      return NextResponse.json({ 
+        error: "요청 데이터를 파싱할 수 없습니다.",
+        details: formError instanceof Error ? formError.message : "Unknown error"
+      }, { status: 400 })
+    }
+    
     const file = formData.get("file") as File
 
     console.log("📁 파일 정보:", {
@@ -52,37 +61,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "파일 크기가 10MB를 초과합니다." }, { status: 400 })
     }
 
-    // 파일 처리 - Excel 또는 CSV
+    // 파일 처리 - CSV만 지원 (Edge Runtime 호환)
     let dataLines: string[] = []
     
-    // 파일 내용을 확인하여 실제 형식 판단
-    const buffer = await file.arrayBuffer()
-    let isExcel = false
-    
-    // Excel 파일 시그니처 확인 (PK\x03\x04 또는 \xd0\xcf)
-    const uint8Array = new Uint8Array(buffer)
-    if ((uint8Array[0] === 0x50 && uint8Array[1] === 0x4B) || // XLSX
-        (uint8Array[0] === 0xD0 && uint8Array[1] === 0xCF)) { // XLS
-      isExcel = true
-    }
-    
-    if (isExcel || file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
-      // Excel 파일 처리
-      console.log("📊 Excel 파일 처리 시작 (실제 Excel 형식)")
-      const workbook = XLSX.read(buffer, { type: 'array' })
-      const sheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[sheetName]
+    try {
+      const text = await file.text()
+      console.log("📊 파일 텍스트 읽기 완료")
       
-      // Excel을 CSV 문자열로 변환
-      const csv = XLSX.utils.sheet_to_csv(worksheet)
-      const lines = csv.split("\n")
-      dataLines = lines.slice(1).filter((line: string) => line.trim())
-    } else {
-      // CSV 파일 처리
-      console.log("📊 CSV 파일 처리 시작")
-      const text = new TextDecoder().decode(buffer)
       const lines = text.split("\n")
       dataLines = lines.slice(1).filter((line: string) => line.trim())
+      
+      console.log(`📊 데이터 행 수: ${dataLines.length}`)
+    } catch (readError) {
+      console.error("파일 읽기 오류:", readError)
+      return NextResponse.json({ 
+        error: "파일을 읽을 수 없습니다. CSV 파일인지 확인해주세요.",
+        details: readError instanceof Error ? readError.message : "Unknown error"
+      }, { status: 400 })
     }
     
     console.log(`📊 파일 처리 완료: ${file.name}, 데이터 행 수: ${dataLines.length}`)
@@ -249,24 +244,33 @@ export async function POST(request: NextRequest) {
       return { data, error: insertError }
     }
 
-    // 배치 크기 설정 (50개씩 처리)
-    const BATCH_SIZE = 50
+    // 배치 크기 설정 (20개씩 처리 - 더 작은 배치로)
+    const BATCH_SIZE = 20
     let allData: any[] = []
     let lastError: any = null
 
     // 배치로 나누어 처리
-    for (let i = 0; i < contents.length; i += BATCH_SIZE) {
-      const batch = contents.slice(i, i + BATCH_SIZE)
-      console.log(`📦 배치 처리 중: ${i + 1} ~ ${Math.min(i + BATCH_SIZE, contents.length)} / ${contents.length}`)
-      
-      const { data, error } = await processBatch(batch)
-      
-      if (error) {
-        lastError = error
-        console.error(`❌ 배치 처리 오류 (${i + 1} ~ ${Math.min(i + BATCH_SIZE, contents.length)}):`, error)
-      } else if (data) {
-        allData = allData.concat(data)
+    try {
+      for (let i = 0; i < contents.length; i += BATCH_SIZE) {
+        const batch = contents.slice(i, i + BATCH_SIZE)
+        console.log(`📦 배치 처리 중: ${i + 1} ~ ${Math.min(i + BATCH_SIZE, contents.length)} / ${contents.length}`)
+        
+        const { data, error } = await processBatch(batch)
+        
+        if (error) {
+          lastError = error
+          console.error(`❌ 배치 처리 오류 (${i + 1} ~ ${Math.min(i + BATCH_SIZE, contents.length)}):`, error)
+          // 오류가 발생해도 계속 진행
+        } else if (data) {
+          allData = allData.concat(data)
+        }
       }
+    } catch (batchError) {
+      console.error("배치 처리 중 예외 발생:", batchError)
+      return NextResponse.json({ 
+        error: "데이터 처리 중 오류가 발생했습니다.",
+        details: batchError instanceof Error ? batchError.message : "Unknown error"
+      }, { status: 500 })
     }
 
     let data = allData
