@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase"
 
-// Edge Runtime 사용
-export const runtime = "edge"
+// Node.js Runtime 사용 (더 긴 실행 시간 허용)
+export const runtime = "nodejs"
+export const maxDuration = 10 // 10초로 제한
 
 interface ContentData {
   content_title: string
@@ -185,118 +186,80 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
     console.log("🔗 Supabase 클라이언트 생성 완료")
 
-    // 배치 처리를 위한 함수
-    const processBatch = async (batch: ContentData[]) => {
-      // 먼저 upsert 시도
-      let { data, error: insertError } = await supabase
+    // 간단한 upsert 처리 (배치 없이 전체 한번에)
+    console.log("📤 데이터 업서트 시작...")
+    
+    try {
+      // 모든 데이터를 한 번에 upsert
+      const { data, error: insertError } = await supabase
         .from("contents")
-        .upsert(batch, {
+        .upsert(contents, {
           onConflict: 'video_link',
           ignoreDuplicates: false
         })
         .select()
 
-      // ON CONFLICT 오류가 발생하면 대체 방법 사용
-      if (insertError && insertError.message.includes('ON CONFLICT')) {
-        console.log("🔄 ON CONFLICT 오류 발생, 대체 방법으로 처리...")
+      if (insertError) {
+        console.error("데이터 삽입 실패:", insertError)
         
-        // 각 콘텐츠를 개별적으로 처리
-        const processedData = []
-        
-        for (const content of batch) {
-          // 먼저 기존 데이터 확인
-          const { data: existing } = await supabase
-            .from("contents")
-            .select("*")
-            .eq('video_link', content.video_link)
-            .single()
+        // ON CONFLICT 오류인 경우
+        if (insertError.message.includes('ON CONFLICT') || insertError.message.includes('unique constraint')) {
+          // 개별 처리 시도
+          console.log("🔄 개별 처리 모드로 전환...")
+          let successCount = 0
           
-          if (existing) {
-            // 기존 데이터가 있으면 업데이트
-            const { data: updated, error: updateError } = await supabase
-              .from("contents")
-              .update(content)
-              .eq('video_link', content.video_link)
-              .select()
-              .single()
-            
-            if (!updateError && updated) {
-              processedData.push(updated)
-            }
-          } else {
-            // 기존 데이터가 없으면 삽입
-            const { data: inserted, error: insertErr } = await supabase
-              .from("contents")
-              .insert(content)
-              .select()
-              .single()
-            
-            if (!insertErr && inserted) {
-              processedData.push(inserted)
+          for (const content of contents) {
+            try {
+              const { error: singleError } = await supabase
+                .from("contents")
+                .upsert(content, {
+                  onConflict: 'video_link',
+                  ignoreDuplicates: true
+                })
+              
+              if (!singleError) {
+                successCount++
+              }
+            } catch (e) {
+              // 개별 오류는 무시
             }
           }
+          
+          return NextResponse.json({
+            message: `${successCount}개의 콘텐츠가 업로드되었습니다.`,
+            processedCount: successCount,
+            uploadedCount: successCount,
+            totalCount: contents.length
+          })
         }
         
-        data = processedData
-        insertError = null
+        return NextResponse.json({ 
+          error: insertError.message,
+          processedCount: 0
+        }, { status: 500 })
       }
 
-      return { data, error: insertError }
-    }
+      console.log("✅ 콘텐츠 업서트 완료")
 
-    // 배치 크기 설정 (20개씩 처리 - 더 작은 배치로)
-    const BATCH_SIZE = 20
-    let allData: any[] = []
-    let lastError: any = null
+      // 업서트 후 전체 레코드 수 확인
+      const { count } = await supabase
+        .from('contents')
+        .select('*', { count: 'exact', head: true })
 
-    // 배치로 나누어 처리
-    try {
-      for (let i = 0; i < contents.length; i += BATCH_SIZE) {
-        const batch = contents.slice(i, i + BATCH_SIZE)
-        console.log(`📦 배치 처리 중: ${i + 1} ~ ${Math.min(i + BATCH_SIZE, contents.length)} / ${contents.length}`)
-        
-        const { data, error } = await processBatch(batch)
-        
-        if (error) {
-          lastError = error
-          console.error(`❌ 배치 처리 오류 (${i + 1} ~ ${Math.min(i + BATCH_SIZE, contents.length)}):`, error)
-          // 오류가 발생해도 계속 진행
-        } else if (data) {
-          allData = allData.concat(data)
-        }
-      }
-    } catch (batchError) {
-      console.error("배치 처리 중 예외 발생:", batchError)
+      return NextResponse.json({
+        message: "콘텐츠 데이터가 성공적으로 업서트되었습니다.",
+        processedCount: contents.length,
+        uploadedCount: contents.length,
+        totalRecordsInDB: count
+      })
+      
+    } catch (error) {
+      console.error("업서트 처리 중 오류:", error)
       return NextResponse.json({ 
         error: "데이터 처리 중 오류가 발생했습니다.",
-        details: batchError instanceof Error ? batchError.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error"
       }, { status: 500 })
     }
-
-    let data = allData
-    let insertError = lastError
-
-    if (insertError) {
-      console.error("데이터 삽입 실패:", insertError)
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
-    }
-
-    console.log("✅ 콘텐츠 업서트 완료")
-
-    // 업서트 후 전체 레코드 수 확인
-    const { count } = await supabase
-      .from('contents')
-      .select('*', { count: 'exact', head: true })
-
-    console.log(`✅ API 응답 준비: processedCount=${contents.length}, dataLength=${data?.length || 0}`)
-
-    return NextResponse.json({
-      message: "콘텐츠 데이터가 성공적으로 업서트되었습니다.",
-      processedCount: contents.length,
-      uploadedCount: contents.length, // 프론트엔드 호환성을 위해 추가
-      totalRecordsInDB: count,
-      data: data
-    })
 
   } catch (err: any) {
     console.error("콘텐츠 업로드 API 오류:", err)
