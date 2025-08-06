@@ -94,12 +94,6 @@ const utilityItems = [
     icon: BarChart3,
     description: "콘텐츠 발행 데이터 업로드",
   },
-  {
-    title: "GMV 데이터 업로드",
-    url: "/upload-gmv",
-    icon: TrendingUp,
-    description: "GMV 광고 데이터 업로드",
-  },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -133,35 +127,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
-              
-              {/* GMV MAX 분석 - 콜랩시블 메뉴 */}
-              {gmvMaxItems.map((item) => (
-                <Collapsible key={item.title} defaultOpen={pathname.startsWith('/gmv-max')}>
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
-                        <item.icon className="size-4" />
-                        <span>{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform data-[state=open]:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.subItems?.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
-                              <Link href={subItem.url}>
-                                <subItem.icon className="size-4" />
-                                <span>{subItem.title}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
