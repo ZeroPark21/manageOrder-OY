@@ -44,16 +44,74 @@ export default function UploadContentPage() {
     }
   }
 
-  // CSV 파싱 헬퍼 함수
+  // 날짜 파싱 헬퍼 함수
+  const parseDate = (value: any): string => {
+    if (!value) return new Date().toISOString().split('T')[0]
+    
+    const dateStr = value.toString().trim()
+    
+    // YYYY-MM-DD 형식
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+      return dateStr.split('T')[0]
+    }
+    
+    // MM/DD/YYYY 형식
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(dateStr)) {
+      const [month, day, year] = dateStr.split('/')
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    }
+    
+    // M/D/YYYY 형식 (8/6/2025 같은 경우)
+    const parts = dateStr.split('/')
+    if (parts.length === 3) {
+      const [month, day, year] = parts
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+    }
+    
+    return new Date().toISOString().split('T')[0]
+  }
+
+  // CSV 파싱 헬퍼 함수 - 적절한 CSV 파싱
   const parseCSVContent = (text: string) => {
     const lines = text.split(/\r?\n/).filter(line => line.trim())
     if (lines.length < 2) return []
     
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
+    // CSV 라인을 제대로 파싱하는 함수
+    const parseCSVLine = (line: string): string[] => {
+      const result = []
+      let current = ''
+      let inQuotes = false
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i]
+        
+        if (char === '"') {
+          if (inQuotes && line[i + 1] === '"') {
+            // 이스케이프된 따옴표
+            current += '"'
+            i++
+          } else {
+            inQuotes = !inQuotes
+          }
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim())
+          current = ''
+        } else {
+          current += char
+        }
+      }
+      
+      result.push(current.trim())
+      return result
+    }
+    
+    const headers = parseCSVLine(lines[0])
     const data: any[] = []
     
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''))
+      const values = parseCSVLine(lines[i])
+      if (values.length !== headers.length) continue // 컬럼 수가 맞지 않으면 건너뛰기
+      
       const row: any = {}
       headers.forEach((header, index) => {
         row[header] = values[index] || ''
@@ -77,7 +135,7 @@ export default function UploadContentPage() {
       const contents = chunk.map(row => ({
         content_title: (row['Video name'] || row['video_name'] || '').substring(0, 255),
         video_link: (row['Video link'] || row['video_link'] || '').substring(0, 255),
-        publish_date: row['Video post date'] || row['publish_date'] || new Date().toISOString().split('T')[0],
+        publish_date: parseDate(row['Video post date'] || row['publish_date']),
         creator_name: (row['Creator username'] || row['creator_name'] || '알 수 없음').substring(0, 100),
         gmv: parseFloat(row['GMV'] || row['gmv'] || '0') || 0,
         affiliate_items_sold: parseInt(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'] || '0') || 0,
