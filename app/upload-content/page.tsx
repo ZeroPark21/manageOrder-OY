@@ -44,6 +44,80 @@ export default function UploadContentPage() {
     }
   }
 
+  // CSV 파싱 헬퍼 함수
+  const parseCSVContent = (text: string) => {
+    const lines = text.split(/\r?\n/).filter(line => line.trim())
+    if (lines.length < 2) return []
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
+    const data: any[] = []
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''))
+      const row: any = {}
+      headers.forEach((header, index) => {
+        row[header] = values[index] || ''
+      })
+      data.push(row)
+    }
+    
+    return data
+  }
+
+  // 청크 업로드 함수
+  const uploadInChunks = async (data: any[]) => {
+    const CHUNK_SIZE = 10
+    let totalSaved = 0
+    
+    for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+      const chunk = data.slice(i, i + CHUNK_SIZE)
+      const isLastChunk = i + CHUNK_SIZE >= data.length
+      
+      // 데이터 변환
+      const contents = chunk.map(row => ({
+        content_title: (row['Video name'] || row['video_name'] || '').substring(0, 255),
+        video_link: (row['Video link'] || row['video_link'] || '').substring(0, 255),
+        publish_date: row['Video post date'] || row['publish_date'] || new Date().toISOString().split('T')[0],
+        creator_name: (row['Creator username'] || row['creator_name'] || '알 수 없음').substring(0, 100),
+        gmv: parseFloat(row['GMV'] || row['gmv'] || '0') || 0,
+        affiliate_items_sold: parseInt(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'] || '0') || 0,
+        affiliate_gmv: parseFloat(row['Affiliate shoppable video GMV'] || row['affiliate_gmv'] || '0') || 0,
+        shoppable_avg_order_value: parseFloat(row['Shoppable video avg. order value'] || row['shoppable_avg_order_value'] || '0') || 0,
+        est_commission: parseFloat(row['Est. commission'] || row['est_commission'] || '0') || 0,
+        est_flat_fee: (row['Est. flat fee'] || row['est_flat_fee'] || '--').toString().substring(0, 50),
+        affiliate_orders: parseInt(row['Affiliate orders'] || row['affiliate_orders'] || '0') || 0,
+        shoppable_impressions: parseInt(row['Shoppable video impressions'] || row['shoppable_impressions'] || '0') || 0,
+        affiliate_ctr: parseFloat(row['Affiliate CTR'] || row['affiliate_ctr'] || '0') || 0,
+        shoppable_gpm: parseFloat(row['Shoppable video GPM'] || row['shoppable_gpm'] || '0') || 0,
+        affiliate_items_refunded: parseInt(row['Affiliate items refunded'] || row['affiliate_items_refunded'] || '0') || 0,
+        affiliate_refunded_gmv: parseFloat(row['Affiliate refunded GMV'] || row['affiliate_refunded_gmv'] || '0') || 0,
+        comment_count: parseInt(row['Shoppable video comments'] || row['comment_count'] || '0') || 0,
+        like_count: parseInt(row['Shoppable video likes'] || row['like_count'] || '0') || 0
+      })).filter(c => c.content_title && c.video_link)
+      
+      if (contents.length === 0) continue
+      
+      const response = await fetch("/api/upload-content-chunk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents, isLastChunk })
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        totalSaved += result.saved || 0
+      }
+      
+      // 진행 상황 업데이트
+      setMessage({
+        type: "success",
+        text: `⏳ 업로드 중... ${Math.min(i + CHUNK_SIZE, data.length)}/${data.length} 처리됨`
+      })
+    }
+    
+    return totalSaved
+  }
+
   const handleUpload = async () => {
     if (!file) return
 
@@ -51,21 +125,39 @@ export default function UploadContentPage() {
     setMessage(null)
 
     try {
+      console.log("🚀 Starting content upload:", file.name, "Size:", file.size)
+
+      // 100KB 이상의 CSV 파일은 청크 업로드 사용
+      if (file.name.endsWith('.csv') && file.size > 100000) {
+        console.log("📊 대용량 CSV 파일 - 청크 업로드 사용")
+        
+        const text = await file.text()
+        const data = parseCSVContent(text)
+        
+        if (data.length === 0) {
+          throw new Error("유효한 데이터가 없습니다")
+        }
+        
+        const totalSaved = await uploadInChunks(data)
+        
+        setMessage({
+          type: "success",
+          text: `✅ 콘텐츠 데이터 업로드 완료!\n📊 업로드된 콘텐츠: ${totalSaved}개`
+        })
+        setFile(null)
+        
+        // 파일 입력 초기화
+        const fileInput = document.getElementById("file-upload") as HTMLInputElement
+        if (fileInput) fileInput.value = ""
+        
+        return
+      }
+
+      // 일반 업로드 (작은 파일 또는 Excel)
       const formData = new FormData()
       formData.append("file", file)
 
-      console.log("🚀 Starting content upload:", file.name, "Size:", file.size)
-
-      // 파일 크기에 따라 적절한 API 선택
-      let apiEndpoint = "/api/upload-content-v2"
-      
-      // CSV 파일이고 50KB 이상이면 Edge Runtime 사용
-      if (file.name.endsWith('.csv') && file.size > 50000) {
-        apiEndpoint = "/api/upload-content-edge"
-        console.log("📊 대용량 CSV 파일 - Edge Runtime 사용")
-      }
-
-      const response = await fetch(apiEndpoint, {
+      const response = await fetch("/api/upload-content-v2", {
         method: "POST",
         body: formData,
       })
@@ -222,7 +314,7 @@ export default function UploadContentPage() {
                   <li className="text-green-600">Excel 파일(.xlsx, .xls)도 직접 업로드 가능합니다</li>
                   <li>빈 행이나 유효하지 않은 데이터는 자동으로 건너뜁니다</li>
                   <li>대용량 파일의 경우 처리 시간이 오래 걸릴 수 있습니다</li>
-                  <li className="text-blue-600">CSV 파일이 50KB 이상인 경우 자동으로 고속 처리 모드를 사용합니다</li>
+                  <li className="text-blue-600">CSV 파일이 100KB 이상인 경우 자동으로 청크 업로드 방식을 사용합니다</li>
                 </ul>
               </div>
             </CardContent>
