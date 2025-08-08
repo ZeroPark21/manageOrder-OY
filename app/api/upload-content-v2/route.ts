@@ -148,16 +148,17 @@ export async function POST(request: NextRequest) {
     
     for (const row of data) {
       // 컬럼명 매핑 (공백 제거)
-      const videoName = row['Video name'] || row['video_name'] || ''
-      const videoLink = row['Video link'] || row['video_link'] || ''
       const publishDate = row['Video post date'] || row['publish_date'] || ''
-      const creatorName = row['Creator username'] || row['creator_name'] || ''
       
-      // 필수 필드 체크
-      if (!videoName || !videoLink) {
-        console.log(`⚠️ 건너뜀 - 필수 필드 누락: "${videoName}", "${videoLink}"`)
+      // Video post date가 없으면 건너뛰기
+      if (!publishDate) {
+        console.log(`⚠️ 건너뜀 - Video post date 없음`)
         continue
       }
+      
+      const videoName = row['Video name'] || row['video_name'] || 'Untitled'
+      const videoLink = row['Video link'] || row['video_link'] || ''
+      const creatorName = row['Creator username'] || row['creator_name'] || ''
       
       contents.push({
         content_title: videoName.substring(0, 255),

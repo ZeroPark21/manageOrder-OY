@@ -137,27 +137,33 @@ export default function UploadContentPage() {
       const chunk = data.slice(i, i + CHUNK_SIZE)
       const isLastChunk = i + CHUNK_SIZE >= data.length
       
-      // 데이터 변환
-      const contents = chunk.map(row => ({
-        content_title: (row['Video name'] || row['video_name'] || '').substring(0, 255),
-        video_link: (row['Video link'] || row['video_link'] || '').substring(0, 255),
-        publish_date: parseDate(row['Video post date'] || row['publish_date']),
-        creator_name: (row['Creator username'] || row['creator_name'] || '알 수 없음').substring(0, 100),
-        gmv: parseFloat(row['GMV'] || row['gmv'] || '0') || 0,
-        affiliate_items_sold: parseInt(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'] || '0') || 0,
-        affiliate_gmv: parseFloat(row['Affiliate shoppable video GMV'] || row['affiliate_gmv'] || '0') || 0,
-        shoppable_avg_order_value: parseFloat(row['Shoppable video avg. order value'] || row['shoppable_avg_order_value'] || '0') || 0,
-        est_commission: parseFloat(row['Est. commission'] || row['est_commission'] || '0') || 0,
-        est_flat_fee: (row['Est. flat fee'] || row['est_flat_fee'] || '--').toString().substring(0, 50),
-        affiliate_orders: parseInt(row['Affiliate orders'] || row['affiliate_orders'] || '0') || 0,
-        shoppable_impressions: parseInt(row['Shoppable video impressions'] || row['shoppable_impressions'] || '0') || 0,
-        affiliate_ctr: parseFloat(row['Affiliate CTR'] || row['affiliate_ctr'] || '0') || 0,
-        shoppable_gpm: parseFloat(row['Shoppable video GPM'] || row['shoppable_gpm'] || '0') || 0,
-        affiliate_items_refunded: parseInt(row['Affiliate items refunded'] || row['affiliate_items_refunded'] || '0') || 0,
-        affiliate_refunded_gmv: parseFloat(row['Affiliate refunded GMV'] || row['affiliate_refunded_gmv'] || '0') || 0,
-        comment_count: parseInt(row['Shoppable video comments'] || row['comment_count'] || '0') || 0,
-        like_count: parseInt(row['Shoppable video likes'] || row['like_count'] || '0') || 0
-      })).filter(c => c.content_title && c.video_link)
+      // 데이터 변환 - Video post date가 있으면 모두 포함
+      const contents = chunk.map(row => {
+        const publishDate = row['Video post date'] || row['publish_date']
+        // Video post date가 없으면 건너뛰기
+        if (!publishDate) return null
+        
+        return {
+          content_title: (row['Video name'] || row['video_name'] || 'Untitled').substring(0, 255),
+          video_link: (row['Video link'] || row['video_link'] || '').substring(0, 255),
+          publish_date: parseDate(publishDate),
+          creator_name: (row['Creator username'] || row['creator_name'] || '알 수 없음').substring(0, 100),
+          gmv: parseFloat(row['GMV'] || row['gmv'] || '0') || 0,
+          affiliate_items_sold: parseInt(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'] || '0') || 0,
+          affiliate_gmv: parseFloat(row['Affiliate shoppable video GMV'] || row['affiliate_gmv'] || '0') || 0,
+          shoppable_avg_order_value: parseFloat(row['Shoppable video avg. order value'] || row['shoppable_avg_order_value'] || '0') || 0,
+          est_commission: parseFloat(row['Est. commission'] || row['est_commission'] || '0') || 0,
+          est_flat_fee: (row['Est. flat fee'] || row['est_flat_fee'] || '--').toString().substring(0, 50),
+          affiliate_orders: parseInt(row['Affiliate orders'] || row['affiliate_orders'] || '0') || 0,
+          shoppable_impressions: parseInt(row['Shoppable video impressions'] || row['shoppable_impressions'] || '0') || 0,
+          affiliate_ctr: parseFloat(row['Affiliate CTR'] || row['affiliate_ctr'] || '0') || 0,
+          shoppable_gpm: parseFloat(row['Shoppable video GPM'] || row['shoppable_gpm'] || '0') || 0,
+          affiliate_items_refunded: parseInt(row['Affiliate items refunded'] || row['affiliate_items_refunded'] || '0') || 0,
+          affiliate_refunded_gmv: parseFloat(row['Affiliate refunded GMV'] || row['affiliate_refunded_gmv'] || '0') || 0,
+          comment_count: parseInt(row['Shoppable video comments'] || row['comment_count'] || '0') || 0,
+          like_count: parseInt(row['Shoppable video likes'] || row['like_count'] || '0') || 0
+        }
+      }).filter(c => c !== null) // Video post date가 있는 것만 포함
       
       if (contents.length === 0) continue
       

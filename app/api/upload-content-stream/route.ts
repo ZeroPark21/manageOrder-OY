@@ -91,15 +91,18 @@ export async function POST(request: NextRequest) {
         row[header] = values[index] || ''
       })
       
-      const videoName = row['Video name'] || row['video_name'] || ''
-      const videoLink = row['Video link'] || row['video_link'] || ''
+      const publishDate = row['Video post date'] || row['publish_date'] || ''
       
-      if (!videoName || !videoLink) continue
+      // Video post date가 없으면 건너뛰기
+      if (!publishDate) continue
+      
+      const videoName = row['Video name'] || row['video_name'] || 'Untitled'
+      const videoLink = row['Video link'] || row['video_link'] || ''
       
       const content = {
         content_title: videoName.substring(0, 255),
         video_link: videoLink.substring(0, 255),
-        publish_date: parseDate(row['Video post date'] || row['publish_date']),
+        publish_date: parseDate(publishDate),
         creator_name: (row['Creator username'] || row['creator_name'] || '알 수 없음').substring(0, 100),
         gmv: parseNumber(row['GMV'] || row['gmv']),
         affiliate_items_sold: Math.round(parseNumber(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'])),
