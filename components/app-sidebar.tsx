@@ -27,7 +27,8 @@ import {
   TrendingUp, 
   ChevronRight,
   Users,
-  PieChart 
+  PieChart,
+  ShoppingCart 
 } from "lucide-react"
 import { 
   Collapsible,
@@ -54,6 +55,12 @@ const menuItems = [
     url: "/content-analysis",
     icon: FileSearch,
     description: "콘텐츠 성과 분석",
+  },
+  {
+    title: "제품 판매 현황",
+    url: "/product-sales",
+    icon: ShoppingCart,
+    description: "제품별 판매 데이터 분석",
   },
 ]
 
