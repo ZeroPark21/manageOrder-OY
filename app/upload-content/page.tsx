@@ -56,8 +56,16 @@ export default function UploadContentPage() {
 
       console.log("🚀 Starting content upload:", file.name, "Size:", file.size)
 
-      // 새로운 V2 API 사용 (CSV/Excel 모두 지원)
-      const response = await fetch("/api/upload-content-v2", {
+      // 파일 크기에 따라 적절한 API 선택
+      let apiEndpoint = "/api/upload-content-v2"
+      
+      // CSV 파일이고 50KB 이상이면 Edge Runtime 사용
+      if (file.name.endsWith('.csv') && file.size > 50000) {
+        apiEndpoint = "/api/upload-content-edge"
+        console.log("📊 대용량 CSV 파일 - Edge Runtime 사용")
+      }
+
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         body: formData,
       })
@@ -214,6 +222,7 @@ export default function UploadContentPage() {
                   <li className="text-green-600">Excel 파일(.xlsx, .xls)도 직접 업로드 가능합니다</li>
                   <li>빈 행이나 유효하지 않은 데이터는 자동으로 건너뜁니다</li>
                   <li>대용량 파일의 경우 처리 시간이 오래 걸릴 수 있습니다</li>
+                  <li className="text-blue-600">CSV 파일이 50KB 이상인 경우 자동으로 고속 처리 모드를 사용합니다</li>
                 </ul>
               </div>
             </CardContent>
