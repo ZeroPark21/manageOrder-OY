@@ -163,7 +163,7 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
     )
   }
 
-  if (!data || data.products.length === 0) {
+  if (!data || !data.products || data.products.length === 0) {
     return (
       <Card>
         <CardHeader>

@@ -39,7 +39,7 @@ export function ProductSalesDailyMatrixTable() {
       
       if (result?.dates && result.dates.length > 0) {
         // 현재 월 설정
-        const lastDate = result.dates[result.dates.length - 1]
+        const lastDate = result.dates[result.dates.length - 1] || ''
         const [year, month] = lastDate.split("-")
         setCurrentMonth(`${year}년 ${parseInt(month)}월`)
         

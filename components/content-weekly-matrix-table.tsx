@@ -98,7 +98,7 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
     )
   }
 
-  if (!matrixData || matrixData.weeks.length === 0) {
+  if (!matrixData || !matrixData.weeks || matrixData.weeks.length === 0) {
     return (
       <Card>
         <CardHeader>

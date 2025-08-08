@@ -185,7 +185,7 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
     )
   }
 
-  if (!matrixData || matrixData.dates.length === 0) {
+  if (!matrixData || !matrixData.dates || matrixData.dates.length === 0) {
     return (
       <Card>
         <CardHeader>

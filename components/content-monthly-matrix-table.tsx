@@ -98,7 +98,7 @@ export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: 
     )
   }
 
-  if (!matrixData || matrixData.months.length === 0) {
+  if (!matrixData || !matrixData.months || matrixData.months.length === 0) {
     return (
       <Card>
         <CardHeader>
