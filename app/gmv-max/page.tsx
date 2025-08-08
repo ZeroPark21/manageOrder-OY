@@ -184,11 +184,11 @@ export default function GmvMaxPage() {
       totalImpressions,
       totalClicks,
       totalVideos,
-      totalCreators: gmvData.length,
+      totalCreators: gmvData?.length || 0,
       totalBudget: totalBudget,
       totalAdSpend: estimatedAdSpend,
       avgROI: Math.round(avgROI),
-      activeCampaigns: campaigns.length
+      activeCampaigns: campaigns?.length || 0
     }
   }
 
@@ -196,7 +196,7 @@ export default function GmvMaxPage() {
 
   // GMV 추이 데이터 생성
   const generateGmvTrendData = () => {
-    if (!gmvData.length) return []
+    if (!gmvData || !gmvData.length) return []
     
     // 실제 데이터를 기반으로 월별 트렌드 생성 (간단한 시뮬레이션)
     const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월']
@@ -568,7 +568,7 @@ export default function GmvMaxPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {gmvData.length > 0 ? gmvData.slice(0, 10).map((account, index) => (
+              {gmvData && gmvData.length > 0 ? gmvData.slice(0, 10).map((account, index) => (
                 <TableRow key={`${account.account}-${index}`}>
                   <TableCell className="font-medium">{account.account}</TableCell>
                   <TableCell className="text-right">{account.videoCount}</TableCell>

@@ -73,11 +73,15 @@ export default function UploadContentPage() {
 
   // CSV 파싱 헬퍼 함수 - 적절한 CSV 파싱
   const parseCSVContent = (text: string) => {
+    if (!text || typeof text !== 'string') return []
+    
     const lines = text.split(/\r?\n/).filter(line => line.trim())
-    if (lines.length < 2) return []
+    if (!lines || lines.length < 2) return []
     
     // CSV 라인을 제대로 파싱하는 함수
     const parseCSVLine = (line: string): string[] => {
+      if (!line || typeof line !== 'string') return []
+      
       const result = []
       let current = ''
       let inQuotes = false
@@ -106,11 +110,13 @@ export default function UploadContentPage() {
     }
     
     const headers = parseCSVLine(lines[0])
+    if (!headers || headers.length === 0) return []
+    
     const data: any[] = []
     
     for (let i = 1; i < lines.length; i++) {
       const values = parseCSVLine(lines[i])
-      if (values.length !== headers.length) continue // 컬럼 수가 맞지 않으면 건너뛰기
+      if (!values || !headers || values.length !== headers.length) continue // 안전성 체크 추가
       
       const row: any = {}
       headers.forEach((header, index) => {
