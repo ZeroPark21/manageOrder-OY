@@ -91,7 +91,7 @@ export default function ProductSalesDashboard() {
       const sheets: MultiSheetExcelData[] = []
 
       // 일별 시트 생성
-      if (dailyData.dates && dailyData.dates.length > 0) {
+      if (dailyData?.dates && dailyData.dates.length > 0) {
         const dailyHeaders = [
           "순위",
           "Product Name",
@@ -102,9 +102,9 @@ export default function ProductSalesDashboard() {
           "총매출"
         ]
 
-        const dailyRows = dailyData.products.map((product: any, index: number) => {
+        const dailyRows = (dailyData.products || []).map((product: any, index: number) => {
           const quantities = dailyData.dates.map((date: string) => 
-            dailyData.dailyStats[date]?.productStats[product.product_name]?.quantity || 0
+            dailyData.dailyStats?.[date]?.productStats?.[product.product_name]?.quantity || 0
           )
           const totalQuantity = quantities.reduce((a: number, b: number) => a + b, 0)
           const avgPrice = product.avg_price || 0
@@ -127,9 +127,9 @@ export default function ProductSalesDashboard() {
           "",
           "",
           "",
-          ...dailyData.dates.map((date: string) => dailyData.dailyStats[date].totalQuantity),
-          dailyData.dates.reduce((sum: number, date: string) => sum + dailyData.dailyStats[date].totalQuantity, 0),
-          dailyData.dates.reduce((sum: number, date: string) => sum + dailyData.dailyStats[date].totalRevenue, 0)
+          ...dailyData.dates.map((date: string) => dailyData.dailyStats?.[date]?.totalQuantity || 0),
+          dailyData.dates.reduce((sum: number, date: string) => sum + (dailyData.dailyStats?.[date]?.totalQuantity || 0), 0),
+          dailyData.dates.reduce((sum: number, date: string) => sum + (dailyData.dailyStats?.[date]?.totalRevenue || 0), 0)
         ])
 
         sheets.push({
@@ -140,7 +140,7 @@ export default function ProductSalesDashboard() {
       }
 
       // 주별 시트 생성
-      if (weeklyData.weeks && weeklyData.weeks.length > 0) {
+      if (weeklyData?.weeks && weeklyData.weeks.length > 0) {
         const weeklyHeaders = [
           "주차",
           "판매수량",
@@ -150,12 +150,12 @@ export default function ProductSalesDashboard() {
         ]
 
         const weeklyRows = weeklyData.weeks.map((week: string) => {
-          const stats = weeklyData.weeklyStats[week]
+          const stats = weeklyData.weeklyStats?.[week] || {}
           return [
             formatDateForExcel(week),
-            stats.totalQuantity,
-            stats.totalRevenue,
-            stats.uniqueProducts,
+            stats.totalQuantity || 0,
+            stats.totalRevenue || 0,
+            stats.uniqueProducts || 0,
             stats.totalQuantity > 0 ? Math.round(stats.totalRevenue / stats.totalQuantity) : 0
           ]
         })
@@ -163,8 +163,8 @@ export default function ProductSalesDashboard() {
         // 주별 총계 행
         weeklyRows.push([
           "Total",
-          weeklyData.weeks.reduce((sum: number, week: string) => sum + weeklyData.weeklyStats[week].totalQuantity, 0),
-          weeklyData.weeks.reduce((sum: number, week: string) => sum + weeklyData.weeklyStats[week].totalRevenue, 0),
+          weeklyData.weeks.reduce((sum: number, week: string) => sum + (weeklyData.weeklyStats?.[week]?.totalQuantity || 0), 0),
+          weeklyData.weeks.reduce((sum: number, week: string) => sum + (weeklyData.weeklyStats?.[week]?.totalRevenue || 0), 0),
           "",
           ""
         ])
@@ -177,12 +177,12 @@ export default function ProductSalesDashboard() {
       }
 
       // 월별 시트 생성
-      if (monthlyData.months && monthlyData.months.length > 0) {
+      if (monthlyData?.months && monthlyData.months.length > 0) {
         const monthlyHeaders = ["순위", "Product Name", "Seller SKU", "SKU ID", ...monthlyData.months, "총수량", "총매출"]
 
-        const monthlyRows = monthlyData.products.map((product: any, index: number) => {
+        const monthlyRows = (monthlyData.products || []).map((product: any, index: number) => {
           const quantities = monthlyData.months.map((month: string) => 
-            monthlyData.monthlyStats[month]?.productStats[product.product_name]?.quantity || 0
+            monthlyData.monthlyStats?.[month]?.productStats?.[product.product_name]?.quantity || 0
           )
           const totalQuantity = quantities.reduce((a: number, b: number) => a + b, 0)
           const avgPrice = product.avg_price || 0
@@ -205,9 +205,9 @@ export default function ProductSalesDashboard() {
           "",
           "",
           "",
-          ...monthlyData.months.map((month: string) => monthlyData.monthlyStats[month].totalQuantity),
-          monthlyData.months.reduce((sum: number, month: string) => sum + monthlyData.monthlyStats[month].totalQuantity, 0),
-          monthlyData.months.reduce((sum: number, month: string) => sum + monthlyData.monthlyStats[month].totalRevenue, 0)
+          ...monthlyData.months.map((month: string) => monthlyData.monthlyStats?.[month]?.totalQuantity || 0),
+          monthlyData.months.reduce((sum: number, month: string) => sum + (monthlyData.monthlyStats?.[month]?.totalQuantity || 0), 0),
+          monthlyData.months.reduce((sum: number, month: string) => sum + (monthlyData.monthlyStats?.[month]?.totalRevenue || 0), 0)
         ])
 
         sheets.push({
