@@ -30,12 +30,16 @@ export default function UploadContentPage() {
       if (
         selectedFile.type === "text/csv" ||
         selectedFile.name.endsWith(".csv") ||
-        selectedFile.type === "text/plain"
+        selectedFile.type === "text/plain" ||
+        selectedFile.type === "application/vnd.ms-excel" ||
+        selectedFile.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+        selectedFile.name.endsWith(".xlsx") ||
+        selectedFile.name.endsWith(".xls")
       ) {
         setFile(selectedFile)
         setMessage(null)
       } else {
-        setMessage({ type: "error", text: "CSV 파일만 업로드 가능합니다. Excel 파일은 CSV로 변환 후 업로드해주세요." })
+        setMessage({ type: "error", text: "CSV 또는 Excel 파일만 업로드 가능합니다." })
       }
     }
   }
@@ -52,8 +56,8 @@ export default function UploadContentPage() {
 
       console.log("🚀 Starting content upload:", file.name, "Size:", file.size)
 
-      // 간단한 버전의 API 사용 (타임아웃 방지)
-      const response = await fetch("/api/upload-content-simple", {
+      // 새로운 V2 API 사용 (CSV/Excel 모두 지원)
+      const response = await fetch("/api/upload-content-v2", {
         method: "POST",
         body: formData,
       })
@@ -139,18 +143,16 @@ export default function UploadContentPage() {
               <CardDescription>
                 TikTok 시딩 콘텐츠 발행 데이터 파일을 업로드하세요.
                 <br />
-                <small className="text-muted-foreground">지원 형식: .csv 파일 (최대 10MB)</small>
-                <br />
-                <small className="text-yellow-600">⚠️ Excel 파일(.xlsx)은 CSV로 변환 후 업로드해주세요.</small>
+                <small className="text-muted-foreground">지원 형식: .csv, .xlsx, .xls 파일 (최대 10MB)</small>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="file-upload">CSV 파일 선택</Label>
+                <Label htmlFor="file-upload">파일 선택</Label>
                 <Input
                   id="file-upload"
                   type="file"
-                  accept=".csv,text/csv,text/plain"
+                  accept=".csv,.xlsx,.xls,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   onChange={handleFileChange}
                   disabled={uploading}
                 />
@@ -209,7 +211,7 @@ export default function UploadContentPage() {
                   <li>CSV 파일의 첫 번째 행은 헤더로 처리됩니다</li>
                   <li>필수 컬럼: Video name, Creator username, Video post date 등</li>
                   <li>날짜 형식: MM/DD/YYYY 또는 YYYY-MM-DD</li>
-                  <li className="text-yellow-600">Excel 파일은 먼저 CSV로 저장해주세요 (파일 → 다른 이름으로 저장 → CSV)</li>
+                  <li className="text-green-600">Excel 파일(.xlsx, .xls)도 직접 업로드 가능합니다</li>
                   <li>빈 행이나 유효하지 않은 데이터는 자동으로 건너뜁니다</li>
                   <li>대용량 파일의 경우 처리 시간이 오래 걸릴 수 있습니다</li>
                 </ul>
