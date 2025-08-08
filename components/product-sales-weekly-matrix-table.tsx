@@ -34,7 +34,7 @@ export function ProductSalesWeeklyMatrixTable() {
       if (!response.ok) throw new Error("Failed to fetch data")
       const result = await response.json()
       
-      if (result.weeks && result.weeklyStats) {
+      if (result?.weeks && result?.weeklyStats) {
         const weeklyData: WeeklyData[] = result.weeks.map((week: string) => {
           const stats = result.weeklyStats[week]
           return {
@@ -73,7 +73,7 @@ export function ProductSalesWeeklyMatrixTable() {
     )
   }
 
-  if (!data || data.length === 0) {
+  if (!data || !Array.isArray(data) || data.length === 0) {
     return (
       <div className="rounded-md border p-8">
         <div className="flex items-center justify-center">

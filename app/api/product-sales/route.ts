@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    if (!orders || orders.length === 0) {
+    if (!orders || !Array.isArray(orders) || orders.length === 0) {
       return NextResponse.json({
         data: [],
         totalQuantity: 0,

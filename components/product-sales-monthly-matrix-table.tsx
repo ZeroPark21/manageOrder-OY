@@ -35,7 +35,7 @@ export function ProductSalesMonthlyMatrixTable() {
       if (!response.ok) throw new Error("Failed to fetch data")
       const result = await response.json()
       
-      if (result.months && result.months.length > 0) {
+      if (result?.months && result.months.length > 0) {
         // 제품별 월별 판매량 계산
         const productStats: ProductMonthlyStats[] = result.products.map((product: any) => {
           const monthlyQuantities: { [month: string]: number } = {}

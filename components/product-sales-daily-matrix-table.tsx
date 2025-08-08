@@ -37,7 +37,7 @@ export function ProductSalesDailyMatrixTable() {
       if (!response.ok) throw new Error("Failed to fetch data")
       const result = await response.json()
       
-      if (result.dates && result.dates.length > 0) {
+      if (result?.dates && result.dates.length > 0) {
         // 현재 월 설정
         const lastDate = result.dates[result.dates.length - 1]
         const [year, month] = lastDate.split("-")
