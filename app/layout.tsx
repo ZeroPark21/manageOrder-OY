@@ -10,12 +10,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Cosudck Agency",
   description: "TTS Dashboard",
-  generator: 'v0.dev',
-  icons: {
-    icon: '/icon.svg',
-    shortcut: '/icon.svg',
-    apple: '/icon.svg',
-  }
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({
