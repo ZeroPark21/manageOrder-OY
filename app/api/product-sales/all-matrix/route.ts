@@ -12,7 +12,7 @@ interface Order {
   seller_sku: string
   sku_id: string
   sku_unit_original_price: number
-  sku_quantity: number
+  quantity: number
 }
 
 function parseDeliveredTime(dateStr: string | null): Date | null {
@@ -36,12 +36,12 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerClient()
 
-    // 7월부터 현재까지 모든 판매 데이터 가져오기
+    // 7월부터 현재까지 모든 판매 데이터 가져오기 (MM/DD/YYYY 형식)
     const { data: orders, error } = await supabase
       .from("orders")
       .select("*")
       .gt("sku_unit_original_price", 0)
-      .gte("delivered_time", "2025-07-01")
+      .gte("delivered_time", "07/01/2025")
       .not("delivered_time", "is", null)
       .order("delivered_time", { ascending: true })
 
@@ -92,8 +92,8 @@ export async function GET(request: NextRequest) {
           sku_id: order.sku_id
         }
       }
-      productPriceMap[order.product_name].totalRevenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
-      productPriceMap[order.product_name].totalQuantity += order.sku_quantity || 0
+      productPriceMap[order.product_name].totalRevenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
+      productPriceMap[order.product_name].totalQuantity += order.quantity || 0
     })
 
     // 제품 리스트 생성 (판매량 기준 정렬)
@@ -126,14 +126,14 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        dailyStats[date].totalQuantity += order.sku_quantity || 0
-        dailyStats[date].totalRevenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+        dailyStats[date].totalQuantity += order.quantity || 0
+        dailyStats[date].totalRevenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
 
         if (!dailyStats[date].productStats[order.product_name]) {
           dailyStats[date].productStats[order.product_name] = { quantity: 0, revenue: 0 }
         }
-        dailyStats[date].productStats[order.product_name].quantity += order.sku_quantity || 0
-        dailyStats[date].productStats[order.product_name].revenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+        dailyStats[date].productStats[order.product_name].quantity += order.quantity || 0
+        dailyStats[date].productStats[order.product_name].revenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
       })
 
       return NextResponse.json({
@@ -163,14 +163,14 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        weeklyStats[weekKey].totalQuantity += order.sku_quantity || 0
-        weeklyStats[weekKey].totalRevenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+        weeklyStats[weekKey].totalQuantity += order.quantity || 0
+        weeklyStats[weekKey].totalRevenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
 
         if (!weeklyStats[weekKey].productStats[order.product_name]) {
           weeklyStats[weekKey].productStats[order.product_name] = { quantity: 0, revenue: 0 }
         }
-        weeklyStats[weekKey].productStats[order.product_name].quantity += order.sku_quantity || 0
-        weeklyStats[weekKey].productStats[order.product_name].revenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+        weeklyStats[weekKey].productStats[order.product_name].quantity += order.quantity || 0
+        weeklyStats[weekKey].productStats[order.product_name].revenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
       })
 
       // 유니크 제품 수 계산
@@ -202,14 +202,14 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        monthlyStats[monthKey].totalQuantity += order.sku_quantity || 0
-        monthlyStats[monthKey].totalRevenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+        monthlyStats[monthKey].totalQuantity += order.quantity || 0
+        monthlyStats[monthKey].totalRevenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
 
         if (!monthlyStats[monthKey].productStats[order.product_name]) {
           monthlyStats[monthKey].productStats[order.product_name] = { quantity: 0, revenue: 0 }
         }
-        monthlyStats[monthKey].productStats[order.product_name].quantity += order.sku_quantity || 0
-        monthlyStats[monthKey].productStats[order.product_name].revenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+        monthlyStats[monthKey].productStats[order.product_name].quantity += order.quantity || 0
+        monthlyStats[monthKey].productStats[order.product_name].revenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
       })
 
       return NextResponse.json({

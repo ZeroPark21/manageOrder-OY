@@ -12,7 +12,7 @@ interface Order {
   seller_sku: string
   sku_id: string
   sku_unit_original_price: number
-  sku_quantity: number
+  quantity: number
   country: string
 }
 
@@ -56,16 +56,16 @@ function groupByDate(orders: Order[]) {
       }
     }
 
-    grouped[dateKey].totalQuantity += order.sku_quantity || 0
-    grouped[dateKey].totalRevenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+    grouped[dateKey].totalQuantity += order.quantity || 0
+    grouped[dateKey].totalRevenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
     grouped[dateKey].products.push(order)
 
     // 제품별 통계
     if (!grouped[dateKey].productStats[order.product_name]) {
       grouped[dateKey].productStats[order.product_name] = { quantity: 0, revenue: 0 }
     }
-    grouped[dateKey].productStats[order.product_name].quantity += order.sku_quantity || 0
-    grouped[dateKey].productStats[order.product_name].revenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+    grouped[dateKey].productStats[order.product_name].quantity += order.quantity || 0
+    grouped[dateKey].productStats[order.product_name].revenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
   })
 
   // 유니크 제품 수 계산
@@ -104,16 +104,16 @@ function groupByWeek(orders: Order[]) {
       }
     }
 
-    grouped[weekKey].totalQuantity += order.sku_quantity || 0
-    grouped[weekKey].totalRevenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+    grouped[weekKey].totalQuantity += order.quantity || 0
+    grouped[weekKey].totalRevenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
     grouped[weekKey].products.push(order)
 
     // 제품별 통계
     if (!grouped[weekKey].productStats[order.product_name]) {
       grouped[weekKey].productStats[order.product_name] = { quantity: 0, revenue: 0 }
     }
-    grouped[weekKey].productStats[order.product_name].quantity += order.sku_quantity || 0
-    grouped[weekKey].productStats[order.product_name].revenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+    grouped[weekKey].productStats[order.product_name].quantity += order.quantity || 0
+    grouped[weekKey].productStats[order.product_name].revenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
   })
 
   // 유니크 제품 수 계산
@@ -150,16 +150,16 @@ function groupByMonth(orders: Order[]) {
       }
     }
 
-    grouped[monthKey].totalQuantity += order.sku_quantity || 0
-    grouped[monthKey].totalRevenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+    grouped[monthKey].totalQuantity += order.quantity || 0
+    grouped[monthKey].totalRevenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
     grouped[monthKey].products.push(order)
 
     // 제품별 통계
     if (!grouped[monthKey].productStats[order.product_name]) {
       grouped[monthKey].productStats[order.product_name] = { quantity: 0, revenue: 0 }
     }
-    grouped[monthKey].productStats[order.product_name].quantity += order.sku_quantity || 0
-    grouped[monthKey].productStats[order.product_name].revenue += (order.sku_quantity || 0) * (order.sku_unit_original_price || 0)
+    grouped[monthKey].productStats[order.product_name].quantity += order.quantity || 0
+    grouped[monthKey].productStats[order.product_name].revenue += (order.quantity || 0) * (order.sku_unit_original_price || 0)
   })
 
   // 유니크 제품 수 계산
@@ -187,12 +187,12 @@ export async function GET(request: NextRequest) {
       .not("delivered_time", "is", null) // 배송 완료된 주문만
       .order("delivered_time", { ascending: true })
 
-    // 날짜 필터
+    // 날짜 필터 - MM/DD/YYYY 형식 사용
     if (startDate) {
       query = query.gte("delivered_time", startDate)
     } else {
-      // 기본적으로 2025년 7월부터
-      query = query.gte("delivered_time", "2025-07-01")
+      // 기본적으로 2025년 7월부터 (MM/DD/YYYY 형식)
+      query = query.gte("delivered_time", "07/01/2025")
     }
 
     if (endDate) {
@@ -234,8 +234,8 @@ export async function GET(request: NextRequest) {
     }
 
     // 전체 통계 - use filtered orders
-    const totalQuantity = filteredOrders.reduce((sum, order) => sum + (order.sku_quantity || 0), 0)
-    const totalRevenue = filteredOrders.reduce((sum, order) => sum + ((order.sku_quantity || 0) * (order.sku_unit_original_price || 0)), 0)
+    const totalQuantity = filteredOrders.reduce((sum, order) => sum + (order.quantity || 0), 0)
+    const totalRevenue = filteredOrders.reduce((sum, order) => sum + ((order.quantity || 0) * (order.sku_unit_original_price || 0)), 0)
     const uniqueProducts = new Set(filteredOrders.map(o => o.product_name)).size
     const totalOrders = new Set(filteredOrders.map(o => o.order_id)).size
 

@@ -256,7 +256,7 @@ export default function ProductSalesDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">제품 판매 현황</h1>
-            <p className="text-muted-foreground">실제 판매된 제품 데이터 분석 (SKU Unit Original Price > 0)</p>
+            <p className="text-muted-foreground">실제 판매된 제품 데이터 분석 (가격이 0원이 아닌 실제 판매 데이터만 집계)</p>
           </div>
           <Button onClick={handleDownloadExcel} disabled={downloadLoading}>
             {downloadLoading ? "다운로드 중..." : "Excel 다운로드"}
