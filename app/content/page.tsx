@@ -46,30 +46,44 @@ export default function ContentDashboard() {
   const fetchSummaryData = async () => {
     setLoading(true)
     try {
-      // 현재 월 데이터 가져오기 (테이블 표시용)
-      const response = await fetch(`/api/contents?groupBy=daily`)
-      const data = await response.json()
+      // content-all-matrix API에서 전체 데이터 가져오기
+      const matrixResponse = await fetch(`/api/content-all-matrix?t=${Date.now()}`)
+      const matrixData = await matrixResponse.json()
       
-      // 전체 기간 통계 가져오기 (요약 카드용)
-      const totalResponse = await fetch(`/api/contents?groupBy=daily&startDate=2025-06-01`)
-      const totalData = await totalResponse.json()
+      // 전체 통계 계산
+      let totalCount = 0
+      let totalShoppableImpressions = 0
+      let totalLikeCount = 0
+      const uniqueCreatorSet = new Set()
+      
+      // 월별 데이터에서 집계
+      if (matrixData.monthly && matrixData.monthly.monthlyStats) {
+        Object.values(matrixData.monthly.monthlyStats).forEach((stats: any) => {
+          totalCount += stats.totalCount || 0
+          totalShoppableImpressions += stats.totalShoppableImpressions || 0
+          totalLikeCount += stats.totalLikeCount || 0
+        })
+      }
+      
+      // 크리에이터 수는 기존 API 사용 (unique 계산 필요)
+      const creatorResponse = await fetch(`/api/contents?groupBy=creator&startDate=2025-06-01`)
+      const creatorData = await creatorResponse.json()
       
       setSummaryData({
-        ...data,
-        totalContents: totalData.totalContents,
-        totalCount: totalData.totalCount,
-        uniqueCreators: totalData.uniqueCreators,
-        totalShoppableImpressions: totalData.totalShoppableImpressions,
-        totalLikeCount: totalData.totalLikeCount,
+        data: [],
+        totalContents: totalCount,
+        totalCount: totalCount,
+        uniqueCreators: creatorData.uniqueCreators || 0,
+        totalShoppableImpressions: totalShoppableImpressions,
+        totalLikeCount: totalLikeCount,
       })
 
       console.log("📊 Content data loaded:", {
-        totalContents: totalData.totalContents,
-        totalCount: totalData.totalCount,
-        uniqueCreators: totalData.uniqueCreators,
-        totalShoppableImpressions: totalData.totalShoppableImpressions,
-        totalLikeCount: totalData.totalLikeCount,
-        dataPoints: data.data?.length,
+        totalContents: totalCount,
+        totalCount: totalCount,
+        uniqueCreators: creatorData.uniqueCreators || 0,
+        totalShoppableImpressions: totalShoppableImpressions,
+        totalLikeCount: totalLikeCount,
       })
       
       // GMV 데이터 가져오기

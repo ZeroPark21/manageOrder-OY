@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase"
 
 export const runtime = "nodejs"
+export const dynamic = 'force-dynamic'
 
 interface ContentData {
   publish_date: string
@@ -17,24 +18,43 @@ interface ContentData {
 export async function GET() {
   try {
     const supabase = createServerClient()
-    const startDate = "2025-06-01"
-    const endDate = new Date().toISOString().split("T")[0]
-
-    // 콘텐츠 데이터 조회
-    const { data, error } = await supabase
-      .from("contents")
-      .select(`
-        publish_date,
-        gmv,
-        affiliate_items_sold,
-        affiliate_orders,
-        shoppable_impressions,
-        comment_count,
-        like_count
-      `)
-      .gte("publish_date", startDate)
-      .lte("publish_date", endDate)
-      .order("publish_date", { ascending: true })
+    // Supabase는 기본적으로 1000개 제한이 있으므로, 범위를 나누어 조회
+    const allContents = []
+    let hasMore = true
+    let offset = 0
+    const limit = 1000
+    
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
+        .from("contents")
+        .select(`
+          publish_date,
+          gmv,
+          affiliate_items_sold,
+          affiliate_orders,
+          shoppable_impressions,
+          comment_count,
+          like_count
+        `)
+        .order("publish_date", { ascending: true })
+        .range(offset, offset + limit - 1)
+      
+      if (batchError) {
+        console.error(`배치 조회 에러 (offset: ${offset}):`, batchError)
+        break
+      }
+      
+      if (batch && batch.length > 0) {
+        allContents.push(...batch)
+        offset += limit
+        hasMore = batch.length === limit
+      } else {
+        hasMore = false
+      }
+    }
+    
+    const data = allContents
+    const error = null
 
     if (error) {
       console.error("콘텐츠 조회 에러:", error)
@@ -42,11 +62,28 @@ export async function GET() {
     }
 
     const contents = data || []
+    
+    console.log(`Total contents loaded: ${contents.length}`)
+    
+    // 필터링 적용 - 2025년 6월 이후 데이터만 사용
+    const filteredContents = contents.filter(content => {
+      const date = new Date(content.publish_date)
+      return date >= new Date(2025, 5, 1) // 2025년 6월 1일 이후
+    })
+    
+    console.log(`Filtered contents (from June 2025): ${filteredContents.length}`)
+    
+    // 주별 데이터 확인을 위한 로그
+    const weeklyCheck = filteredContents.filter(c => {
+      const d = new Date(c.publish_date)
+      return d >= new Date(2025, 6, 21) // 7월 21일 이후
+    })
+    console.log(`Contents after July 21: ${weeklyCheck.length}`)
 
     // 일별 그룹핑
     const dailyMap: { [key: string]: ContentData } = {}
-    contents.forEach((content) => {
-      const date = content.publish_date.split("T")[0]
+    filteredContents.forEach((content) => {
+      const date = new Date(content.publish_date).toISOString().split("T")[0]
       if (!dailyMap[date]) {
         dailyMap[date] = {
           publish_date: date,
@@ -70,7 +107,7 @@ export async function GET() {
 
     // 주별 그룹핑
     const weeklyMap: { [key: string]: ContentData } = {}
-    contents.forEach((content) => {
+    filteredContents.forEach((content) => {
       const date = new Date(content.publish_date)
       const startOfWeek = new Date(date)
       startOfWeek.setDate(date.getDate() - date.getDay())
@@ -99,7 +136,7 @@ export async function GET() {
 
     // 월별 그룹핑
     const monthlyMap: { [key: string]: ContentData } = {}
-    contents.forEach((content) => {
+    filteredContents.forEach((content) => {
       const date = new Date(content.publish_date)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
       
@@ -128,6 +165,7 @@ export async function GET() {
     const dates = Object.keys(dailyMap).sort()
     const weeks = Object.keys(weeklyMap).sort()
     const months = Object.keys(monthlyMap).sort()
+    
 
     // 매트릭스 형태로 변환
     const dailyMatrix = {
@@ -149,6 +187,12 @@ export async function GET() {
       daily: dailyMatrix,
       weekly: weeklyMatrix,
       monthly: monthlyMatrix,
+    }, {
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     })
   } catch (error: any) {
     console.error("Content all matrix API error:", error)

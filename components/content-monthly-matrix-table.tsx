@@ -31,38 +31,28 @@ export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: 
   const fetchMatrixData = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/contents?groupBy=monthly")
+      const response = await fetch(`/api/content-all-matrix?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
       const data = await response.json()
 
-      if (data.data && data.data.length > 0) {
-        // 월별 총계 데이터 구성
-        const monthlyStats: { [month: string]: { 
-          totalCount: number
-          totalGmv: number
-          totalAffiliateItemsSold: number
-          totalAffiliateOrders: number
-          totalShoppableImpressions: number
-          totalCommentCount: number
-          totalLikeCount: number
-        } } = {}
+      console.log("Monthly matrix data received:", {
+        totalMonths: data.monthly?.months?.length,
+        months: data.monthly?.months,
+        totalContents: data.monthly?.months?.reduce(
+          (sum, month) => sum + (data.monthly?.monthlyStats?.[month]?.totalCount || 0), 
+          0
+        )
+      })
 
-        data.data.forEach((item: any) => {
-          monthlyStats[item.month] = {
-            totalCount: item.totalCount || 0,
-            totalGmv: item.totalGmv || 0,
-            totalAffiliateItemsSold: item.totalAffiliateItemsSold || 0,
-            totalAffiliateOrders: item.totalAffiliateOrders || 0,
-            totalShoppableImpressions: item.totalShoppableImpressions || 0,
-            totalCommentCount: item.totalCommentCount || 0,
-            totalLikeCount: item.totalLikeCount || 0
-          }
-        })
-
-        const months = Object.keys(monthlyStats).sort()
-
+      if (data.monthly && data.monthly.months && data.monthly.months.length > 0) {
         setMatrixData({
-          months,
-          monthlyStats
+          months: data.monthly.months,
+          monthlyStats: data.monthly.monthlyStats
         })
       } else {
         // 데이터가 없을 때도 빈 데이터로 설정

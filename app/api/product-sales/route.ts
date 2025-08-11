@@ -7,13 +7,27 @@ export const dynamic = 'force-dynamic'
 interface Order {
   id: number
   order_id: string
-  order_time: string
+  delivered_time: string | null
   product_name: string
   seller_sku: string
   sku_id: string
   sku_unit_original_price: number
   sku_quantity: number
-  recipient_address_2: string
+  country: string
+}
+
+function parseDeliveredTime(dateStr: string | null): Date | null {
+  if (!dateStr) return null
+  
+  // Parse MM/DD/YYYY format
+  const parts = dateStr.split(' ')[0].split('/')
+  if (parts.length !== 3) return null
+  
+  const month = parseInt(parts[0])
+  const day = parseInt(parts[1])
+  const year = parseInt(parts[2])
+  
+  return new Date(year, month - 1, day)
 }
 
 function groupByDate(orders: Order[]) {
@@ -27,9 +41,8 @@ function groupByDate(orders: Order[]) {
   } } = {}
 
   orders.forEach((order) => {
-    if (!order.order_time) return
-
-    const date = new Date(order.order_time)
+    const date = parseDeliveredTime(order.delivered_time)
+    if (!date) return
     const dateKey = date.toISOString().split("T")[0] // YYYY-MM-DD
 
     if (!grouped[dateKey]) {
@@ -74,9 +87,8 @@ function groupByWeek(orders: Order[]) {
   } } = {}
 
   orders.forEach((order) => {
-    if (!order.order_time) return
-
-    const date = new Date(order.order_time)
+    const date = parseDeliveredTime(order.delivered_time)
+    if (!date) return
     const startOfWeek = new Date(date)
     startOfWeek.setDate(date.getDate() - date.getDay()) // 일요일로 설정
     const weekKey = startOfWeek.toISOString().split("T")[0]
@@ -123,9 +135,8 @@ function groupByMonth(orders: Order[]) {
   } } = {}
 
   orders.forEach((order) => {
-    if (!order.order_time) return
-
-    const date = new Date(order.order_time)
+    const date = parseDeliveredTime(order.delivered_time)
+    if (!date) return
     const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}` // YYYY-MM
 
     if (!grouped[monthKey]) {
@@ -173,18 +184,19 @@ export async function GET(request: NextRequest) {
       .from("orders")
       .select("*")
       .gt("sku_unit_original_price", 0) // 0보다 큰 경우만 (실제 판매)
-      .order("order_time", { ascending: true })
+      .not("delivered_time", "is", null) // 배송 완료된 주문만
+      .order("delivered_time", { ascending: true })
 
     // 날짜 필터
     if (startDate) {
-      query = query.gte("order_time", startDate)
+      query = query.gte("delivered_time", startDate)
     } else {
       // 기본적으로 2025년 7월부터
-      query = query.gte("order_time", "2025-07-01")
+      query = query.gte("delivered_time", "2025-07-01")
     }
 
     if (endDate) {
-      query = query.lte("order_time", endDate)
+      query = query.lte("delivered_time", endDate)
     }
 
     const { data: orders, error } = await query
@@ -194,7 +206,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    if (!orders || !Array.isArray(orders) || orders.length === 0) {
+    if (!orders || !Array.isArray(orders)) {
       return NextResponse.json({
         data: [],
         totalQuantity: 0,
@@ -204,13 +216,30 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // 전체 통계
-    const totalQuantity = orders.reduce((sum, order) => sum + (order.sku_quantity || 0), 0)
-    const totalRevenue = orders.reduce((sum, order) => sum + ((order.sku_quantity || 0) * (order.sku_unit_original_price || 0)), 0)
-    const uniqueProducts = new Set(orders.map(o => o.product_name)).size
-    const totalOrders = new Set(orders.map(o => o.order_id)).size
+    // Filter orders to only include those delivered after July 1, 2025
+    const filteredOrders = orders.filter(order => {
+      const date = parseDeliveredTime(order.delivered_time)
+      if (!date) return false
+      return date >= new Date(2025, 6, 1) // July 1, 2025
+    })
 
-    // 그룹화
+    if (filteredOrders.length === 0) {
+      return NextResponse.json({
+        data: [],
+        totalQuantity: 0,
+        totalRevenue: 0,
+        uniqueProducts: 0,
+        totalOrders: 0,
+      })
+    }
+
+    // 전체 통계 - use filtered orders
+    const totalQuantity = filteredOrders.reduce((sum, order) => sum + (order.sku_quantity || 0), 0)
+    const totalRevenue = filteredOrders.reduce((sum, order) => sum + ((order.sku_quantity || 0) * (order.sku_unit_original_price || 0)), 0)
+    const uniqueProducts = new Set(filteredOrders.map(o => o.product_name)).size
+    const totalOrders = new Set(filteredOrders.map(o => o.order_id)).size
+
+    // 그룹화 - use filtered orders
     let groupedData
     if (groupBy === "all") {
       return NextResponse.json({
@@ -220,11 +249,11 @@ export async function GET(request: NextRequest) {
         totalOrders,
       })
     } else if (groupBy === "weekly") {
-      groupedData = groupByWeek(orders)
+      groupedData = groupByWeek(filteredOrders)
     } else if (groupBy === "monthly") {
-      groupedData = groupByMonth(orders)
+      groupedData = groupByMonth(filteredOrders)
     } else {
-      groupedData = groupByDate(orders)
+      groupedData = groupByDate(filteredOrders)
     }
 
     return NextResponse.json({

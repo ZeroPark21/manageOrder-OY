@@ -7,12 +7,26 @@ export const dynamic = 'force-dynamic'
 interface Order {
   id: number
   order_id: string
-  order_time: string
+  delivered_time: string | null
   product_name: string
   seller_sku: string
   sku_id: string
   sku_unit_original_price: number
   sku_quantity: number
+}
+
+function parseDeliveredTime(dateStr: string | null): Date | null {
+  if (!dateStr) return null
+  
+  // Parse MM/DD/YYYY format
+  const parts = dateStr.split(' ')[0].split('/')
+  if (parts.length !== 3) return null
+  
+  const month = parseInt(parts[0])
+  const day = parseInt(parts[1])
+  const year = parseInt(parts[2])
+  
+  return new Date(year, month - 1, day)
 }
 
 export async function GET(request: NextRequest) {
@@ -27,15 +41,35 @@ export async function GET(request: NextRequest) {
       .from("orders")
       .select("*")
       .gt("sku_unit_original_price", 0)
-      .gte("order_time", "2025-07-01")
-      .order("order_time", { ascending: true })
+      .gte("delivered_time", "2025-07-01")
+      .not("delivered_time", "is", null)
+      .order("delivered_time", { ascending: true })
 
     if (error) {
       console.error("Database query error:", error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    if (!orders || !Array.isArray(orders) || orders.length === 0) {
+    if (!orders || !Array.isArray(orders)) {
+      return NextResponse.json({
+        dates: [],
+        weeks: [],
+        months: [],
+        products: [],
+        dailyStats: {},
+        weeklyStats: {},
+        monthlyStats: {},
+      })
+    }
+
+    // Filter orders to only include those delivered after July 1, 2025
+    const filteredOrders = orders.filter(order => {
+      const date = parseDeliveredTime(order.delivered_time)
+      if (!date) return false
+      return date >= new Date(2025, 6, 1) // July 1, 2025
+    })
+
+    if (filteredOrders.length === 0) {
       return NextResponse.json({
         dates: [],
         weeks: [],
@@ -49,7 +83,7 @@ export async function GET(request: NextRequest) {
 
     // 제품별 평균 가격 계산
     const productPriceMap: { [key: string]: { totalRevenue: number; totalQuantity: number; seller_sku?: string; sku_id?: string } } = {}
-    orders.forEach(order => {
+    filteredOrders.forEach(order => {
       if (!productPriceMap[order.product_name]) {
         productPriceMap[order.product_name] = { 
           totalRevenue: 0, 
@@ -78,8 +112,10 @@ export async function GET(request: NextRequest) {
       const dailyStats: { [key: string]: any } = {}
       const dates = new Set<string>()
 
-      orders.forEach(order => {
-        const date = new Date(order.order_time).toISOString().split("T")[0]
+      filteredOrders.forEach(order => {
+        const parsedDate = parseDeliveredTime(order.delivered_time)
+        if (!parsedDate) return
+        const date = parsedDate.toISOString().split("T")[0]
         dates.add(date)
 
         if (!dailyStats[date]) {
@@ -110,8 +146,9 @@ export async function GET(request: NextRequest) {
       const weeklyStats: { [key: string]: any } = {}
       const weeks = new Set<string>()
 
-      orders.forEach(order => {
-        const date = new Date(order.order_time)
+      filteredOrders.forEach(order => {
+        const date = parseDeliveredTime(order.delivered_time)
+        if (!date) return
         const startOfWeek = new Date(date)
         startOfWeek.setDate(date.getDate() - date.getDay())
         const weekKey = startOfWeek.toISOString().split("T")[0]
@@ -151,8 +188,9 @@ export async function GET(request: NextRequest) {
       const monthlyStats: { [key: string]: any } = {}
       const months = new Set<string>()
 
-      orders.forEach(order => {
-        const date = new Date(order.order_time)
+      filteredOrders.forEach(order => {
+        const date = parseDeliveredTime(order.delivered_time)
+        if (!date) return
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
         months.add(monthKey)
 

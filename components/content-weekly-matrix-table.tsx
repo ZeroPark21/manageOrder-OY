@@ -31,38 +31,28 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
   const fetchMatrixData = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/contents?groupBy=weekly")
+      const response = await fetch(`/api/content-all-matrix?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
       const data = await response.json()
 
-      if (data.data && data.data.length > 0) {
-        // 주별 총계 데이터 구성
-        const weeklyStats: { [week: string]: { 
-          totalCount: number
-          totalGmv: number
-          totalAffiliateItemsSold: number
-          totalAffiliateOrders: number
-          totalShoppableImpressions: number
-          totalCommentCount: number
-          totalLikeCount: number
-        } } = {}
+      console.log("Weekly matrix data received:", {
+        totalWeeks: data.weekly?.weeks?.length,
+        weeks: data.weekly?.weeks,
+        totalContents: data.weekly?.weeks?.reduce(
+          (sum, week) => sum + (data.weekly?.weeklyStats?.[week]?.totalCount || 0), 
+          0
+        )
+      })
 
-        data.data.forEach((item: any) => {
-          weeklyStats[item.week] = {
-            totalCount: item.totalCount || 0,
-            totalGmv: item.totalGmv || 0,
-            totalAffiliateItemsSold: item.totalAffiliateItemsSold || 0,
-            totalAffiliateOrders: item.totalAffiliateOrders || 0,
-            totalShoppableImpressions: item.totalShoppableImpressions || 0,
-            totalCommentCount: item.totalCommentCount || 0,
-            totalLikeCount: item.totalLikeCount || 0
-          }
-        })
-
-        const weeks = Object.keys(weeklyStats).sort()
-
+      if (data.weekly && data.weekly.weeks && data.weekly.weeks.length > 0) {
         setMatrixData({
-          weeks,
-          weeklyStats
+          weeks: data.weekly.weeks,
+          weeklyStats: data.weekly.weeklyStats
         })
       } else {
         // 데이터가 없을 때도 빈 데이터로 설정

@@ -195,20 +195,13 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerClient()
     
-    // 기본값: daily의 경우 현재 월, 다른 경우 6월 1일부터
-    const now = new Date()
+    // 기본값: 2025년 6월 1일부터 2025년 12월 31일까지
     let defaultStartDate = "2025-06-01"
-    let defaultEndDate = now.toISOString().split('T')[0]
+    let defaultEndDate = "2025-12-31"
     
     if (groupBy === "daily" && !startDate) {
-      const currentMonth = now.getMonth() + 1
-      const currentYear = now.getFullYear()
-      // 2025년 6월 이전이면 6월로 설정
-      if (currentYear === 2025 && currentMonth < 6) {
-        defaultStartDate = "2025-06-01"
-      } else {
-        defaultStartDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
-      }
+      // daily의 경우에도 전체 기간 표시
+      defaultStartDate = "2025-06-01"
     }
 
     // contents 테이블에서 데이터 조회
@@ -237,12 +230,86 @@ export async function GET(request: NextRequest) {
       `)
       .gte("publish_date", startDate || defaultStartDate)
       .order("publish_date", { ascending: true })
+      .limit(10000) // 충분히 큰 제한 설정
       
     if (endDate || defaultEndDate) {
       query = query.lte("publish_date", endDate || defaultEndDate)
     }
 
-    const { data, error: dbError } = await query
+    // 먼저 1000개 가져오기
+    let { data: firstBatch, error: dbError } = await query
+
+    if (!dbError && firstBatch && firstBatch.length >= 1000) {
+      // 1000개가 넘으면 추가로 가져오기
+      const { data: secondBatch, error: secondError } = await supabase
+        .from("contents")
+        .select(`
+          id,
+          content_title,
+          video_link,
+          publish_date,
+          creator_name,
+          gmv,
+          affiliate_items_sold,
+          affiliate_gmv,
+          shoppable_avg_order_value,
+          est_commission,
+          est_flat_fee,
+          affiliate_orders,
+          shoppable_impressions,
+          affiliate_ctr,
+          shoppable_gpm,
+          affiliate_items_refunded,
+          affiliate_refunded_gmv,
+          comment_count,
+          like_count
+        `)
+        .gte("publish_date", startDate || defaultStartDate)
+        .lte("publish_date", endDate || defaultEndDate)
+        .order("publish_date", { ascending: true })
+        .range(1000, 1999)
+      
+      if (!secondError && secondBatch) {
+        firstBatch = [...firstBatch, ...secondBatch]
+        
+        // 2000개가 넘으면 추가로 더 가져오기
+        if (secondBatch.length >= 1000) {
+          const { data: thirdBatch, error: thirdError } = await supabase
+            .from("contents")
+            .select(`
+              id,
+              content_title,
+              video_link,
+              publish_date,
+              creator_name,
+              gmv,
+              affiliate_items_sold,
+              affiliate_gmv,
+              shoppable_avg_order_value,
+              est_commission,
+              est_flat_fee,
+              affiliate_orders,
+              shoppable_impressions,
+              affiliate_ctr,
+              shoppable_gpm,
+              affiliate_items_refunded,
+              affiliate_refunded_gmv,
+              comment_count,
+              like_count
+            `)
+            .gte("publish_date", startDate || defaultStartDate)
+            .lte("publish_date", endDate || defaultEndDate)
+            .order("publish_date", { ascending: true })
+            .range(2000, 2999)
+          
+          if (!thirdError && thirdBatch) {
+            firstBatch = [...firstBatch, ...thirdBatch]
+          }
+        }
+      }
+    }
+    
+    const data = firstBatch
 
     if (dbError) {
       // 테이블이 없으면 빈 데이터로 응답
