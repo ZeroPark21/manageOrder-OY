@@ -304,6 +304,41 @@ export async function GET(request: NextRequest) {
           
           if (!thirdError && thirdBatch) {
             firstBatch = [...firstBatch, ...thirdBatch]
+            
+            // 3000개가 넘으면 추가로 더 가져오기
+            if (thirdBatch.length >= 1000) {
+              const { data: fourthBatch, error: fourthError } = await supabase
+                .from("contents")
+                .select(`
+                  id,
+                  content_title,
+                  video_link,
+                  publish_date,
+                  creator_name,
+                  gmv,
+                  affiliate_items_sold,
+                  affiliate_gmv,
+                  shoppable_avg_order_value,
+                  est_commission,
+                  est_flat_fee,
+                  affiliate_orders,
+                  shoppable_impressions,
+                  affiliate_ctr,
+                  shoppable_gpm,
+                  affiliate_items_refunded,
+                  affiliate_refunded_gmv,
+                  comment_count,
+                  like_count
+                `)
+                .gte("publish_date", startDate || defaultStartDate)
+                .lte("publish_date", endDate || defaultEndDate)
+                .order("publish_date", { ascending: true })
+                .range(3000, 3999)
+              
+              if (!fourthError && fourthBatch) {
+                firstBatch = [...firstBatch, ...fourthBatch]
+              }
+            }
           }
         }
       }
