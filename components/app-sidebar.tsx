@@ -56,13 +56,8 @@ const menuItems = [
     icon: FileSearch,
     description: "콘텐츠 성과 분석",
   },
-  {
-    title: "제품 판매 현황",
-    url: "/product-sales",
-    icon: ShoppingCart,
-    description: "제품별 판매 데이터 분석",
-  },
 ]
+
 
 // GMV MAX 분석 하위 메뉴
 const gmvMaxItems = [
@@ -105,6 +100,10 @@ const utilityItems = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
+  
+  // 개발 환경 체크 (localhost만)
+  const isDevelopment = typeof window !== 'undefined' && 
+    window.location.hostname === 'localhost'
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -135,6 +134,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {isDevelopment && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === "/product-sales"}>
+                    <Link href="/product-sales">
+                      <ShoppingCart className="size-4" />
+                      <span>제품 판매 현황 (개발)</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
