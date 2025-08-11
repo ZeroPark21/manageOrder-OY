@@ -36,6 +36,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 
+// 개발 환경 체크
+const isDev = process.env.NODE_ENV === 'development'
+
 // 메뉴 데이터
 const menuItems = [
   {
@@ -56,12 +59,12 @@ const menuItems = [
     icon: FileSearch,
     description: "콘텐츠 성과 분석",
   },
-  {
+  ...(isDev ? [{
     title: "Affiliate 영상 판매 발생",
     url: "/product-sales",
     icon: ShoppingCart,
     description: "Affiliate 영상을 통한 제품 판매 데이터 분석",
-  },
+  }] : []),
 ]
 
 
@@ -140,40 +143,42 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* GMV MAX 분석 메뉴 */}
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {gmvMaxItems.map((item) => (
-                <Collapsible key={item.title} asChild defaultOpen={pathname.startsWith(item.url)}>
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.title}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.subItems.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
-                              <Link href={subItem.url}>
-                                <subItem.icon />
-                                <span>{subItem.title}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {/* GMV MAX 분석 메뉴 - 개발 환경에서만 표시 */}
+        {isDev && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {gmvMaxItems.map((item) => (
+                  <Collapsible key={item.title} asChild defaultOpen={pathname.startsWith(item.url)}>
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton tooltip={item.title}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.subItems.map((subItem) => (
+                            <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
+                                <Link href={subItem.url}>
+                                  <subItem.icon />
+                                  <span>{subItem.title}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* 유틸리티 메뉴 */}
         <SidebarGroup>
