@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Calendar,
   ExternalLink,
+  ChevronRight,
 } from "lucide-react"
 
 // 크리에이터 분석용 인터페이스
@@ -542,51 +543,81 @@ export default function ContentAnalysisPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4">
-            {creatorStats.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">
-                {searchTerm ? "검색 결과가 없습니다." : "데이터를 불러오는 중..."}
-              </p>
-            ) : (
-              creatorStats.map((creator, index) => (
-                <div
-                  key={creator.username}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => setSelectedCreator(creator.username)}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Badge variant="outline">#{index + 1}</Badge>
-                      <h3 className="font-semibold text-lg">@{creator.username}</h3>
-                      <Badge variant="secondary">{creator.videoCount}개 영상</Badge>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">총 GMV</p>
-                        <p className="font-semibold text-green-600">{formatCurrency(creator.totalGmv)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">총 수수료</p>
-                        <p className="font-semibold text-blue-600">{formatCurrency(creator.totalCommission)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">총 주문</p>
-                        <p className="font-semibold">{formatNumber(creator.totalOrders)}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">평균 CTR</p>
-                        <p className="font-semibold">{creator.avgCtr.toFixed(2)}%</p>
-                      </div>
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    영상 보기
-                  </Button>
-                </div>
-              ))
-            )}
-          </div>
+        <CardContent className="p-0">
+          {creatorStats.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">
+              {searchTerm ? "검색 결과가 없습니다." : "데이터를 불러오는 중..."}
+            </p>
+          ) : (
+            <div className="relative overflow-x-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">순위</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">크리에이터</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">영상 수</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">총 GMV</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">총 수수료</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">총 주문</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">총 노출</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">평균 CTR</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">총 좋아요</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">총 댓글</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">상세</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {creatorStats.map((creator, index) => (
+                    <tr
+                      key={creator.username}
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
+                      onClick={() => setSelectedCreator(creator.username)}
+                    >
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white font-bold text-sm">
+                          {index + 1}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="text-sm font-medium text-gray-900">@{creator.username}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <Badge variant="secondary">{creator.videoCount}</Badge>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        <div className="text-sm font-semibold text-green-600">{formatCurrency(creator.totalGmv)}</div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        <div className="text-sm font-semibold text-blue-600">{formatCurrency(creator.totalCommission)}</div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {formatNumber(creator.totalOrders)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {formatNumber(creator.totalImpressions)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        <Badge variant="outline">{creator.avgCtr.toFixed(2)}%</Badge>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {formatNumber(creator.totalLikes)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {formatNumber(creator.totalComments)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
