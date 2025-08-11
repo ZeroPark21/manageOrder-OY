@@ -93,7 +93,7 @@ export function ProductSalesWeeklyMatrixTable() {
     <div>
       <div className="mb-4 flex items-center gap-2">
         <CalendarDays className="h-4 w-4" />
-        <h3 className="text-lg font-semibold">주별 제품 판매현황</h3>
+        <h3 className="text-lg font-semibold">주별 Affiliate 영상 판매 발생</h3>
       </div>
       <div className="rounded-md border">
         <Table>

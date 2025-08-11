@@ -57,10 +57,10 @@ const menuItems = [
     description: "콘텐츠 성과 분석",
   },
   {
-    title: "제품 판매 현황",
+    title: "Affiliate 영상 판매 발생",
     url: "/product-sales",
     icon: ShoppingCart,
-    description: "제품별 판매 데이터 분석",
+    description: "Affiliate 영상을 통한 제품 판매 데이터 분석",
   },
 ]
 

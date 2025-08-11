@@ -102,7 +102,7 @@ export function ProductSalesDailyMatrixTable() {
     <div>
       <div className="mb-4 flex items-center gap-2">
         <Calendar className="h-4 w-4" />
-        <h3 className="text-lg font-semibold">일별 제품 판매현황 - {currentMonth}</h3>
+        <h3 className="text-lg font-semibold">일별 Affiliate 영상 판매 발생 - {currentMonth}</h3>
       </div>
       <div className="rounded-md border overflow-hidden">
         <div className="overflow-x-auto">

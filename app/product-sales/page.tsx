@@ -133,7 +133,7 @@ export default function ProductSalesDashboard() {
         ])
 
         sheets.push({
-          name: "일별 제품 판매현황",
+          name: "일별 Affiliate 영상 판매",
           headers: dailyHeaders,
           rows: dailyRows,
         })
@@ -170,7 +170,7 @@ export default function ProductSalesDashboard() {
         ])
 
         sheets.push({
-          name: "주별 제품 판매현황",
+          name: "주별 Affiliate 영상 판매",
           headers: weeklyHeaders,
           rows: weeklyRows,
         })
@@ -211,7 +211,7 @@ export default function ProductSalesDashboard() {
         ])
 
         sheets.push({
-          name: "월별 제품 판매현황",
+          name: "월별 Affiliate 영상 판매",
           headers: monthlyHeaders,
           rows: monthlyRows,
         })
@@ -220,7 +220,7 @@ export default function ProductSalesDashboard() {
       console.log("📄 Preparing to download Excel with", sheets.length, "sheets")
 
       const now = new Date()
-      const fileName = `제품_판매현황_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.xlsx`
+      const fileName = `Affiliate영상_판매발생_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.xlsx`
 
       await downloadMultiSheetExcel(sheets, fileName)
     } catch (error) {
@@ -244,7 +244,7 @@ export default function ProductSalesDashboard() {
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
-              <BreadcrumbPage>제품 판매 현황</BreadcrumbPage>
+              <BreadcrumbPage>Affiliate 영상 판매 발생</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
@@ -255,8 +255,8 @@ export default function ProductSalesDashboard() {
         {/* 헤더 섹션 */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">제품 판매 현황</h1>
-            <p className="text-muted-foreground">실제 판매된 제품 데이터 분석 (가격이 0원이 아닌 실제 판매 데이터만 집계)</p>
+            <h1 className="text-2xl font-bold">Affiliate 영상 판매 발생</h1>
+            <p className="text-muted-foreground">Affiliate 영상을 통한 실제 제품 판매 데이터 분석 (가격이 0원이 아닌 실제 판매 데이터만 집계)</p>
           </div>
           <Button onClick={handleDownloadExcel} disabled={downloadLoading}>
             {downloadLoading ? "다운로드 중..." : "Excel 다운로드"}
