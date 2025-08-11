@@ -28,7 +28,8 @@ import {
   ChevronRight,
   Users,
   PieChart,
-  ShoppingCart 
+  ShoppingCart,
+  type LucideIcon
 } from "lucide-react"
 import { 
   Collapsible,
@@ -36,11 +37,32 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 
-// 개발 환경 체크
-const isDev = process.env.NODE_ENV === 'development'
+// 메뉴 아이템 타입 정의
+interface MenuItem {
+  title: string
+  url: string
+  icon: LucideIcon
+  description: string
+  devOnly?: boolean
+}
+
+interface SubMenuItem {
+  title: string
+  url: string
+  icon: LucideIcon
+  description: string
+}
+
+interface GmvMenuItem {
+  title: string
+  url: string
+  icon: LucideIcon
+  description: string
+  subItems: SubMenuItem[]
+}
 
 // 메뉴 데이터
-const menuItems = [
+const allMenuItems: MenuItem[] = [
   {
     title: "샘플 발송 현황",
     url: "/",
@@ -59,17 +81,18 @@ const menuItems = [
     icon: FileSearch,
     description: "콘텐츠 성과 분석",
   },
-  ...(isDev ? [{
+  {
     title: "Affiliate 영상 판매 발생",
     url: "/product-sales",
     icon: ShoppingCart,
     description: "Affiliate 영상을 통한 제품 판매 데이터 분석",
-  }] : []),
+    devOnly: true,
+  },
 ]
 
 
 // GMV MAX 분석 하위 메뉴
-const gmvMaxItems = [
+const gmvMaxItems: GmvMenuItem[] = [
   {
     title: "GMV MAX 분석",
     url: "/gmv-max",
@@ -92,7 +115,7 @@ const gmvMaxItems = [
   }
 ]
 
-const utilityItems = [
+const utilityItems: MenuItem[] = [
   {
     title: "제품 데이터 업로드",
     url: "/upload",
@@ -109,6 +132,15 @@ const utilityItems = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
+  
+  // 개발 환경 체크 (클라이언트 사이드에서 사용 가능한 환경 변수)
+  const isDev = process.env.NEXT_PUBLIC_IS_DEV === 'true'
+  
+  // 개발 환경에 따라 메뉴 필터링 - 안전한 필터링
+  const menuItems = React.useMemo(() => {
+    if (!Array.isArray(allMenuItems)) return []
+    return allMenuItems.filter(item => !item?.devOnly || isDev)
+  }, [isDev])
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -153,18 +185,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton tooltip={item.title}>
-                          <item.icon />
+                          <item.icon className="size-4" />
                           <span>{item.title}</span>
-                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <SidebarMenuSub>
-                          {item.subItems.map((subItem) => (
+                          {item.subItems && item.subItems.map((subItem) => (
                             <SidebarMenuSubItem key={subItem.title}>
                               <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
                                 <Link href={subItem.url}>
-                                  <subItem.icon />
+                                  <subItem.icon className="size-4" />
                                   <span>{subItem.title}</span>
                                 </Link>
                               </SidebarMenuSubButton>
