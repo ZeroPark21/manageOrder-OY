@@ -56,6 +56,12 @@ const menuItems = [
     icon: FileSearch,
     description: "콘텐츠 성과 분석",
   },
+  {
+    title: "제품 판매 현황",
+    url: "/product-sales",
+    icon: ShoppingCart,
+    description: "제품별 판매 데이터 분석",
+  },
 ]
 
 
@@ -100,10 +106,6 @@ const utilityItems = [
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
-  
-  // 개발 환경 체크 (localhost만)
-  const isDevelopment = typeof window !== 'undefined' && 
-    window.location.hostname === 'localhost'
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -134,16 +136,41 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {isDevelopment && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/product-sales"}>
-                    <Link href="/product-sales">
-                      <ShoppingCart className="size-4" />
-                      <span>제품 판매 현황 (개발)</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* GMV MAX 분석 메뉴 */}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {gmvMaxItems.map((item) => (
+                <Collapsible key={item.title} asChild defaultOpen={pathname.startsWith(item.url)}>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip={item.title}>
+                        <item.icon />
+                        <span>{item.title}</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {item.subItems.map((subItem) => (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton asChild isActive={pathname === subItem.url}>
+                              <Link href={subItem.url}>
+                                <subItem.icon />
+                                <span>{subItem.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
