@@ -145,32 +145,52 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-4 py-2">
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-blue-600 text-white">
-            <Package className="size-4" />
-          </div>
-          <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-semibold">TTS 대시보드</span>
-            <span className="truncate text-xs text-muted-foreground">분석 시스템</span>
+        <div className="relative px-4 py-6 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20" />
+          <div className="relative flex items-center gap-3">
+            <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
+              <Package className="size-5" />
+            </div>
+            <div className="flex-1">
+              <h2 className="font-bold text-lg gradient-text">TTS Dashboard</h2>
+              <p className="text-xs text-muted-foreground">데이터 분석 시스템</p>
+            </div>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         {/* 메인 메뉴 */}
         <SidebarGroup>
-          <SidebarGroupLabel>분석 대시보드</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">분석 대시보드</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
-                    <Link href={item.url}>
-                      <item.icon className="size-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                const isActive = pathname === item.url
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      className={`
+                        group relative overflow-hidden transition-all duration-300
+                        ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'}
+                      `}
+                    >
+                      <Link href={item.url}>
+                        <div className={`
+                          p-2 rounded-lg transition-all duration-300
+                          ${isActive ? 'bg-primary/20' : 'bg-muted/30 group-hover:bg-muted/50'}
+                        `}>
+                          <item.icon className={`size-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                        </div>
+                        <span className="font-medium">{item.title}</span>
+                        {isActive && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -214,19 +234,36 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
         {/* 유틸리티 메뉴 */}
         <SidebarGroup>
-          <SidebarGroupLabel>데이터 관리</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">데이터 관리</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {utilityItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
-                    <Link href={item.url}>
-                      <item.icon className="size-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {utilityItems.map((item) => {
+                const isActive = pathname === item.url
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      asChild 
+                      className={`
+                        group relative overflow-hidden transition-all duration-300
+                        ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'}
+                      `}
+                    >
+                      <Link href={item.url}>
+                        <div className={`
+                          p-2 rounded-lg transition-all duration-300
+                          ${isActive ? 'bg-primary/20' : 'bg-muted/30 group-hover:bg-muted/50'}
+                        `}>
+                          <item.icon className={`size-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                        </div>
+                        <span className="font-medium">{item.title}</span>
+                        {isActive && (
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r-full" />
+                        )}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
