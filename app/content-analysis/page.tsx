@@ -509,38 +509,32 @@ export default function ContentAnalysisPage() {
         </Card>
       </div>
 
-      {/* 검색 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>크리에이터 검색</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="크리에이터 사용자명으로 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
       {/* 크리에이터 목록 */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>크리에이터 목록 (GMV 순)</CardTitle>
-              <CardDescription>
-                크리에이터를 클릭하면 해당 크리에이터의 영상을 GMV 순으로 볼 수 있습니다.
-              </CardDescription>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>크리에이터 목록 (GMV 순)</CardTitle>
+                <CardDescription>
+                  크리에이터를 클릭하면 해당 크리에이터의 영상을 GMV 순으로 볼 수 있습니다.
+                </CardDescription>
+              </div>
+              <Button onClick={exportCreatorData} variant="outline" size="sm">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Excel 추출
+              </Button>
             </div>
-            <Button onClick={exportCreatorData} variant="outline" size="sm">
-              <TrendingUp className="w-4 h-4 mr-2" />
-              Excel 추출
-            </Button>
+            {/* 검색창 */}
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="크리에이터 사용자명으로 검색..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
