@@ -236,12 +236,15 @@ export async function GET(request: NextRequest) {
       query = query.lte("publish_date", endDate || defaultEndDate)
     }
 
-    // 먼저 1000개 가져오기
-    let { data: firstBatch, error: dbError } = await query
-
-    if (!dbError && firstBatch && firstBatch.length >= 1000) {
-      // 1000개가 넘으면 추가로 가져오기
-      const { data: secondBatch, error: secondError } = await supabase
+    // 모든 데이터를 동적으로 가져오기
+    let allData: ContentSimple[] = []
+    let offset = 0
+    const batchSize = 1000
+    let hasMore = true
+    let dbError: any = null
+    
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
         .from("contents")
         .select(`
           id,
@@ -267,154 +270,32 @@ export async function GET(request: NextRequest) {
         .gte("publish_date", startDate || defaultStartDate)
         .lte("publish_date", endDate || defaultEndDate)
         .order("publish_date", { ascending: true })
-        .range(1000, 1999)
+        .range(offset, offset + batchSize - 1)
       
-      if (!secondError && secondBatch) {
-        firstBatch = [...firstBatch, ...secondBatch]
-        
-        // 2000개가 넘으면 추가로 더 가져오기
-        if (secondBatch.length >= 1000) {
-          const { data: thirdBatch, error: thirdError } = await supabase
-            .from("contents")
-            .select(`
-              id,
-              content_title,
-              video_link,
-              publish_date,
-              creator_name,
-              gmv,
-              affiliate_items_sold,
-              affiliate_gmv,
-              shoppable_avg_order_value,
-              est_commission,
-              est_flat_fee,
-              affiliate_orders,
-              shoppable_impressions,
-              affiliate_ctr,
-              shoppable_gpm,
-              affiliate_items_refunded,
-              affiliate_refunded_gmv,
-              comment_count,
-              like_count
-            `)
-            .gte("publish_date", startDate || defaultStartDate)
-            .lte("publish_date", endDate || defaultEndDate)
-            .order("publish_date", { ascending: true })
-            .range(2000, 2999)
-          
-          if (!thirdError && thirdBatch) {
-            firstBatch = [...firstBatch, ...thirdBatch]
-            
-            // 3000개가 넘으면 추가로 더 가져오기
-            if (thirdBatch.length >= 1000) {
-              const { data: fourthBatch, error: fourthError } = await supabase
-                .from("contents")
-                .select(`
-                  id,
-                  content_title,
-                  video_link,
-                  publish_date,
-                  creator_name,
-                  gmv,
-                  affiliate_items_sold,
-                  affiliate_gmv,
-                  shoppable_avg_order_value,
-                  est_commission,
-                  est_flat_fee,
-                  affiliate_orders,
-                  shoppable_impressions,
-                  affiliate_ctr,
-                  shoppable_gpm,
-                  affiliate_items_refunded,
-                  affiliate_refunded_gmv,
-                  comment_count,
-                  like_count
-                `)
-                .gte("publish_date", startDate || defaultStartDate)
-                .lte("publish_date", endDate || defaultEndDate)
-                .order("publish_date", { ascending: true })
-                .range(3000, 3999)
-              
-              if (!fourthError && fourthBatch) {
-                firstBatch = [...firstBatch, ...fourthBatch]
-                
-                // 4000개가 넘으면 추가로 더 가져오기
-                if (fourthBatch.length >= 1000) {
-                  const { data: fifthBatch, error: fifthError } = await supabase
-                    .from("contents")
-                    .select(`
-                      id,
-                      content_title,
-                      video_link,
-                      publish_date,
-                      creator_name,
-                      gmv,
-                      affiliate_items_sold,
-                      affiliate_gmv,
-                      shoppable_avg_order_value,
-                      est_commission,
-                      est_flat_fee,
-                      affiliate_orders,
-                      shoppable_impressions,
-                      affiliate_ctr,
-                      shoppable_gpm,
-                      affiliate_items_refunded,
-                      affiliate_refunded_gmv,
-                      comment_count,
-                      like_count
-                    `)
-                    .gte("publish_date", startDate || defaultStartDate)
-                    .lte("publish_date", endDate || defaultEndDate)
-                    .order("publish_date", { ascending: true })
-                    .range(4000, 4999)
-                  
-                  if (!fifthError && fifthBatch) {
-                    firstBatch = [...firstBatch, ...fifthBatch]
-                    
-                    // 5000개가 넘으면 추가로 더 가져오기
-                    if (fifthBatch.length >= 1000) {
-                      const { data: sixthBatch, error: sixthError } = await supabase
-                        .from("contents")
-                        .select(`
-                          id,
-                          content_title,
-                          video_link,
-                          publish_date,
-                          creator_name,
-                          gmv,
-                          affiliate_items_sold,
-                          affiliate_gmv,
-                          shoppable_avg_order_value,
-                          est_commission,
-                          est_flat_fee,
-                          affiliate_orders,
-                          shoppable_impressions,
-                          affiliate_ctr,
-                          shoppable_gpm,
-                          affiliate_items_refunded,
-                          affiliate_refunded_gmv,
-                          comment_count,
-                          like_count
-                        `)
-                        .gte("publish_date", startDate || defaultStartDate)
-                        .lte("publish_date", endDate || defaultEndDate)
-                        .order("publish_date", { ascending: true })
-                        .range(5000, 5999)
-                      
-                      if (!sixthError && sixthBatch) {
-                        firstBatch = [...firstBatch, ...sixthBatch]
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+      if (batchError) {
+        console.error(`Error fetching batch at offset ${offset}:`, batchError)
+        if (offset === 0) {
+          // 첫 번째 배치에서 에러가 발생하면 전체 에러로 처리
+          dbError = batchError
         }
+        break
+      }
+      
+      if (batch && batch.length > 0) {
+        allData = [...allData, ...batch]
+        console.log(`📦 Fetched batch ${Math.floor(offset / batchSize) + 1}: ${batch.length} items (Total: ${allData.length})`)
+        offset += batchSize
+        
+        // 배치 크기보다 적게 반환되면 더 이상 데이터가 없음
+        if (batch.length < batchSize) {
+          hasMore = false
+        }
+      } else {
+        hasMore = false
       }
     }
     
-    const data = firstBatch
+    const data = allData.length > 0 ? allData : null
     
     // 디버깅을 위한 로그 추가
     console.log(`📊 Total contents fetched: ${data ? data.length : 0}`)
