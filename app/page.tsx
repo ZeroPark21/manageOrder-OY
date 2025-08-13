@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DailyMatrixTable } from "@/components/daily-matrix-table"
 import { WeeklyMatrixTable } from "@/components/weekly-matrix-table"
 import { MonthlyMatrixTable } from "@/components/monthly-matrix-table"
-import { Upload, BarChart3, Package, Wallet, TrendingUp, ShoppingCart, Ban, Download } from "lucide-react"
+import { Upload, BarChart3, Package, Wallet, TrendingUp, ShoppingCart, Ban } from "lucide-react"
 import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel } from "@/lib/excel-utils"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -393,25 +393,11 @@ export default function Dashboard() {
 
           {/* 매트릭스 테이블 탭 */}
           <Tabs defaultValue="daily" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <TabsList className="bg-white dark:bg-gray-800 shadow-md">
-                <TabsTrigger value="daily" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">일별 매트릭스</TabsTrigger>
-                <TabsTrigger value="weekly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">주별 매트릭스</TabsTrigger>
-                <TabsTrigger value="monthly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">월별 매트릭스</TabsTrigger>
-              </TabsList>
-              <Button
-                onClick={handleAllMatrixDownload}
-                disabled={downloadLoading}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all"
-              >
-                {downloadLoading ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                전체 매트릭스 다운로드
-              </Button>
-            </div>
+            <TabsList className="bg-white dark:bg-gray-800 shadow-md">
+              <TabsTrigger value="daily" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">일별 매트릭스</TabsTrigger>
+              <TabsTrigger value="weekly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">주별 매트릭스</TabsTrigger>
+              <TabsTrigger value="monthly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">월별 매트릭스</TabsTrigger>
+            </TabsList>
 
             <TabsContent value="daily" className="space-y-4 overflow-hidden">
               <DailyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
