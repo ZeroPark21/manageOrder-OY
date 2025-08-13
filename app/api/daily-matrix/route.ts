@@ -95,26 +95,46 @@ export async function GET(request: NextRequest) {
     const startDateTime = `${defaultStartDate}T00:00:00`
     const endDateTime = `${defaultEndDate}T23:59:59`
     
-    // 모든 샘플 데이터를 가져온 후 클라이언트 측에서 필터링
-    const { data, error: dbError } = await supabase
-      .from("orders")
-      .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
-      .eq("sku_unit_original_price", 0)  // 샘플만 필터링
-      .order("created_time", { ascending: true })
-
-    if (dbError) {
-      if ((dbError as any).code === "42P01") {
-        return NextResponse.json({
-          products: [],
-          dates: [],
-          matrix: {},
-        })
+    // 모든 샘플 데이터를 배치로 가져오기
+    let allOrders: OrderData[] = []
+    let offset = 0
+    const batchSize = 1000
+    let hasMore = true
+    
+    while (hasMore) {
+      const { data, error: dbError } = await supabase
+        .from("orders")
+        .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
+        .eq("sku_unit_original_price", 0)  // 샘플만 필터링
+        .order("created_time", { ascending: true })
+        .range(offset, offset + batchSize - 1)
+      
+      if (dbError) {
+        console.error(`Error fetching batch at offset ${offset}:`, dbError)
+        if (offset === 0) {
+          if ((dbError as any).code === "42P01") {
+            return NextResponse.json({
+              products: [],
+              dates: [],
+              matrix: {},
+            })
+          }
+          return NextResponse.json({ error: dbError.message }, { status: 500 })
+        }
+        break
       }
-      console.error("Supabase error:", dbError)
-      return NextResponse.json({ error: dbError.message }, { status: 500 })
+      
+      if (data && data.length > 0) {
+        allOrders = [...allOrders, ...data]
+        offset += batchSize
+        
+        if (data.length < batchSize) {
+          hasMore = false
+        }
+      } else {
+        hasMore = false
+      }
     }
-
-    const allOrders = (data || []) as OrderData[]
     
     console.log(`[daily-matrix] Total samples from DB: ${allOrders.length}`)
     if (allOrders.length > 0) {
