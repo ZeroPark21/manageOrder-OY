@@ -121,6 +121,8 @@ export function downloadMultiSheetExcel(data: MultiSheetExcelData) {
   // 각 시트 생성
   data.sheets.forEach((sheet, sheetIndex) => {
     console.log(`📋 Creating sheet: ${sheet.name} with ${sheet.rows.length} rows`)
+    console.log(`   Headers: ${sheet.headers.length}`)
+    console.log(`   First row data:`, sheet.rows[0]?.slice(0, 5))
 
     workbookXml += `
  <Worksheet ss:Name="${escapeXmlAttribute(sheet.name)}">

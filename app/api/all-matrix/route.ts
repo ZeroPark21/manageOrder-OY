@@ -248,14 +248,18 @@ function groupByMonth(orders: OrderData[]) {
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("📊 /api/all-matrix 호출됨")
     const supabase = createServerClient()
 
-    // 7월 1일부터 데이터 조회
+    // 2025년 6월 1일부터 샘플 데이터만 조회 (SKU Unit Original Price = 0)
     const { data, error: dbError } = await supabase
       .from("orders")
-      .select("id, product_name, seller_sku, sku_id, quantity, created_time")
-      .gte("created_time", "2025-07-01")
+      .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
+      .eq("sku_unit_original_price", 0)
+      .gte("created_time", "2025-06-01")
       .order("created_time", { ascending: true })
+    
+    console.log(`📦 조회된 주문 수: ${data ? data.length : 0}`)
 
     if (dbError) {
       if ((dbError as any).code === "42P01") {
@@ -283,6 +287,11 @@ export async function GET(request: NextRequest) {
     const dailyData = groupByDate(orders)
     const weeklyData = groupByWeek(orders)
     const monthlyData = groupByMonth(orders)
+    
+    console.log(`✅ 매트릭스 생성 완료:`)
+    console.log(`  - 일별: ${dailyData.products.length}개 제품, ${dailyData.dates.length}일`)
+    console.log(`  - 주별: ${weeklyData.products.length}개 제품, ${weeklyData.weeks.length}주`)
+    console.log(`  - 월별: ${monthlyData.products.length}개 제품, ${monthlyData.months.length}개월`)
 
     return NextResponse.json({
       daily: dailyData,
