@@ -145,15 +145,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar variant="inset" {...props}>
       <SidebarHeader>
-        <div className="relative px-4 py-6 overflow-hidden">
+        <div className="relative px-3 py-4 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-500/20 dark:to-purple-500/20" />
-          <div className="relative flex items-center gap-3">
-            <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg">
-              <Package className="size-5" />
-            </div>
-            <div className="flex-1">
-              <h2 className="font-bold text-lg gradient-text">Cosduck Agency</h2>
-              <p className="text-xs text-muted-foreground">OliveYoung Data</p>
+          <div className="relative flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex aspect-square size-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-md flex-shrink-0">
+                <Package className="size-4" />
+              </div>
+              <div className="flex flex-col">
+                <h2 className="font-bold text-base leading-tight bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Cosduck Agency
+                </h2>
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  OliveYoung Data
+                </p>
+              </div>
             </div>
           </div>
         </div>
