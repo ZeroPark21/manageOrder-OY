@@ -337,54 +337,54 @@ export default function Dashboard() {
 
           {/* 샘플 발송 현황 */}
           {salesStats && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
-                  <CardTitle className="text-sm font-medium text-white/90">총 샘플 발송</CardTitle>
-                  <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
-                    <Package className="h-5 w-5 text-white" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="relative overflow-hidden border shadow-sm bg-card">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">총 샘플 발송</CardTitle>
+                  <div className="p-2 bg-primary/10 text-primary rounded-full">
+                    <Package className="h-4 w-4" />
                   </div>
                 </CardHeader>
                 <CardContent className="relative z-10">
-                  <div className="text-3xl font-bold">{salesStats.samples.totalQuantity.toLocaleString()}개</div>
-                  <div className="flex items-center gap-1 mt-2">
+                  <div className="text-2xl font-bold text-foreground">{salesStats.samples.totalQuantity.toLocaleString()}개</div>
+                  <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                     <TrendingUp className="h-4 w-4" />
-                    <p className="text-sm text-white/80">주문 {salesStats.samples.totalOrders.toLocaleString()}건</p>
+                    <p className="text-sm">주문 {salesStats.samples.totalOrders.toLocaleString()}건</p>
                   </div>
                 </CardContent>
               </Card>
               
-              <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
-                  <CardTitle className="text-sm font-medium text-white/90">취소된 샘플</CardTitle>
-                  <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
-                    <Ban className="h-5 w-5 text-white" />
+              <Card className="relative overflow-hidden border shadow-sm bg-card">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">취소된 샘플</CardTitle>
+                  <div className="p-2 bg-primary/10 text-primary rounded-full">
+                    <Ban className="h-4 w-4" />
                   </div>
                 </CardHeader>
                 <CardContent className="relative z-10">
-                  <div className="text-3xl font-bold">{salesStats.samples.cancelledQuantity.toLocaleString()}개</div>
-                  <div className="flex items-center gap-1 mt-2">
+                  <div className="text-2xl font-bold text-foreground">{salesStats.samples.cancelledQuantity.toLocaleString()}개</div>
+                  <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                     <TrendingUp className="h-4 w-4" />
-                    <p className="text-sm text-white/80">취소 {salesStats.samples.cancelledOrders.toLocaleString()}건</p>
+                    <p className="text-sm">취소 {salesStats.samples.cancelledOrders.toLocaleString()}건</p>
                   </div>
                 </CardContent>
               </Card>
               
-              <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
-                  <CardTitle className="text-sm font-medium text-white/90">실제 발송된 샘플</CardTitle>
-                  <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
-                    <ShoppingCart className="h-5 w-5 text-white" />
+              <Card className="relative overflow-hidden border shadow-sm bg-card">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12" />
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">실제 발송된 샘플</CardTitle>
+                  <div className="p-2 bg-primary/10 text-primary rounded-full">
+                    <ShoppingCart className="h-4 w-4" />
                   </div>
                 </CardHeader>
                 <CardContent className="relative z-10">
-                  <div className="text-3xl font-bold">{salesStats.samples.activeQuantity.toLocaleString()}개</div>
-                  <div className="flex items-center gap-1 mt-2">
+                  <div className="text-2xl font-bold text-foreground">{salesStats.samples.activeQuantity.toLocaleString()}개</div>
+                  <div className="flex items-center gap-1 mt-1 text-muted-foreground">
                     <TrendingUp className="h-4 w-4" />
-                    <p className="text-sm text-white/80">발송 {salesStats.samples.activeOrders.toLocaleString()}건</p>
+                    <p className="text-sm">발송 {salesStats.samples.activeOrders.toLocaleString()}건</p>
                   </div>
                 </CardContent>
               </Card>
