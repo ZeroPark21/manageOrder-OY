@@ -250,6 +250,20 @@ export async function GET(request: NextRequest) {
   try {
     console.log("📊 /api/all-matrix 호출됨")
     const supabase = createServerClient()
+    
+    // 데이터베이스 연결 테스트
+    const { count, error: countError } = await supabase
+      .from("orders")
+      .select("*", { count: 'exact', head: true })
+      .eq("sku_unit_original_price", 0)
+      .gte("created_time", "2025-06-01")
+    
+    if (countError) {
+      console.error("Database count error:", countError)
+      return NextResponse.json({ error: `Database error: ${countError.message}` }, { status: 500 })
+    }
+    
+    console.log(`📊 Total sample orders in database: ${count || 0}`)
 
     // 모든 샘플 데이터를 배치로 가져오기
     let allOrders: OrderData[] = []
@@ -299,12 +313,16 @@ export async function GET(request: NextRequest) {
 
     if (allOrders.length === 0) {
       console.log("⚠️ 조회된 주문이 없습니다")
+      console.log("빈 응답 반환 - 데이터베이스에 샘플 주문이 없거나 날짜 조건에 맞는 데이터가 없습니다")
       return NextResponse.json({
         daily: { products: [], dates: [], matrix: {}, productSkuMap: {} },
         weekly: { products: [], weeks: [], matrix: {}, productSkuMap: {} },
         monthly: { products: [], months: [], matrix: {}, productSkuMap: {} },
       })
     }
+    
+    // 데이터 샘플 로그
+    console.log("첫 번째 주문 데이터:", allOrders[0])
 
     // 각 매트릭스 데이터 생성
     const dailyData = groupByDate(allOrders)

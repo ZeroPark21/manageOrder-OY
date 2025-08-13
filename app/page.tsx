@@ -101,11 +101,24 @@ export default function Dashboard() {
       const response = await fetch("/api/all-matrix")
 
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error("API Error Response:", errorText)
         throw new Error(`API 요청 실패: ${response.status}`)
       }
 
       const data = await response.json()
+      
+      // API 에러 체크
+      if (data.error) {
+        console.error("API returned error:", data.error)
+        throw new Error(`API 오류: ${data.error}`)
+      }
       console.log("📊 Matrix data loaded successfully")
+      console.log("API Response:", {
+        daily: data.daily ? `${data.daily.products?.length || 0} products, ${data.daily.dates?.length || 0} dates` : 'null',
+        weekly: data.weekly ? `${data.weekly.products?.length || 0} products, ${data.weekly.weeks?.length || 0} weeks` : 'null',
+        monthly: data.monthly ? `${data.monthly.products?.length || 0} products, ${data.monthly.months?.length || 0} months` : 'null'
+      })
 
       if (!data.daily || !data.weekly || !data.monthly) {
         console.error("❌ Missing matrix data:", {
