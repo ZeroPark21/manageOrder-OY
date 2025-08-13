@@ -150,7 +150,18 @@ export default function ContentAnalysisPage() {
   const creatorStats = useMemo(() => {
     if (!videoData.length) return []
 
-    const stats = videoData.reduce(
+    // 먼저 중복 제거 (videoId 기준)
+    const uniqueVideosMap = new Map<string, VideoData>()
+    videoData.forEach(video => {
+      if (video.videoId && !uniqueVideosMap.has(video.videoId)) {
+        uniqueVideosMap.set(video.videoId, video)
+      }
+    })
+    const uniqueVideos = Array.from(uniqueVideosMap.values())
+    
+    console.log(`프론트엔드 중복 제거: ${videoData.length}개 → ${uniqueVideos.length}개`)
+
+    const stats = uniqueVideos.reduce(
       (acc, video) => {
         const username = video.creatorUsername
         if (!username) return acc
@@ -289,6 +300,25 @@ export default function ContentAnalysisPage() {
     exportToExcel(exportData, `크리에이터_${selectedCreator}_영상분석_${new Date().toISOString().split("T")[0]}`)
   }
 
+  // 중복 제거된 데이터로 전체 통계 계산 - Hook은 조건문 전에 와야 함
+  const uniqueVideosForStats = useMemo(() => {
+    const uniqueMap = new Map<string, VideoData>()
+    videoData.forEach(video => {
+      if (video.videoId && !uniqueMap.has(video.videoId)) {
+        uniqueMap.set(video.videoId, video)
+      }
+    })
+    return Array.from(uniqueMap.values())
+  }, [videoData])
+
+  const totalStats = {
+    totalVideos: uniqueVideosForStats.length,
+    totalGmv: uniqueVideosForStats.reduce((sum, video) => sum + video.gmv, 0),
+    totalCommission: uniqueVideosForStats.reduce((sum, video) => sum + video.estCommission, 0),
+    totalOrders: uniqueVideosForStats.reduce((sum, video) => sum + video.affiliateOrders, 0),
+    totalCreators: creatorStats.length,
+  }
+
   if (loading) {
     return (
       <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
@@ -314,14 +344,6 @@ export default function ContentAnalysisPage() {
         </div>
       </div>
     )
-  }
-
-  const totalStats = {
-    totalVideos: videoData.length,
-    totalGmv: videoData.reduce((sum, video) => sum + video.gmv, 0),
-    totalCommission: videoData.reduce((sum, video) => sum + video.estCommission, 0),
-    totalOrders: videoData.reduce((sum, video) => sum + video.affiliateOrders, 0),
-    totalCreators: creatorStats.length,
   }
 
   if (selectedCreator) {

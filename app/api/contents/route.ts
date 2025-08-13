@@ -168,7 +168,29 @@ function groupByMonth(contents: ContentSimple[]) {
 function groupByCreator(contents: ContentSimple[]) {
   const grouped: { [key: string]: { creator: string; totalCount: number; contents: ContentSimple[] } } = {}
 
+  // 먼저 video_link 기준으로 중복 제거 (최신 데이터만 유지)
+  const uniqueVideosMap = new Map<string, ContentSimple>()
+  
   contents.forEach((content) => {
+    if (content.video_link) {
+      const existingContent = uniqueVideosMap.get(content.video_link)
+      // 기존 콘텐츠가 없거나, 새 콘텐츠의 publish_date가 더 최신인 경우 업데이트
+      if (!existingContent || 
+          (content.publish_date && existingContent.publish_date && 
+           new Date(content.publish_date) > new Date(existingContent.publish_date))) {
+        uniqueVideosMap.set(content.video_link, content)
+      } else if (!existingContent) {
+        // publish_date가 없는 경우에도 처음 들어온 데이터 유지
+        uniqueVideosMap.set(content.video_link, content)
+      }
+    }
+  })
+  
+  // 중복 제거된 콘텐츠로 그룹핑
+  const uniqueContents = Array.from(uniqueVideosMap.values())
+  console.log(`중복 제거: ${contents.length}개 → ${uniqueContents.length}개`)
+  
+  uniqueContents.forEach((content) => {
     const creatorKey = content.creator_name
 
     if (!grouped[creatorKey]) {
