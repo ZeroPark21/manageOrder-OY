@@ -326,105 +326,70 @@ export default function Dashboard() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="flex flex-1 flex-col gap-6 p-6 bg-gradient-to-br from-gray-50/50 to-gray-100/30 dark:from-gray-900/50 dark:to-gray-800/30">
-        <div className="space-y-8 max-w-7xl mx-auto w-full">
-          {/* 페이지 헤더 */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in">
-            <div>
-              <h1 className="text-4xl font-bold gradient-text">샘플 발송 현황</h1>
-              <p className="text-muted-foreground mt-2">샘플 발송현황 분석 (2025년 6월 1일부터, SKU Unit Original Price = 0)</p>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" onClick={fetchSummaryData} className="group transition-all hover:shadow-md">
-                <BarChart3 className="h-4 w-4 mr-2 group-hover:rotate-12 transition-transform" />
-                새로고침
-              </Button>
-              <Link href="/upload">
-                <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transition-all">
-                  <Upload className="h-4 w-4 mr-2" />
-                  데이터 업로드
-                </Button>
-              </Link>
-            </div>
-          </div>
+      <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">샘플 발송 현황</h1>
+          <p className="text-gray-600">샘플 발송현황 분석 (2025년 6월 1일부터, SKU Unit Original Price = 0)</p>
+        </div>
 
           {/* 샘플 발송 현황 */}
           {salesStats && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
-                  <CardTitle className="text-sm font-medium text-white/90">총 샘플 발송</CardTitle>
-                  <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
-                    <Package className="h-5 w-5 text-white" />
-                  </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">총 샘플 발송</CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent className="relative z-10">
-                  <div className="text-3xl font-bold">{salesStats.samples.totalQuantity.toLocaleString()}개</div>
-                  <div className="flex items-center gap-1 mt-2">
-                    <TrendingUp className="h-4 w-4" />
-                    <p className="text-sm text-white/80">주문 {salesStats.samples.totalOrders.toLocaleString()}건</p>
-                  </div>
+                <CardContent>
+                  <div className="text-2xl font-bold">{salesStats.samples.totalQuantity.toLocaleString()}개</div>
+                  <p className="text-xs text-muted-foreground">주문 {salesStats.samples.totalOrders.toLocaleString()}건</p>
                 </CardContent>
               </Card>
               
-              <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
-                  <CardTitle className="text-sm font-medium text-white/90">취소된 샘플</CardTitle>
-                  <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
-                    <Ban className="h-5 w-5 text-white" />
-                  </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">취소된 샘플</CardTitle>
+                  <Ban className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent className="relative z-10">
-                  <div className="text-3xl font-bold">{salesStats.samples.cancelledQuantity.toLocaleString()}개</div>
-                  <div className="flex items-center gap-1 mt-2">
-                    <TrendingUp className="h-4 w-4" />
-                    <p className="text-sm text-white/80">취소 {salesStats.samples.cancelledOrders.toLocaleString()}건</p>
-                  </div>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">{salesStats.samples.cancelledQuantity.toLocaleString()}개</div>
+                  <p className="text-xs text-muted-foreground">취소 {salesStats.samples.cancelledOrders.toLocaleString()}건</p>
                 </CardContent>
               </Card>
               
-              <Card className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3 relative z-10">
-                  <CardTitle className="text-sm font-medium text-white/90">실제 발송된 샘플</CardTitle>
-                  <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
-                    <ShoppingCart className="h-5 w-5 text-white" />
-                  </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">실제 발송된 샘플</CardTitle>
+                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
-                <CardContent className="relative z-10">
-                  <div className="text-3xl font-bold">{salesStats.samples.activeQuantity.toLocaleString()}개</div>
-                  <div className="flex items-center gap-1 mt-2">
-                    <TrendingUp className="h-4 w-4" />
-                    <p className="text-sm text-white/80">발송 {salesStats.samples.activeOrders.toLocaleString()}건</p>
-                  </div>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{salesStats.samples.activeQuantity.toLocaleString()}개</div>
+                  <p className="text-xs text-muted-foreground">발송 {salesStats.samples.activeOrders.toLocaleString()}건</p>
                 </CardContent>
               </Card>
             </div>
           )}
 
-          {/* 매트릭스 테이블 탭 */}
-          <Tabs defaultValue="daily" className="space-y-6">
-            <TabsList className="bg-white dark:bg-gray-800 shadow-md">
-              <TabsTrigger value="daily" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">일별 매트릭스</TabsTrigger>
-              <TabsTrigger value="weekly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">주별 매트릭스</TabsTrigger>
-              <TabsTrigger value="monthly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">월별 매트릭스</TabsTrigger>
-            </TabsList>
+        {/* 매트릭스 테이블 탭 */}
+        <Tabs defaultValue="daily" className="space-y-6">
+          <TabsList className="bg-white dark:bg-gray-800 shadow-md">
+            <TabsTrigger value="daily" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">일별 매트릭스</TabsTrigger>
+            <TabsTrigger value="weekly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">주별 매트릭스</TabsTrigger>
+            <TabsTrigger value="monthly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">월별 매트릭스</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="daily" className="space-y-4 overflow-hidden">
-              <DailyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-            </TabsContent>
+          <TabsContent value="daily" className="space-y-4 overflow-hidden">
+            <DailyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+          </TabsContent>
 
-            <TabsContent value="weekly" className="space-y-4 overflow-hidden">
-              <WeeklyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-            </TabsContent>
+          <TabsContent value="weekly" className="space-y-4 overflow-hidden">
+            <WeeklyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+          </TabsContent>
 
-            <TabsContent value="monthly" className="space-y-4 overflow-hidden">
-              <MonthlyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-            </TabsContent>
-          </Tabs>
-        </div>
+          <TabsContent value="monthly" className="space-y-4 overflow-hidden">
+            <MonthlyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   )

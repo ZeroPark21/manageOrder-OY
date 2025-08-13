@@ -256,7 +256,6 @@ export async function GET(request: NextRequest) {
       .from("orders")
       .select("*", { count: 'exact', head: true })
       .eq("sku_unit_original_price", 0)
-      .gte("created_time", "2025-06-01")
     
     if (countError) {
       console.error("Database count error:", countError)
@@ -276,7 +275,6 @@ export async function GET(request: NextRequest) {
         .from("orders")
         .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
         .eq("sku_unit_original_price", 0)
-        .gte("created_time", "2025-06-01")
         .order("created_time", { ascending: true })
         .range(offset, offset + batchSize - 1)
       
