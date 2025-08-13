@@ -251,31 +251,54 @@ export async function GET(request: NextRequest) {
     console.log("📊 /api/all-matrix 호출됨")
     const supabase = createServerClient()
 
-    // 2025년 6월 1일부터 샘플 데이터만 조회 (SKU Unit Original Price = 0)
-    const { data, error: dbError } = await supabase
-      .from("orders")
-      .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
-      .eq("sku_unit_original_price", 0)
-      .gte("created_time", "2025-06-01")
-      .order("created_time", { ascending: true })
+    // 모든 샘플 데이터를 배치로 가져오기
+    let allOrders: OrderData[] = []
+    let offset = 0
+    const batchSize = 1000
+    let hasMore = true
     
-    console.log(`📦 조회된 주문 수: ${data ? data.length : 0}`)
-
-    if (dbError) {
-      if ((dbError as any).code === "42P01") {
-        return NextResponse.json({
-          daily: { products: [], dates: [], matrix: {}, productSkuMap: {} },
-          weekly: { products: [], weeks: [], matrix: {}, productSkuMap: {} },
-          monthly: { products: [], months: [], matrix: {}, productSkuMap: {} },
-        })
+    while (hasMore) {
+      const { data, error: dbError } = await supabase
+        .from("orders")
+        .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
+        .eq("sku_unit_original_price", 0)
+        .gte("created_time", "2025-06-01")
+        .order("created_time", { ascending: true })
+        .range(offset, offset + batchSize - 1)
+      
+      if (dbError) {
+        console.error(`Error fetching batch at offset ${offset}:`, dbError)
+        if (offset === 0) {
+          // 첫 번째 배치에서 에러 발생 시 처리
+          if ((dbError as any).code === "42P01") {
+            return NextResponse.json({
+              daily: { products: [], dates: [], matrix: {}, productSkuMap: {} },
+              weekly: { products: [], weeks: [], matrix: {}, productSkuMap: {} },
+              monthly: { products: [], months: [], matrix: {}, productSkuMap: {} },
+            })
+          }
+          return NextResponse.json({ error: dbError.message }, { status: 500 })
+        }
+        break
       }
-      console.error("Supabase error:", dbError)
-      return NextResponse.json({ error: dbError.message }, { status: 500 })
+      
+      if (data && data.length > 0) {
+        allOrders = [...allOrders, ...data]
+        console.log(`📦 Batch ${Math.floor(offset / batchSize) + 1}: ${data.length}개 (총 ${allOrders.length}개)`)
+        offset += batchSize
+        
+        if (data.length < batchSize) {
+          hasMore = false
+        }
+      } else {
+        hasMore = false
+      }
     }
+    
+    console.log(`📦 총 조회된 주문 수: ${allOrders.length}`)
 
-    const orders = (data || []) as OrderData[]
-
-    if (orders.length === 0) {
+    if (allOrders.length === 0) {
+      console.log("⚠️ 조회된 주문이 없습니다")
       return NextResponse.json({
         daily: { products: [], dates: [], matrix: {}, productSkuMap: {} },
         weekly: { products: [], weeks: [], matrix: {}, productSkuMap: {} },
@@ -284,9 +307,9 @@ export async function GET(request: NextRequest) {
     }
 
     // 각 매트릭스 데이터 생성
-    const dailyData = groupByDate(orders)
-    const weeklyData = groupByWeek(orders)
-    const monthlyData = groupByMonth(orders)
+    const dailyData = groupByDate(allOrders)
+    const weeklyData = groupByWeek(allOrders)
+    const monthlyData = groupByMonth(allOrders)
     
     console.log(`✅ 매트릭스 생성 완료:`)
     console.log(`  - 일별: ${dailyData.products.length}개 제품, ${dailyData.dates.length}일`)
