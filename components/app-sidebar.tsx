@@ -152,8 +152,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <Package className="size-5" />
             </div>
             <div className="flex-1">
-              <h2 className="font-bold text-lg gradient-text">TTS Dashboard</h2>
-              <p className="text-xs text-muted-foreground">데이터 분석 시스템</p>
+              <h2 className="font-bold text-lg gradient-text">Cosduck Agency</h2>
+              <p className="text-xs text-muted-foreground">OliveYoung Data</p>
             </div>
           </div>
         </div>

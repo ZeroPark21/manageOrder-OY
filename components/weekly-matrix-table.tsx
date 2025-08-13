@@ -39,6 +39,9 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
     setLoading(true)
     try {
       const response = await fetch("/api/weekly-matrix")
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status}`)
+      }
       const result = await response.json()
       console.log("📊 Weekly matrix data:", result)
       setData(result)

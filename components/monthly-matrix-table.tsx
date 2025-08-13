@@ -36,6 +36,9 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
     setLoading(true)
     try {
       const response = await fetch("/api/monthly-matrix")
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status}`)
+      }
       const result = await response.json()
       setData(result)
     } catch (error) {

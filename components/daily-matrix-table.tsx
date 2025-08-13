@@ -47,6 +47,9 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
         url += `?startDate=${startDate}&endDate=${endDate}`
       }
       const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status}`)
+      }
       const result = await response.json()
       setData(result)
     } catch (error) {
