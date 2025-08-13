@@ -17,6 +17,8 @@ import {
   Calendar,
   ExternalLink,
   ChevronRight,
+  Wallet,
+  Package,
 } from "lucide-react"
 
 // 크리에이터 분석용 인터페이스
@@ -344,101 +346,150 @@ export default function ContentAnalysisPage() {
         </div>
 
         {/* 크리에이터 요약 통계 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-green-600">{formatCurrency(creatorInfo?.totalGmv || 0)}</div>
-              <p className="text-sm text-gray-500">총 GMV</p>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">총 GMV</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(creatorInfo?.totalGmv || 0)}</div>
+              <p className="text-xs text-muted-foreground">
+                영상 {creatorInfo?.videoCount || 0}개 총합
+              </p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-blue-600">{formatCurrency(creatorInfo?.totalCommission || 0)}</div>
-              <p className="text-sm text-gray-500">총 수수료</p>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">총 수수료</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(creatorInfo?.totalCommission || 0)}</div>
+              <p className="text-xs text-muted-foreground">
+                예상 수익
+              </p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">총 주문</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
               <div className="text-2xl font-bold">{formatNumber(creatorInfo?.totalOrders || 0)}</div>
-              <p className="text-sm text-gray-500">총 주문</p>
+              <p className="text-xs text-muted-foreground">
+                판매 {formatNumber(creatorInfo?.videos.reduce((sum, v) => sum + v.affiliateItemsSold, 0) || 0)}개
+              </p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">평균 CTR</CardTitle>
+              <MousePointer className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
               <div className="text-2xl font-bold">{creatorInfo?.avgCtr.toFixed(2) || 0}%</div>
-              <p className="text-sm text-gray-500">평균 CTR</p>
+              <p className="text-xs text-muted-foreground">
+                노출 대비 클릭률
+              </p>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-6">
-          {selectedCreatorVideos.map((video, index) => (
-            <Card key={video.videoId} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Badge variant="secondary" className="text-lg font-semibold">
-                      #{index + 1}
-                    </Badge>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">Video ID</p>
-                      <p className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">{video.videoId}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">{formatDate(video.videoPostDate)}</span>
-                  </div>
-                </div>
-
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">{video.videoName}</h3>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <div>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3" />
-                      GMV
-                    </p>
-                    <p className="text-lg font-bold text-green-600">{formatCurrency(video.gmv)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <ShoppingCart className="w-3 h-3" />
-                      주문
-                    </p>
-                    <p className="text-lg font-semibold">{formatNumber(video.affiliateOrders)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      노출
-                    </p>
-                    <p className="text-lg font-semibold">{formatNumber(video.shoppableVideoImpressions)}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <MousePointer className="w-3 h-3" />
-                      CTR
-                    </p>
-                    <p className="text-lg font-semibold">{video.affiliateCtr}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 pt-4 border-t">
-                  <ExternalLink className="w-4 h-4 text-blue-500" />
-                  <a
-                    href={video.videoLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline text-sm"
-                  >
-                    TikTok에서 영상 보기
-                  </a>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* 영상 목록 테이블 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>영상 성과 분석</CardTitle>
+            <CardDescription>
+              GMV 순위별 영상 목록 ({selectedCreatorVideos.length}개 영상)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="relative overflow-x-auto">
+              <table className="w-full">
+                <thead className="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">순위</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[300px]">영상 제목</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">게시일</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">GMV</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">수수료</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">주문</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">판매 상품</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">노출</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">CTR</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">좋아요</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">댓글</th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">영상</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {selectedCreatorVideos.map((video, index) => (
+                    <tr key={`${video.videoId}-${index}`} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 text-white font-bold text-sm">
+                          {index + 1}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="max-w-sm">
+                          <div className="text-sm font-medium text-gray-900 line-clamp-2">
+                            {video.videoName}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            ID: {video.videoId}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center text-sm text-gray-900">
+                        {formatDate(video.videoPostDate)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        <div className="text-sm font-semibold text-green-600">
+                          {formatCurrency(video.gmv)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        <div className="text-sm font-semibold text-blue-600">
+                          {formatCurrency(video.estCommission)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {formatNumber(video.affiliateOrders)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {formatNumber(video.affiliateItemsSold)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {formatNumber(video.shoppableVideoImpressions)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right">
+                        <Badge variant="outline">{video.affiliateCtr}</Badge>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {formatNumber(video.shoppableVideoLikes)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {formatNumber(video.shoppableVideoComments)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <a
+                          href={video.videoLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center gap-1 text-blue-600 hover:text-blue-700"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
