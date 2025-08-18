@@ -1,14 +1,14 @@
-# TikTok GMV Auto Collector Chrome Extension
+# TikTok Shop Ads Auto Downloader Chrome Extension
 
-TikTok Seller Center에서 GMV 데이터를 자동으로 수집하고 Supabase에 업로드하는 Chrome 확장 프로그램입니다.
+TikTok Shop Ads에서 일별 데이터를 자동으로 다운로드하는 Chrome 확장 프로그램입니다.
 
 ## 기능
 
-- ✅ 자동 데이터 수집 (매일 지정된 시간)
-- ✅ 수동 즉시 수집
-- ✅ 날짜 범위 수집
-- ✅ Supabase 직접 업로드
-- ✅ 수집 로그 확인
+- ✅ 기간 설정 (시작일/종료일)
+- ✅ 일별(Daily) 데이터 자동 다운로드
+- ✅ 진행 상황 실시간 표시
+- ✅ 오류 처리 및 자동 재시도
+- ✅ 다운로드 로그 확인
 
 ## 설치 방법
 
@@ -20,26 +20,28 @@ TikTok Seller Center에서 GMV 데이터를 자동으로 수집하고 Supabase�
 ## 설정
 
 1. 확장 프로그램 아이콘 클릭
-2. Supabase 정보 입력:
-   - Supabase URL: `https://your-project.supabase.co`
-   - Supabase Anon Key: 프로젝트 설정에서 확인
-3. 자동 수집 설정 (선택사항)
-4. "설정 저장" 클릭
+2. 기간 설정:
+   - 시작일: 다운로드 시작 날짜
+   - 종료일: 다운로드 종료 날짜 (최대 90일)
+3. 고급 설정 (선택사항):
+   - 다운로드 간격: 3초 (기본값)
+   - 최대 재시도 횟수: 3회 (기본값)
 
 ## 사용 방법
 
-### 즉시 수집
-1. TikTok Seller Center Ads Dashboard 페이지 열기
-2. 확장 프로그램에서 "지금 수집" 클릭
+### 다운로드 시작
+1. TikTok Shop Ads Dashboard 페이지 열기 (https://seller.us.tiktokglobalshop.com/ads-creation/dashboard)
+2. 확장 프로그램에서 기간 설정
+3. "다운로드 시작" 클릭
 
-### 자동 수집
-- 매일 설정된 시간에 자동으로 어제 데이터 수집
-- Chrome이 실행 중이어야 함
+### 진행 상황 확인
+- 진행률 표시: 전체 날짜 중 현재 진행 상황
+- 현재 처리 중인 날짜 표시
+- 로그에서 상세 상태 확인
 
-### 기간 수집
-1. "기간 수집" 클릭
-2. 시작일과 종료일 입력
-3. 자동으로 각 날짜별 데이터 수집
+### 중지 및 재개
+- "중지" 버튼으로 다운로드 중단
+- 진행 상황은 자동 저장됨 (설정 시)
 
 ## 아이콘 생성
 
@@ -57,17 +59,19 @@ sips -s format png icon.svg --out icon128.png --resampleHeightWidth 128 128
 
 ## 문제 해결
 
-### 데이터를 찾을 수 없음
+### 다운로드가 시작되지 않음
+- TikTok Shop Ads 페이지에 접속했는지 확인
+- 로그인 상태 확인
+- 기간 설정이 올바른지 확인
+
+### 다운로드 실패
 - 페이지가 완전히 로드될 때까지 대기
-- 올바른 페이지인지 확인 (Ads Dashboard)
-- 날짜 범위가 올바르게 설정되었는지 확인
+- 날짜 필터가 Daily로 설정되었는지 확인
+- 브라우저 다운로드 설정 확인
 
-### Supabase 업로드 실패
-- Supabase URL과 Key가 올바른지 확인
-- RLS 정책이 올바르게 설정되었는지 확인
-- 네트워크 연결 확인
+## 주의사항
 
-## 보안 주의사항
-
-- Supabase Anon Key는 공개되어도 안전하지만, 다른 사람과 공유하지 마세요
-- 확장 프로그램은 로컬에서만 사용하세요
+- 브라우저를 닫지 마세요
+- 다운로드 중 페이지를 이동하지 마세요
+- 최대 90일까지 선택 가능
+- TikTok UI 변경 시 업데이트 필요

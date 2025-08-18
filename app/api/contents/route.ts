@@ -346,18 +346,51 @@ export async function GET(request: NextRequest) {
       comment_count: Number(c.comment_count) || 0,
     }))
 
-    // 고유 크리에이터 수 계산
-    const uniqueCreators = new Set(safeContents.map((c) => c.creator_name)).size
+    // video_link 기반으로 중복 제거
+    const uniqueVideoMap = new Map<string, ContentSimple>()
+    safeContents.forEach(content => {
+      const videoId = content.video_link?.match(/\/video\/(\d+)/)?.[1]
+      if (videoId && !uniqueVideoMap.has(videoId)) {
+        uniqueVideoMap.set(videoId, content)
+      } else if (!videoId && content.video_link && !uniqueVideoMap.has(content.video_link)) {
+        // videoId를 추출할 수 없는 경우 전체 링크를 키로 사용
+        uniqueVideoMap.set(content.video_link, content)
+      }
+    })
+    const uniqueContents = Array.from(uniqueVideoMap.values())
     
-    // 총 노출 수 계산
-    const totalShoppableImpressions = safeContents.reduce(
+    console.log(`중복 제거: ${safeContents.length}개 → ${uniqueContents.length}개`)
+
+    // 고유 크리에이터 수 계산
+    const uniqueCreators = new Set(uniqueContents.map((c) => c.creator_name)).size
+    
+    // 중복 제거된 데이터로 통계 계산
+    const totalShoppableImpressions = uniqueContents.reduce(
       (sum, content) => sum + (content.shoppable_impressions || 0), 
       0
     )
     
     // 총 좋아요 수 계산
-    const totalLikeCount = safeContents.reduce(
+    const totalLikeCount = uniqueContents.reduce(
       (sum, content) => sum + (content.like_count || 0), 
+      0
+    )
+    
+    // 총 GMV 계산
+    const totalGmv = uniqueContents.reduce(
+      (sum, content) => sum + (content.gmv || 0),
+      0
+    )
+    
+    // 총 수수료 계산
+    const totalCommission = uniqueContents.reduce(
+      (sum, content) => sum + (content.est_commission || 0),
+      0
+    )
+    
+    // 총 주문 수 계산
+    const totalOrders = uniqueContents.reduce(
+      (sum, content) => sum + (content.affiliate_orders || 0),
       0
     )
 
@@ -365,28 +398,31 @@ export async function GET(request: NextRequest) {
 
     switch (groupBy) {
       case "daily":
-        groupedData = groupByDate(safeContents)
+        groupedData = groupByDate(uniqueContents)
         break
       case "weekly":
-        groupedData = groupByWeek(safeContents)
+        groupedData = groupByWeek(uniqueContents)
         break
       case "monthly":
-        groupedData = groupByMonth(safeContents)
+        groupedData = groupByMonth(uniqueContents)
         break
       case "creator":
-        groupedData = groupByCreator(safeContents)
+        groupedData = groupByCreator(uniqueContents)
         break
       default:
-        groupedData = groupByDate(safeContents)
+        groupedData = groupByDate(uniqueContents)
     }
 
     return NextResponse.json({
       data: groupedData,
-      totalContents: safeContents.length,
-      totalCount: safeContents.length,
+      totalContents: uniqueContents.length,
+      totalCount: uniqueContents.length,
       uniqueCreators: uniqueCreators,
       totalShoppableImpressions: totalShoppableImpressions,
       totalLikeCount: totalLikeCount,
+      totalGmv: totalGmv,
+      totalCommission: totalCommission,
+      totalOrders: totalOrders,
     })
   } catch (err: any) {
     console.error("API /api/contents error:", err)

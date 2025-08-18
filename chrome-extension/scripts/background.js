@@ -1,342 +1,439 @@
-// Background service worker for Chrome Extension
-let isCollecting = false;
+// TikTok Ads Auto Downloader - Background Service Worker
 
-// 알람 설정 (매일 지정된 시간에 실행)
-chrome.alarms.create('dailyCollection', {
-  periodInMinutes: 1440 // 24시간마다
+// Download state management
+let downloadState = {
+  isRunning: false,
+  startDate: null,
+  endDate: null,
+  currentDate: null,
+  completed: 0,
+  total: 0,
+  failed: [],
+  tabId: null,
+  lastError: null,
+  lastDownloadId: null
+};
+
+// Settings defaults
+const defaultSettings = {
+  downloadInterval: 3,
+  maxRetries: 3,
+  autoSaveProgress: true
+};
+
+// Initialize extension
+chrome.runtime.onInstalled.addListener(() => {
+  console.log('TikTok Ads Auto Downloader installed');
+  
+  // Set default settings
+  chrome.storage.local.get(Object.keys(defaultSettings), (result) => {
+    const settings = { ...defaultSettings, ...result };
+    chrome.storage.local.set(settings);
+  });
 });
 
-// 알람 이벤트 리스너
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'dailyCollection') {
-    checkAndCollect();
+// Message handler
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('Message received:', request.action);
+  
+  if (request.action === 'startDownload') {
+    handleStartDownload(request, sendResponse);
+    return true; // Will respond asynchronously
   }
+  
+  if (request.action === 'stopDownload') {
+    handleStopDownload(sendResponse);
+    return false;
+  }
+  
+  if (request.action === 'getProgress') {
+    sendResponse(downloadState);
+    return false;
+  }
+  
+  if (request.action === 'downloadComplete') {
+    handleDownloadComplete(request);
+    return false;
+  }
+  
+  if (request.action === 'downloadError') {
+    handleDownloadError(request);
+    return false;
+  }
+  
+  if (request.action === 'contentScriptReady') {
+    console.log('Content script ready on:', request.url);
+    return false;
+  }
+  
+  if (request.action === 'csvDataCaptured') {
+    handleCsvDataCaptured(request);
+    return false;
+  }
+  
+  sendResponse({ success: false, error: 'Unknown action' });
+  return false;
 });
 
-// 설정 확인 후 수집
-async function checkAndCollect() {
-  const config = await chrome.storage.local.get(['autoCollect', 'collectTime']);
-  
-  if (!config.autoCollect) return;
-  
-  const now = new Date();
-  const [hours, minutes] = config.collectTime.split(':');
-  
-  if (now.getHours() === parseInt(hours) && now.getMinutes() === parseInt(minutes)) {
-    collectYesterdayData();
+// Start download process
+async function handleStartDownload(request, sendResponse) {
+  try {
+    if (downloadState.isRunning) {
+      sendResponse({ success: false, error: '다운로드가 이미 진행 중입니다' });
+      return;
+    }
+    
+    // First, try to inject content script if needed
+    await ensureContentScriptInjected(request.tabId);
+    
+    // Check if we can communicate with the tab
+    const canCommunicate = await checkTabCommunication(request.tabId);
+    if (!canCommunicate) {
+      sendResponse({ 
+        success: false, 
+        error: 'TikTok Shop Ads 페이지를 새로고침한 후 다시 시도해주세요' 
+      });
+      return;
+    }
+    
+    // Initialize download state
+    downloadState = {
+      isRunning: true,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      currentDate: null,
+      completed: 0,
+      total: 0,
+      failed: [],
+      tabId: request.tabId,
+      lastError: null
+    };
+    
+    // Calculate total days
+    const start = new Date(request.startDate);
+    const end = new Date(request.endDate);
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    downloadState.total = diffDays;
+    
+    // Log start
+    await addLog('info', `다운로드 시작: ${request.startDate} ~ ${request.endDate} (${diffDays}일)`);
+    
+    // Start download process
+    setTimeout(() => processNextDate(), 2000);
+    
+    sendResponse({ success: true });
+    
+  } catch (error) {
+    console.error('Failed to start download:', error);
+    sendResponse({ success: false, error: error.message });
+    downloadState.isRunning = false;
   }
 }
 
-// 어제 데이터 수집
-async function collectYesterdayData() {
-  if (isCollecting) {
-    console.log('이미 수집 중입니다.');
+// Ensure content script is injected
+async function ensureContentScriptInjected(tabId) {
+  try {
+    // First check if content script is already injected
+    const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' }).catch(() => null);
+    if (response && response.success) {
+      console.log('Content script already injected');
+      return true;
+    }
+    
+    // If not, inject it programmatically
+    console.log('Injecting content script...');
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['scripts/content.js']
+    });
+    
+    // Also inject CSS
+    await chrome.scripting.insertCSS({
+      target: { tabId: tabId },
+      files: ['styles/content.css']
+    });
+    
+    console.log('Content script injected successfully');
+    return true;
+  } catch (error) {
+    console.error('Failed to inject content script:', error);
+    return false;
+  }
+}
+
+// Check if we can communicate with the tab
+async function checkTabCommunication(tabId) {
+  return new Promise((resolve) => {
+    chrome.tabs.sendMessage(tabId, { action: 'ping' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.log('Cannot communicate with tab:', chrome.runtime.lastError.message);
+        resolve(false);
+      } else {
+        console.log('Communication successful:', response);
+        resolve(true);
+      }
+    });
+  });
+}
+
+// Stop download process
+function handleStopDownload(sendResponse) {
+  if (!downloadState.isRunning) {
+    sendResponse({ success: false, error: '진행 중인 다운로드가 없습니다' });
     return;
   }
+  
+  downloadState.isRunning = false;
+  downloadState.lastError = '사용자가 중지함';
+  
+  addLog('warning', '다운로드가 중지되었습니다');
+  
+  sendResponse({ success: true });
+}
 
-  isCollecting = true;
+// Process next date in the range
+async function processNextDate() {
+  if (!downloadState.isRunning) {
+    return;
+  }
   
   try {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const dateStr = yesterday.toISOString().split('T')[0];
+    const settings = await chrome.storage.local.get(['downloadInterval', 'maxRetries']);
+    const downloadInterval = settings.downloadInterval || 3;
+    const maxRetries = settings.maxRetries || 3;
     
-    await addLog(`${dateStr} 데이터 수집 시작`);
-    
-    // TikTok 탭 찾기 또는 생성
-    const tabs = await chrome.tabs.query({ url: '*://*.tiktokglobalshop.com/*' });
-    let tab;
-    
-    if (tabs.length > 0) {
-      tab = tabs[0];
-      await chrome.tabs.update(tab.id, { active: true });
+    // Determine next date to process
+    let dateToProcess;
+    if (!downloadState.currentDate) {
+      dateToProcess = new Date(downloadState.startDate);
     } else {
-      tab = await chrome.tabs.create({ 
-        url: 'https://seller.us.tiktokglobalshop.com/ads-creation/dashboard' 
-      });
-      // 페이지 로드 대기
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      dateToProcess = new Date(downloadState.currentDate);
+      dateToProcess.setDate(dateToProcess.getDate() + 1);
     }
     
-    // Content script에 수집 명령 전송
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'collectData',
-      date: dateStr
-    });
-    
-    if (response.success) {
-      await addLog(`${dateStr} 데이터 수집 완료`);
+    // Check if we've reached the end
+    const endDate = new Date(downloadState.endDate);
+    if (dateToProcess > endDate) {
+      // Download complete
+      downloadState.isRunning = false;
+      await addLog('success', `모든 다운로드 완료! (성공: ${downloadState.completed}, 실패: ${downloadState.failed.length})`);
       
-      // Supabase에 업로드
-      if (response.data) {
-        await uploadToSupabase(response.data, dateStr);
+      if (downloadState.failed.length > 0) {
+        await addLog('warning', `실패한 날짜: ${downloadState.failed.join(', ')}`);
       }
-    } else {
-      throw new Error(response.error || '수집 실패');
+      
+      return;
     }
     
+    // Update current date
+    const dateStr = dateToProcess.toISOString().split('T')[0];
+    downloadState.currentDate = dateStr;
+    
+    console.log(`Processing date: ${dateStr}`);
+    await addLog('info', `처리 중: ${dateStr}`);
+    
+    // Send message to content script to trigger download
+    chrome.tabs.sendMessage(downloadState.tabId, {
+      action: 'downloadDate',
+      date: dateStr,
+      retries: maxRetries
+    }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('Failed to send message:', chrome.runtime.lastError.message);
+        downloadState.lastError = 'Content script와 통신할 수 없습니다. 페이지를 새로고침해주세요.';
+        downloadState.failed.push(dateStr);
+        downloadState.isRunning = false;
+        addLog('error', downloadState.lastError);
+        return;
+      }
+      
+      console.log('Message sent successfully, response:', response);
+    });
+    
   } catch (error) {
-    await addLog(`오류: ${error.message}`, 'error');
-  } finally {
-    isCollecting = false;
+    console.error('Error processing date:', error);
+    downloadState.lastError = error.message;
+    downloadState.isRunning = false;
+    await addLog('error', `처리 오류: ${error.message}`);
   }
 }
 
-// 날짜 범위 수집
-async function collectDateRange(startDate, endDate) {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+// Handle download complete for a date
+async function handleDownloadComplete(request) {
+  downloadState.completed++;
+  await addLog('success', `${request.date} 다운로드 완료`);
   
-  for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-    const dateStr = date.toISOString().split('T')[0];
-    await collectDataForDate(dateStr);
-    // 요청 간 딜레이
-    await new Promise(resolve => setTimeout(resolve, 3000));
+  // Save progress if enabled
+  const settings = await chrome.storage.local.get(['autoSaveProgress']);
+  if (settings.autoSaveProgress) {
+    saveProgress();
+  }
+  
+  // Continue to next date
+  if (downloadState.isRunning) {
+    setTimeout(() => processNextDate(), 3000);
   }
 }
 
-// 특정 날짜 데이터 수집
-async function collectDataForDate(dateStr) {
+// Handle download error for a date
+async function handleDownloadError(request) {
+  downloadState.failed.push(request.date);
+  downloadState.lastError = request.error;
+  await addLog('error', `${request.date} 다운로드 실패: ${request.error}`);
+  
+  // Continue to next date even if failed
+  if (downloadState.isRunning) {
+    setTimeout(() => processNextDate(), 3000);
+  }
+}
+
+// Handle CSV data captured from network requests
+async function handleCsvDataCaptured(request) {
+  const { csvData, date, url } = request;
+  
+  console.log('CSV data captured in background:', {
+    dataLength: csvData?.length,
+    date,
+    url: url?.substring(0, 100) + '...'
+  });
+  
   try {
-    await addLog(`${dateStr} 데이터 수집 중...`);
+    await addLog('info', `CSV 데이터 캐치됨 (${date}): ${(csvData.length / 1024).toFixed(2)} KB`);
     
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs.length === 0) return;
+    // Upload CSV data to Supabase
+    await uploadCsvToSupabase(csvData, date || downloadState.currentDate);
     
-    const response = await chrome.tabs.sendMessage(tabs[0].id, {
-      action: 'collectData',
-      date: dateStr
-    });
-    
-    if (response.success && response.data) {
-      await uploadToSupabase(response.data, dateStr);
+    // Mark download as complete
+    if (downloadState.isRunning && downloadState.currentDate === date) {
+      downloadState.completed++;
+      await addLog('success', `${date} 다운로드 및 업로드 완료`);
+      
+      // Continue to next date
+      setTimeout(() => processNextDate(), 2000);
     }
     
   } catch (error) {
-    await addLog(`${dateStr} 수집 실패: ${error.message}`, 'error');
+    console.error('Error processing captured CSV data:', error);
+    await addLog('error', `CSV 데이터 처리 실패: ${error.message}`);
+    
+    if (downloadState.isRunning) {
+      downloadState.failed.push(date || downloadState.currentDate);
+      setTimeout(() => processNextDate(), 3000);
+    }
   }
 }
 
-// Supabase에 데이터 업로드
-async function uploadToSupabase(data, gmvDate) {
-  try {
-    const config = await chrome.storage.local.get(['supabaseUrl', 'supabaseKey']);
-    
-    if (!config.supabaseUrl || !config.supabaseKey) {
-      throw new Error('Supabase 설정이 필요합니다');
-    }
-    
-    // 데이터 변환
-    const records = data.map(row => ({
-      gmv_date: gmvDate,
-      campaign_id: row.campaignId || '',
-      campaign_name: row.campaignName || '',
-      video_id: row.videoId || '',
-      video_title: row.videoTitle || '',
-      creator_name: row.creatorName || '',
-      creator_id: row.creatorId || '',
-      gmv: parseFloat(row.gmv) || 0,
-      orders: parseInt(row.orders) || 0,
-      ad_spend: parseFloat(row.adSpend) || 0,
-      impressions: parseInt(row.impressions) || 0,
-      clicks: parseInt(row.clicks) || 0,
-      click_rate: parseFloat(row.clickRate) || 0,
-      conversion_rate: parseFloat(row.conversionRate) || 0,
-      product_name: row.productName || '',
-      product_id: row.productId || ''
-    }));
-    
-    // Supabase API 호출
-    const response = await fetch(`${config.supabaseUrl}/rest/v1/gmv_daily_raw`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': config.supabaseKey,
-        'Authorization': `Bearer ${config.supabaseKey}`,
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify(records)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.statusText}`);
-    }
-    
-    await addLog(`${gmvDate}: ${records.length}개 레코드 업로드 완료`, 'success');
-    
-    // Materialized View 새로고침
-    await refreshMaterializedViews(config);
-    
-  } catch (error) {
-    await addLog(`업로드 실패: ${error.message}`, 'error');
+// Upload captured CSV data to Supabase
+async function uploadCsvToSupabase(csvContent, date) {
+  console.log('Uploading captured CSV to Supabase for date:', date);
+  
+  // Parse CSV content
+  const lines = csvContent.split('\n').filter(line => line.trim());
+  if (lines.length === 0) {
+    throw new Error('No data in CSV');
   }
+  
+  // Simple CSV parsing (can be enhanced)
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const data = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim()) {
+      const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+      const row = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index] || '';
+      });
+      data.push(row);
+    }
+  }
+  
+  console.log(`Parsed ${data.length} rows from CSV`);
+  
+  // Send to Supabase API
+  const apiUrl = 'https://manage-order-oliveyoung.vercel.app/api/tiktok-ads-upload';
+  
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      date: date,
+      data: data
+    })
+  });
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Upload failed: ${response.statusText} - ${errorData.error || ''}`);
+  }
+  
+  const result = await response.json();
+  console.log('Upload successful:', result);
+  
+  await addLog('success', `${date} 데이터가 Supabase에 저장되었습니다 (${result.rowsInserted || data.length}행)`);
+  
+  return result;
 }
 
-// Materialized View 새로고침
-async function refreshMaterializedViews(config) {
-  try {
-    const response = await fetch(`${config.supabaseUrl}/rest/v1/rpc/refresh_gmv_materialized_views`, {
-      method: 'POST',
-      headers: {
-        'apikey': config.supabaseKey,
-        'Authorization': `Bearer ${config.supabaseKey}`
-      }
-    });
-    
-    if (response.ok) {
-      await addLog('Materialized View 새로고침 완료', 'success');
-    }
-  } catch (error) {
-    console.error('View refresh failed:', error);
-  }
+// Save progress to storage
+async function saveProgress() {
+  const progress = {
+    startDate: downloadState.startDate,
+    endDate: downloadState.endDate,
+    currentDate: downloadState.currentDate,
+    completed: downloadState.completed,
+    failed: downloadState.failed,
+    savedAt: Date.now()
+  };
+  
+  await chrome.storage.local.set({ downloadProgress: progress });
 }
 
-// 로그 추가
-async function addLog(message, type = 'info') {
-  const timestamp = new Date().toISOString();
-  const log = { timestamp, message, type };
+// Add log entry
+async function addLog(type, message) {
+  const timestamp = Date.now();
+  const log = { timestamp, type, message };
   
   const result = await chrome.storage.local.get(['logs']);
   const logs = result.logs || [];
   logs.unshift(log);
   
-  // 최대 50개 로그 유지
-  if (logs.length > 50) logs.length = 50;
+  // Keep only last 100 logs
+  if (logs.length > 100) {
+    logs.length = 100;
+  }
   
   await chrome.storage.local.set({ logs });
+  
+  // Also log to console
+  console.log(`[${type.toUpperCase()}] ${message}`);
 }
 
-// 메시지 리스너
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  switch (request.action) {
-    case 'collectNow':
-      collectTodayData();
-      sendResponse({ success: true });
-      break;
-      
-    case 'collectRange':
-      collectDateRange(request.startDate, request.endDate);
-      sendResponse({ success: true });
-      break;
-      
-    case 'getLogs':
-      chrome.storage.local.get(['logs'], (result) => {
-        sendResponse(result.logs || []);
-      });
-      return true; // 비동기 응답
-    
-    case 'pageLoaded':
-      // 페이지 로드 알림
-      console.log('Page loaded:', request.url);
-      break;
-      
-    default:
-      sendResponse({ success: false, error: 'Unknown action' });
+// Handle tab close/update
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabId === downloadState.tabId && downloadState.isRunning) {
+    downloadState.isRunning = false;
+    downloadState.lastError = 'TikTok Shop Ads 탭이 닫혔습니다';
+    addLog('error', downloadState.lastError);
   }
 });
 
-// 오늘 데이터 수집 (6월 17일부터)
-async function collectTodayData() {
-  if (isCollecting) {
-    console.log('이미 수집 중입니다.');
-    return;
-  }
-
-  isCollecting = true;
-  
-  try {
-    await addLog('GMV 데이터 수집 시작 (2025-06-17 ~ 오늘)');
-    
-    // TikTok 탭 찾기 또는 생성
-    const tabs = await chrome.tabs.query({ url: '*://*.tiktokglobalshop.com/*' });
-    let tab;
-    
-    if (tabs.length > 0) {
-      tab = tabs[0];
-      await chrome.tabs.update(tab.id, { active: true });
-    } else {
-      tab = await chrome.tabs.create({ 
-        url: 'https://seller.us.tiktokglobalshop.com/ads-creation/dashboard' 
-      });
-      // 페이지 로드 대기
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-    
-    // Content script에 수집 명령 전송
-    const response = await chrome.tabs.sendMessage(tab.id, {
-      action: 'collectData'
-    });
-    
-    if (response.success) {
-      await addLog(`데이터 수집 완료: ${response.data.length}개 캠페인`);
-      
-      // Supabase에 업로드
-      if (response.data && response.data.length > 0) {
-        await uploadCampaignData(response.data, response.date);
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (tabId === downloadState.tabId && changeInfo.url) {
+    // Check if user navigated away from TikTok Shop Ads
+    if (!changeInfo.url.includes('tiktokglobalshop.com/ads-creation') && 
+        !changeInfo.url.includes('ads.tiktok.com')) {
+      if (downloadState.isRunning) {
+        downloadState.isRunning = false;
+        downloadState.lastError = 'TikTok Shop Ads 페이지를 벗어났습니다';
+        addLog('warning', downloadState.lastError);
       }
-    } else {
-      throw new Error(response.error || '수집 실패');
     }
-    
-  } catch (error) {
-    await addLog(`오류: ${error.message}`, 'error');
-  } finally {
-    isCollecting = false;
   }
-}
+});
 
-// 캠페인 데이터 업로드
-async function uploadCampaignData(campaigns, date) {
-  try {
-    const config = await chrome.storage.local.get(['supabaseUrl', 'supabaseKey']);
-    
-    if (!config.supabaseUrl || !config.supabaseKey) {
-      throw new Error('Supabase 설정이 필요합니다');
-    }
-    
-    // 각 캠페인의 상세 데이터를 gmv_daily_raw 형식으로 변환
-    const records = [];
-    
-    campaigns.forEach(campaign => {
-      // 각 크리에이티브를 개별 레코드로 변환
-      campaign.creatives.forEach(creative => {
-        records.push({
-          gmv_date: date,
-          campaign_id: campaign.campaignName.match(/\d+$/)?.[0] || '',
-          campaign_name: campaign.campaignName,
-          video_id: creative.id || '',
-          video_title: creative.name || '',
-          creator_name: '', // 상세 페이지에서 추출 필요
-          gmv: parseFloat(creative.revenue?.replace(/[^0-9.-]/g, '')) || 0,
-          orders: parseInt(creative.orders?.replace(/[^0-9]/g, '')) || 0,
-          impressions: parseInt(creative.impressions?.replace(/[^0-9]/g, '')) || 0,
-          clicks: parseInt(creative.clicks?.replace(/[^0-9]/g, '')) || 0,
-          click_rate: 0, // 계산 필요
-          conversion_rate: 0, // 계산 필요
-          ad_spend: 0 // 메트릭에서 추출 필요
-        });
-      });
-    });
-    
-    // Supabase에 업로드
-    const response = await fetch(`${config.supabaseUrl}/rest/v1/gmv_daily_raw`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': config.supabaseKey,
-        'Authorization': `Bearer ${config.supabaseKey}`,
-        'Prefer': 'resolution=merge-duplicates'
-      },
-      body: JSON.stringify(records)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.statusText}`);
-    }
-    
-    await addLog(`${records.length}개 레코드 업로드 완료`, 'success');
-    
-  } catch (error) {
-    await addLog(`업로드 실패: ${error.message}`, 'error');
-  }
-}
+// Note: Download event listener removed - now using network interception
+// The content script intercepts CSV data directly from network requests

@@ -63,6 +63,13 @@ export default function ContentAnalysisPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({ start: null, end: null })
+  const [apiStats, setApiStats] = useState<{
+    totalGmv?: number
+    totalCommission?: number
+    totalOrders?: number
+    uniqueCreators?: number
+    totalContents?: number
+  }>({})
 
   // Video ID 추출 함수
   const extractVideoId = (url: string): string => {
@@ -87,6 +94,15 @@ export default function ContentAnalysisPage() {
         
         const result = await response.json()
         console.log('API 응답:', result)
+        
+        // API에서 제공하는 전체 통계 저장
+        setApiStats({
+          totalGmv: result.totalGmv,
+          totalCommission: result.totalCommission,
+          totalOrders: result.totalOrders,
+          uniqueCreators: result.uniqueCreators,
+          totalContents: result.totalContents
+        })
         
         // API 응답에서 개별 콘텐츠들을 추출하여 VideoData 형식으로 변환
         const allContents: VideoData[] = []
@@ -312,11 +328,11 @@ export default function ContentAnalysisPage() {
   }, [videoData])
 
   const totalStats = {
-    totalVideos: uniqueVideosForStats.length,
-    totalGmv: uniqueVideosForStats.reduce((sum, video) => sum + video.gmv, 0),
-    totalCommission: uniqueVideosForStats.reduce((sum, video) => sum + video.estCommission, 0),
-    totalOrders: uniqueVideosForStats.reduce((sum, video) => sum + video.affiliateOrders, 0),
-    totalCreators: creatorStats.length,
+    totalVideos: apiStats.totalContents || uniqueVideosForStats.length,
+    totalGmv: apiStats.totalGmv || uniqueVideosForStats.reduce((sum, video) => sum + video.gmv, 0),
+    totalCommission: apiStats.totalCommission || uniqueVideosForStats.reduce((sum, video) => sum + video.estCommission, 0),
+    totalOrders: apiStats.totalOrders || uniqueVideosForStats.reduce((sum, video) => sum + video.affiliateOrders, 0),
+    totalCreators: apiStats.uniqueCreators || creatorStats.length,
   }
 
   if (loading) {

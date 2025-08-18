@@ -1,65 +1,117 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>TikTok GMV Auto Collector</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikTok Ads Auto Downloader</title>
   <link rel="stylesheet" href="styles/popup.css">
 </head>
 <body>
   <div class="container">
-    <h1>GMV Auto Collector</h1>
+    <header class="header">
+      <h1>TikTok Ads Auto Downloader</h1>
+      <div class="version">v2.0.0</div>
+    </header>
     
-    <div class="status-section">
-      <h3>상태</h3>
-      <div id="status" class="status">대기 중...</div>
-      <div class="info-text">
-        <p>📌 사용 방법:</p>
-        <ol>
-          <li>TikTok Seller Center Ads Dashboard 열기</li>
-          <li>"지금 수집" 클릭</li>
-          <li>자동으로 6월 17일부터 오늘까지 데이터 수집</li>
-          <li>각 캠페인의 View details 페이지 자동 방문</li>
-        </ol>
-      </div>
-    </div>
+    <main class="main-content">
+      <!-- 기간 설정 섹션 -->
+      <section class="date-section">
+        <h2>📅 기간 설정</h2>
+        <div class="date-inputs">
+          <div class="form-group">
+            <label for="startDate">시작일</label>
+            <input type="date" id="startDate" class="date-input">
+          </div>
+          <div class="form-group">
+            <label for="endDate">종료일</label>
+            <input type="date" id="endDate" class="date-input">
+          </div>
+        </div>
+        <div class="date-info">
+          <small>* 최대 90일까지 선택 가능</small>
+        </div>
+      </section>
 
-    <div class="config-section">
-      <h3>설정</h3>
-      
-      <div class="form-group">
-        <label for="supabaseUrl">Supabase URL:</label>
-        <input type="text" id="supabaseUrl" placeholder="https://your-project.supabase.co">
-      </div>
-      
-      <div class="form-group">
-        <label for="supabaseKey">Supabase Anon Key:</label>
-        <input type="password" id="supabaseKey" placeholder="your-anon-key">
-      </div>
-      
-      <div class="form-group">
-        <label for="autoCollect">자동 수집:</label>
-        <input type="checkbox" id="autoCollect">
-        <span class="checkbox-label">매일 자동으로 데이터 수집</span>
-      </div>
-      
-      <div class="form-group">
-        <label for="collectTime">수집 시간:</label>
-        <input type="time" id="collectTime" value="02:00">
-      </div>
-    </div>
+      <!-- 액션 버튼 섹션 -->
+      <section class="action-section">
+        <button id="startDownload" class="btn btn-primary">
+          <span class="btn-icon">▶</span>
+          다운로드 시작
+        </button>
+        <button id="stopDownload" class="btn btn-danger" disabled>
+          <span class="btn-icon">■</span>
+          중지
+        </button>
+      </section>
 
-    <div class="actions">
-      <button id="saveConfig" class="btn btn-primary">설정 저장</button>
-      <button id="collectNow" class="btn btn-success">지금 수집</button>
-      <button id="collectRange" class="btn btn-secondary">기간 수집</button>
-    </div>
+      <!-- 진행 상황 섹션 -->
+      <section class="progress-section">
+        <h2>📊 진행 상황</h2>
+        <div class="progress-info">
+          <div class="progress-text">
+            <span id="progressStatus">대기 중</span>
+            <span id="progressCount">0/0</span>
+          </div>
+          <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+          </div>
+          <div class="current-date">
+            <small id="currentProcessing"></small>
+          </div>
+        </div>
+      </section>
 
-    <div class="logs-section">
-      <h3>최근 로그</h3>
-      <div id="logs" class="logs"></div>
-    </div>
+      <!-- 상태 표시 섹션 -->
+      <section class="status-section">
+        <h2>📌 상태</h2>
+        <div id="statusMessage" class="status-message">
+          준비됨 - TikTok Shop Ads 페이지에서 실행하세요
+        </div>
+      </section>
+
+      <!-- 로그 섹션 -->
+      <section class="log-section">
+        <div class="log-header">
+          <h2>📝 로그</h2>
+          <button id="clearLogs" class="btn btn-small">Clear</button>
+        </div>
+        <div id="logContainer" class="log-container">
+          <div id="logs" class="logs"></div>
+        </div>
+      </section>
+
+      <!-- 설정 섹션 (접을 수 있음) -->
+      <details class="settings-section">
+        <summary>⚙️ 고급 설정</summary>
+        <div class="settings-content">
+          <div class="form-group">
+            <label for="downloadInterval">다운로드 간격 (초)</label>
+            <input type="number" id="downloadInterval" min="1" max="10" value="3">
+          </div>
+          <div class="form-group">
+            <label for="maxRetries">최대 재시도 횟수</label>
+            <input type="number" id="maxRetries" min="1" max="5" value="3">
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="autoSaveProgress">
+              진행 상황 자동 저장
+            </label>
+          </div>
+          <button id="saveSettings" class="btn btn-secondary">설정 저장</button>
+        </div>
+      </details>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-info">
+        <span>© 2025 Cosduck Agency</span>
+        <span class="separator">|</span>
+        <a href="#" id="helpLink">도움말</a>
+      </div>
+    </footer>
   </div>
-  
+
   <script src="scripts/popup.js"></script>
 </body>
 </html>

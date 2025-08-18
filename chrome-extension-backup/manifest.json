@@ -1,23 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "TikTok Ads Auto Downloader",
-  "version": "2.0.0",
-  "description": "TikTok Shop Ads에서 일별 데이터를 자동으로 다운로드합니다.",
+  "name": "TikTok GMV Auto Collector",
+  "version": "1.0.0",
+  "description": "TikTok Seller Center에서 GMV 데이터를 자동으로 수집하고 Supabase에 업로드합니다.",
   "permissions": [
     "activeTab",
     "storage",
     "downloads",
-    "tabs",
-    "scripting"
+    "webRequest",
+    "cookies",
+    "alarms"
   ],
   "host_permissions": [
-    "https://ads.tiktok.com/*",
-    "https://business.tiktok.com/*",
-    "https://seller.us.tiktokglobalshop.com/*",
-    "https://seller.tiktokglobalshop.com/*",
     "https://*.tiktokglobalshop.com/*",
-    "https://manage-order-oliveyoung.vercel.app/*",
-    "http://localhost:3000/*"
+    "https://*.supabase.co/*"
   ],
   "background": {
     "service_worker": "scripts/background.js"
@@ -25,11 +21,8 @@
   "content_scripts": [
     {
       "matches": [
-        "https://ads.tiktok.com/*",
-        "https://business.tiktok.com/*",
         "https://seller.us.tiktokglobalshop.com/*",
-        "https://seller.tiktokglobalshop.com/*",
-        "https://*.tiktokglobalshop.com/*"
+        "https://seller.tiktokglobalshop.com/*"
       ],
       "js": ["scripts/content.js"],
       "css": ["styles/content.css"],
