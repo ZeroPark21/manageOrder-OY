@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
         const { data: batch, error: batchError } = await supabase
           .from("contents")
           .select("gmv, video_link")
-          .gte("publish_date", "2025-06-01")
+          .gte("publish_date", "2025-07-01")
           .range(offset, offset + batchSize - 1)
         
         if (batchError) {
@@ -57,22 +57,10 @@ export async function GET(request: NextRequest) {
       }
       
       if (allContents.length > 0) {
-        // video_link 기반으로 중복 제거
-        const uniqueVideoMap = new Map<string, number>()
-        allContents.forEach(content => {
-          const videoId = content.video_link?.match(/\/video\/(\d+)/)?.[1]
-          if (videoId && !uniqueVideoMap.has(videoId)) {
-            uniqueVideoMap.set(videoId, content.gmv || 0)
-          } else if (!videoId && content.video_link && !uniqueVideoMap.has(content.video_link)) {
-            // videoId를 추출할 수 없는 경우 전체 링크를 키로 사용
-            uniqueVideoMap.set(content.video_link, content.gmv || 0)
-          }
-        })
+        // 모든 GMV 값 합산 (중복 포함) - 각 레코드가 개별 판매를 나타낼 수 있음
+        contentTotalGmv = allContents.reduce((sum, content) => sum + (content.gmv || 0), 0)
         
-        // 중복 제거된 GMV 합산
-        contentTotalGmv = Array.from(uniqueVideoMap.values()).reduce((sum, gmv) => sum + gmv, 0)
-        
-        console.log(`GMV 계산: ${allContents.length}개 → ${uniqueVideoMap.size}개 (중복 제거), Total GMV: ${contentTotalGmv}`)
+        console.log(`GMV 계산: ${allContents.length}개 레코드, Total GMV: ${contentTotalGmv}`)
       }
     } catch (e) {
       console.log("콘텐츠 데이터 조회 실패:", e)

@@ -213,28 +213,53 @@ export async function POST(request: NextRequest) {
     // 모든 video_link를 먼저 수집
     const videoLinks = contents.map(c => c.video_link)
     
-    // 기존 데이터 한번에 조회
+    // 기존 데이터 한번에 조회 (전체 필드 포함)
     const { data: existingData } = await supabase
       .from("contents")
-      .select("id, video_link")
+      .select("*")
       .in("video_link", videoLinks)
     
-    const existingMap = new Map(existingData?.map(d => [d.video_link, d.id]) || [])
+    const existingMap = new Map(existingData?.map(d => [d.video_link, d]) || [])
     
     // 업데이트할 데이터와 삽입할 데이터 분리
     const toUpdate: Array<{id: number, data: ContentData}> = []
     const toInsert: ContentData[] = []
+    const skipped: string[] = []
     
     for (const content of contents) {
-      const existingId = existingMap.get(content.video_link)
-      if (existingId) {
-        toUpdate.push({ id: existingId, data: content })
+      const existing = existingMap.get(content.video_link)
+      if (existing) {
+        // 데이터 비교 (created_at, updated_at, id 제외)
+        const isDifferent = 
+          existing.content_title !== content.content_title ||
+          existing.creator_name !== content.creator_name ||
+          existing.publish_date !== content.publish_date ||
+          existing.gmv !== content.gmv ||
+          existing.affiliate_items_sold !== content.affiliate_items_sold ||
+          existing.affiliate_gmv !== content.affiliate_gmv ||
+          existing.shoppable_avg_order_value !== content.shoppable_avg_order_value ||
+          existing.est_commission !== content.est_commission ||
+          existing.est_flat_fee !== content.est_flat_fee ||
+          existing.affiliate_orders !== content.affiliate_orders ||
+          existing.shoppable_impressions !== content.shoppable_impressions ||
+          existing.affiliate_ctr !== content.affiliate_ctr ||
+          existing.shoppable_gpm !== content.shoppable_gpm ||
+          existing.affiliate_items_refunded !== content.affiliate_items_refunded ||
+          existing.affiliate_refunded_gmv !== content.affiliate_refunded_gmv ||
+          existing.comment_count !== content.comment_count ||
+          existing.like_count !== content.like_count
+        
+        if (isDifferent) {
+          toUpdate.push({ id: existing.id, data: content })
+        } else {
+          skipped.push(content.video_link)
+        }
       } else {
         toInsert.push(content)
       }
     }
     
-    console.log(`📊 업데이트: ${toUpdate.length}개, 새로 추가: ${toInsert.length}개`)
+    console.log(`📊 업데이트: ${toUpdate.length}개, 새로 추가: ${toInsert.length}개, 건너뜀: ${skipped.length}개`)
     
     // 업데이트 처리
     for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
@@ -276,6 +301,9 @@ export async function POST(request: NextRequest) {
         : "콘텐츠 데이터가 성공적으로 업로드되었습니다.",
       processedCount: contents.length,
       uploadedCount: totalSaved,
+      updatedCount: toUpdate.length,
+      insertedCount: toInsert.length,
+      skippedCount: skipped.length,
       errors: errors.length > 0 ? errors : undefined
     })
 

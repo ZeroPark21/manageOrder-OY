@@ -168,21 +168,12 @@ function groupByMonth(contents: ContentSimple[]) {
 function groupByCreator(contents: ContentSimple[]) {
   const grouped: { [key: string]: { creator: string; totalCount: number; contents: ContentSimple[] } } = {}
 
-  // 먼저 video_link 기준으로 중복 제거 (최신 데이터만 유지)
+  // 먼저 video_link 기준으로 중복 제거 (전체 URL 기준)
   const uniqueVideosMap = new Map<string, ContentSimple>()
   
   contents.forEach((content) => {
-    if (content.video_link) {
-      const existingContent = uniqueVideosMap.get(content.video_link)
-      // 기존 콘텐츠가 없거나, 새 콘텐츠의 publish_date가 더 최신인 경우 업데이트
-      if (!existingContent || 
-          (content.publish_date && existingContent.publish_date && 
-           new Date(content.publish_date) > new Date(existingContent.publish_date))) {
-        uniqueVideosMap.set(content.video_link, content)
-      } else if (!existingContent) {
-        // publish_date가 없는 경우에도 처음 들어온 데이터 유지
-        uniqueVideosMap.set(content.video_link, content)
-      }
+    if (content.video_link && !uniqueVideosMap.has(content.video_link)) {
+      uniqueVideosMap.set(content.video_link, content)
     }
   })
   
@@ -346,14 +337,10 @@ export async function GET(request: NextRequest) {
       comment_count: Number(c.comment_count) || 0,
     }))
 
-    // video_link 기반으로 중복 제거
+    // video_link 기반으로 중복 제거 (전체 URL 기준)
     const uniqueVideoMap = new Map<string, ContentSimple>()
     safeContents.forEach(content => {
-      const videoId = content.video_link?.match(/\/video\/(\d+)/)?.[1]
-      if (videoId && !uniqueVideoMap.has(videoId)) {
-        uniqueVideoMap.set(videoId, content)
-      } else if (!videoId && content.video_link && !uniqueVideoMap.has(content.video_link)) {
-        // videoId를 추출할 수 없는 경우 전체 링크를 키로 사용
+      if (content.video_link && !uniqueVideoMap.has(content.video_link)) {
         uniqueVideoMap.set(content.video_link, content)
       }
     })
