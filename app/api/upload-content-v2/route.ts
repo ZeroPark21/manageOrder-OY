@@ -32,8 +32,15 @@ interface ContentData {
 function parseNumber(value: any): number {
   if (typeof value === 'number') return value
   if (typeof value === 'string') {
-    const cleaned = value.replace(/[^0-9.-]/g, '')
-    return parseFloat(cleaned) || 0
+    // "$4,788.00" -> "4788.00"
+    // 콤마 제거, $ 제거, % 제거
+    const cleaned = value
+      .replace(/[$,]/g, '') // $ 와 콤마 제거
+      .replace(/[%]/g, '') // % 제거
+      .trim()
+    const num = parseFloat(cleaned)
+    console.log(`parseNumber: "${value}" -> "${cleaned}" -> ${num}`)
+    return isNaN(num) ? 0 : num
   }
   return 0
 }
@@ -129,6 +136,14 @@ export async function POST(request: NextRequest) {
     console.log(`📊 파싱된 데이터 수: ${data.length}`)
     if (data.length > 0) {
       console.log("첫 번째 데이터:", data[0])
+      console.log("컬럼명들:", Object.keys(data[0]))
+      // GMV 관련 필드 확인
+      const gmvFields = Object.keys(data[0]).filter(key => 
+        key.toLowerCase().includes('gmv') || 
+        key.toLowerCase().includes('revenue') || 
+        key.toLowerCase().includes('sales')
+      )
+      console.log("GMV 관련 필드들:", gmvFields)
     }
 
     // 데이터 변환
@@ -148,12 +163,21 @@ export async function POST(request: NextRequest) {
       const videoLink = row['Video link'] || row['video_link'] || ''
       const creatorName = row['Creator username'] || row['creator_name'] || ''
       
+      // GMV 값 찾기 - 여러 가능한 컬럼명 확인
+      let gmvValue = row['GMV'] || row['gmv'] || row['Total GMV'] || row['total_gmv'] || 
+                     row['Revenue'] || row['revenue'] || row['Sales'] || row['sales'] || 0
+      
+      // 첫 몇 개 로그로 확인
+      if (contents.length < 3) {
+        console.log(`Row ${contents.length} GMV raw value:`, gmvValue, '-> parsed:', parseNumber(gmvValue))
+      }
+      
       contents.push({
         content_title: videoName.substring(0, 255),
         video_link: videoLink.substring(0, 255),
         publish_date: parseDate(publishDate),
         creator_name: (creatorName || '알 수 없음').substring(0, 100),
-        gmv: parseNumber(row['GMV'] || row['gmv']),
+        gmv: parseNumber(gmvValue),
         affiliate_items_sold: Math.round(parseNumber(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'])),
         affiliate_gmv: parseNumber(row['Affiliate shoppable video GMV'] || row['affiliate_gmv']),
         shoppable_avg_order_value: parseNumber(row['Shoppable video avg. order value'] || row['shoppable_avg_order_value']),
