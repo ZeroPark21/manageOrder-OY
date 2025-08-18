@@ -24,18 +24,58 @@ export async function GET(request: NextRequest) {
       console.log("주문 데이터 조회 실패 (테이블이 없을 수 있음)")
     }
     
-    // 콘텐츠 발행 현황의 총 GMV 계산 (6월 1일 이후)
+    // 콘텐츠 발행 현황의 총 GMV 계산 (6월 1일 이후) - 중복 제거 후 계산
     try {
-      const { data: contents, error: contentsError } = await supabase
-        .from("contents")
-        .select("gmv")
-        .gte("publish_date", "2025-06-01")
+      // 배치로 모든 데이터 가져오기
+      let allContents: any[] = []
+      let offset = 0
+      const batchSize = 1000
+      let hasMore = true
       
-      if (!contentsError && contents) {
-        contentTotalGmv = contents.reduce((sum, content) => sum + (content.gmv || 0), 0)
+      while (hasMore) {
+        const { data: batch, error: batchError } = await supabase
+          .from("contents")
+          .select("gmv, video_link")
+          .gte("publish_date", "2025-06-01")
+          .range(offset, offset + batchSize - 1)
+        
+        if (batchError) {
+          console.error(`Error fetching batch at offset ${offset}:`, batchError)
+          break
+        }
+        
+        if (batch && batch.length > 0) {
+          allContents = [...allContents, ...batch]
+          offset += batchSize
+          
+          if (batch.length < batchSize) {
+            hasMore = false
+          }
+        } else {
+          hasMore = false
+        }
+      }
+      
+      if (allContents.length > 0) {
+        // video_link 기반으로 중복 제거
+        const uniqueVideoMap = new Map<string, number>()
+        allContents.forEach(content => {
+          const videoId = content.video_link?.match(/\/video\/(\d+)/)?.[1]
+          if (videoId && !uniqueVideoMap.has(videoId)) {
+            uniqueVideoMap.set(videoId, content.gmv || 0)
+          } else if (!videoId && content.video_link && !uniqueVideoMap.has(content.video_link)) {
+            // videoId를 추출할 수 없는 경우 전체 링크를 키로 사용
+            uniqueVideoMap.set(content.video_link, content.gmv || 0)
+          }
+        })
+        
+        // 중복 제거된 GMV 합산
+        contentTotalGmv = Array.from(uniqueVideoMap.values()).reduce((sum, gmv) => sum + gmv, 0)
+        
+        console.log(`GMV 계산: ${allContents.length}개 → ${uniqueVideoMap.size}개 (중복 제거), Total GMV: ${contentTotalGmv}`)
       }
     } catch (e) {
-      console.log("콘텐츠 데이터 조회 실패 (테이블이 없을 수 있음)")
+      console.log("콘텐츠 데이터 조회 실패:", e)
     }
     
     return NextResponse.json({

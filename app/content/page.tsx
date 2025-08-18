@@ -358,7 +358,7 @@ export default function ContentDashboard() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">₩{totalGmv.toLocaleString()}</div>
+                <div className="text-2xl font-bold">${totalGmv.toLocaleString()}</div>
                 <p className="text-xs text-muted-foreground mt-1">6월 1일부터 총 GMV</p>
               </CardContent>
             </Card>
