@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase"
+import { parseCSV } from "@/lib/csv-parser"
 import * as XLSX from "xlsx"
 
 // Node.js Runtime 사용
@@ -118,23 +119,10 @@ export async function POST(request: NextRequest) {
       const decoder = new TextDecoder('utf-8')
       const text = decoder.decode(buffer)
       
-      // CSV 파싱
-      const lines = text.split(/\r?\n/).filter(line => line.trim())
-      if (lines.length < 2) {
+      // CSV 파싱 - 제대로 된 파서 사용 (콤마가 포함된 값 처리)
+      data = parseCSV(text)
+      if (data.length === 0) {
         return NextResponse.json({ error: "데이터가 없습니다." }, { status: 400 })
-      }
-      
-      // 헤더 파싱
-      const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
-      
-      // 데이터 파싱
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''))
-        const row: any = {}
-        headers.forEach((header, index) => {
-          row[header] = values[index] || ''
-        })
-        data.push(row)
       }
     }
 
