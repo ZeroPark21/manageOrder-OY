@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase"
 
-export const runtime = "edge"
+export const runtime = "nodejs"
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60
 
 interface OrderData {
   id: number
@@ -78,12 +79,57 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
 
-    // 샘플 데이터 조회 (sku_unit_original_price = 0)
-    const { data, error: dbError } = await supabase
-      .from("orders")
-      .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
-      .eq("sku_unit_original_price", 0)  // 샘플만 필터링
-      .order("created_time", { ascending: true })
+    // 샘플 데이터 조회 (sku_unit_original_price = 0) - 배치 방식
+    let allData = []
+    let offset = 0
+    const batchSize = 1000
+    let hasMore = true
+    
+    while (hasMore) {
+      try {
+        const { data: batch, error: batchError } = await supabase
+          .from("orders")
+          .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
+          .eq("sku_unit_original_price", 0)  // 샘플만 필터링
+          .order("created_time", { ascending: true })
+          .range(offset, offset + batchSize - 1)
+        
+        if (batchError) {
+          console.error(`[monthly-matrix] 배치 조회 오류 (offset ${offset}):`, batchError)
+          if (offset === 0) {
+            // 첫 번째 배치에서 에러가 발생하면 전체 에러로 처리
+            throw batchError
+          }
+          break
+        }
+        
+        if (batch && batch.length > 0) {
+          allData = [...allData, ...batch]
+          console.log(`[monthly-matrix] 배치 ${Math.floor(offset / batchSize) + 1}: ${batch.length}개 (총 ${allData.length}개)`)
+          offset += batchSize
+          
+          if (batch.length < batchSize) {
+            hasMore = false
+          }
+        } else {
+          hasMore = false
+        }
+        
+        // 배치 간 짧은 대기 (과부하 방지)
+        if (hasMore) {
+          await new Promise(resolve => setTimeout(resolve, 10))
+        }
+      } catch (batchErr) {
+        console.error(`[monthly-matrix] 배치 처리 중 예외 (offset ${offset}):`, batchErr)
+        if (offset === 0) {
+          throw batchErr
+        }
+        break
+      }
+    }
+    
+    const data = allData
+    const dbError = null
 
     if (dbError) {
       if ((dbError as any).code === "42P01") {
@@ -198,12 +244,21 @@ export async function GET(request: NextRequest) {
       })
     })
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       products: sortedProducts,
       months: sortedMonths,
       matrix: matrix,
       productSkuMap: productSkuMap,
     })
+    
+    // 캐시 방지 헤더 추가 (Vercel 강화)
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    response.headers.set('Vary', '*')
+    response.headers.set('X-Vercel-Cache', 'MISS')
+    
+    return response
   } catch (err: any) {
     console.error("API /api/monthly-matrix error:", err)
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 })

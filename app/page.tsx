@@ -79,7 +79,7 @@ export default function Dashboard() {
   const fetchSummaryData = async () => {
     setLoading(true)
     try {
-      const salesResponse = await fetch('/api/gmv-sales-stats')
+      const salesResponse = await fetch(`/api/gmv-sales-stats?t=${Date.now()}`)
       const salesData = await salesResponse.json()
       
       setSalesStats(salesData.data || null)

@@ -29,7 +29,7 @@ interface ContentData {
 }
 
 // 숫자 파싱 헬퍼 함수
-function parseNumber(value: any): number {
+function parseNumber(value: any, logDebug: boolean = false): number {
   if (typeof value === 'number') return value
   if (typeof value === 'string') {
     // "$4,788.00" -> "4788.00"
@@ -39,7 +39,9 @@ function parseNumber(value: any): number {
       .replace(/[%]/g, '') // % 제거
       .trim()
     const num = parseFloat(cleaned)
-    console.log(`parseNumber: "${value}" -> "${cleaned}" -> ${num}`)
+    if (logDebug) {
+      console.log(`parseNumber: "${value}" -> "${cleaned}" -> ${num}`)
+    }
     return isNaN(num) ? 0 : num
   }
   return 0
@@ -153,10 +155,9 @@ export async function POST(request: NextRequest) {
       // 컬럼명 매핑 (공백 제거)
       const publishDate = row['Video post date'] || row['publish_date'] || ''
       
-      // Video post date가 없으면 건너뛰기
+      // Video post date가 없으면 기본값 사용 (건너뛰지 않음)
       if (!publishDate) {
-        console.log(`⚠️ 건너뜀 - Video post date 없음`)
-        continue
+        console.log(`⚠️ Video post date 없음 - 기본값 사용`)
       }
       
       const videoName = row['Video name'] || row['video_name'] || 'Untitled'
@@ -168,16 +169,17 @@ export async function POST(request: NextRequest) {
                      row['Revenue'] || row['revenue'] || row['Sales'] || row['sales'] || 0
       
       // 첫 몇 개 로그로 확인
-      if (contents.length < 3) {
-        console.log(`Row ${contents.length} GMV raw value:`, gmvValue, '-> parsed:', parseNumber(gmvValue))
+      const shouldLog = contents.length < 3
+      if (shouldLog) {
+        console.log(`Row ${contents.length} GMV raw value:`, gmvValue, '-> parsed:', parseNumber(gmvValue, true))
       }
       
       contents.push({
         content_title: videoName.substring(0, 255),
         video_link: videoLink.substring(0, 255),
-        publish_date: parseDate(publishDate),
+        publish_date: parseDate(publishDate || new Date().toISOString()),
         creator_name: (creatorName || '알 수 없음').substring(0, 100),
-        gmv: parseNumber(gmvValue),
+        gmv: parseNumber(gmvValue, shouldLog),
         affiliate_items_sold: Math.round(parseNumber(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'])),
         affiliate_gmv: parseNumber(row['Affiliate shoppable video GMV'] || row['affiliate_gmv']),
         shoppable_avg_order_value: parseNumber(row['Shoppable video avg. order value'] || row['shoppable_avg_order_value']),
@@ -194,9 +196,24 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`✅ 유효한 콘텐츠 수: ${contents.length}`)
+    console.log(`✅ 변환된 콘텐츠 수: ${contents.length}`)
 
-    if (contents.length === 0) {
+    // 같은 파일 내에서 video_link 기준 중복 제거
+    const uniqueContentsMap = new Map<string, ContentData>()
+    let duplicatesRemoved = 0
+    
+    for (const content of contents) {
+      if (content.video_link && !uniqueContentsMap.has(content.video_link)) {
+        uniqueContentsMap.set(content.video_link, content)
+      } else if (content.video_link) {
+        duplicatesRemoved++
+      }
+    }
+    
+    const finalContents = Array.from(uniqueContentsMap.values())
+    console.log(`🔄 파일 내 중복 제거: ${contents.length}개 → ${finalContents.length}개 (${duplicatesRemoved}개 중복 제거)`)
+
+    if (finalContents.length === 0) {
       return NextResponse.json({ 
         error: "유효한 데이터가 없습니다. Video name과 Video link가 있는지 확인해주세요." 
       }, { status: 400 })
@@ -211,7 +228,7 @@ export async function POST(request: NextRequest) {
     let errors: string[] = []
     
     // 모든 video_link를 먼저 수집
-    const videoLinks = contents.map(c => c.video_link)
+    const videoLinks = finalContents.map(c => c.video_link)
     
     // 기존 데이터 한번에 조회 (전체 필드 포함)
     const { data: existingData } = await supabase
@@ -226,7 +243,7 @@ export async function POST(request: NextRequest) {
     const toInsert: ContentData[] = []
     const skipped: string[] = []
     
-    for (const content of contents) {
+    for (const content of finalContents) {
       const existing = existingMap.get(content.video_link)
       if (existing) {
         // 데이터 비교 (created_at, updated_at, id 제외)
@@ -299,7 +316,9 @@ export async function POST(request: NextRequest) {
       message: errors.length > 0 
         ? `업로드 완료 (일부 오류 발생)`
         : "콘텐츠 데이터가 성공적으로 업로드되었습니다.",
-      processedCount: contents.length,
+      processedCount: finalContents.length,
+      originalCount: contents.length,
+      duplicatesRemoved: duplicatesRemoved,
       uploadedCount: totalSaved,
       updatedCount: toUpdate.length,
       insertedCount: toInsert.length,
