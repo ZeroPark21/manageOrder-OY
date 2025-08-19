@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase"
+import * as XLSX from 'xlsx'
 
 // Node.js Runtime 사용 (더 긴 실행 시간 허용)
 export const runtime = "nodejs"
@@ -62,48 +63,86 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "파일 크기가 10MB를 초과합니다." }, { status: 400 })
     }
 
-    // 파일 처리 - CSV만 지원 (Edge Runtime 호환)
-    let dataLines: string[] = []
+    // 파일 처리 - CSV와 Excel 모두 지원
+    let rawData: any[] = []
     
     try {
-      const text = await file.text()
-      console.log("📊 파일 텍스트 읽기 완료, 길이:", text.length)
+      console.log("📊 파일 처리 시작:", {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      })
       
-      // 다양한 줄바꿈 처리 (Windows \r\n, Mac \r, Unix \n)
-      const lines = text.split(/\r?\n|\r/).map(line => line.trim())
+      // 파일 타입에 따른 처리
+      const isExcelFile = file.name.endsWith('.xlsx') || 
+                         file.name.endsWith('.xls') || 
+                         file.type.includes('spreadsheet') ||
+                         file.type.includes('excel')
       
-      console.log(`📊 전체 라인 수: ${lines.length}`)
-      
-      // 헤더 확인
-      if (lines.length > 0) {
-        console.log("📊 헤더 행 길이:", lines[0].length)
-        console.log("📊 헤더 행 (처음 200자):", lines[0].substring(0, 200))
+      if (isExcelFile) {
+        console.log("📊 Excel 파일로 감지, XLSX 라이브러리 사용")
         
-        // 간단한 split으로 컬럼 수 확인
-        const simpleColumns = lines[0].split(",")
-        console.log(`📊 단순 split 헤더 컬럼 수: ${simpleColumns.length}`)
-        console.log("📊 헤더 컬럼 (처음 5개):", simpleColumns.slice(0, 5).map(h => `"${h.trim()}"`).join(", "))
+        // Excel 파일 처리
+        const buffer = await file.arrayBuffer()
+        const workbook = XLSX.read(buffer, { type: 'buffer' })
+        const sheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[sheetName]
+        rawData = XLSX.utils.sheet_to_json(worksheet)
+        
+        console.log(`📊 Excel 파일 처리 완료: ${rawData.length}개 데이터 행`)
+        
+      } else {
+        console.log("📊 CSV 파일로 감지, 텍스트 파싱 사용")
+        
+        // CSV 파일 처리
+        const text = await file.text()
+        console.log("📊 파일 텍스트 읽기 완료, 길이:", text.length)
+        
+        // 다양한 줄바꿈 처리 (Windows \r\n, Mac \r, Unix \n)
+        const lines = text.split(/\r?\n|\r/).map(line => line.trim())
+        
+        console.log(`📊 전체 라인 수: ${lines.length}`)
+        
+        // 헤더 확인
+        if (lines.length > 0) {
+          console.log("📊 헤더 행 길이:", lines[0].length)
+          console.log("📊 헤더 행 (처음 200자):", lines[0].substring(0, 200))
+        }
+        
+        // CSV를 JSON으로 변환
+        const headers = lines[0] ? lines[0].split(',').map(h => h.trim()) : []
+        const dataLines = lines.slice(1).filter((line: string) => line.length > 0)
+        
+        console.log(`📊 헤더: ${headers.length}개, 데이터 행: ${dataLines.length}개`)
+        
+        // CSV 행을 객체로 변환
+        rawData = dataLines.map(line => {
+          const values = line.split(',').map(v => v.trim())
+          const obj: any = {}
+          headers.forEach((header, index) => {
+            obj[header] = values[index] || ''
+          })
+          return obj
+        })
       }
       
-      // 빈 줄 제거 전후 비교
-      const rawDataLines = lines.slice(1)
-      dataLines = rawDataLines.filter((line: string) => line.length > 0)
+      console.log(`📊 파싱 완료: ${rawData.length}개 원본 데이터`)
+      if (rawData.length > 0) {
+        console.log("📊 첫 번째 데이터 샘플:", Object.keys(rawData[0]))
+      }
       
-      console.log(`📊 헤더 제외 원본 행 수: ${rawDataLines.length}`)
-      console.log(`📊 빈 행 제거 후 데이터 행 수: ${dataLines.length}`)
-      console.log(`📊 빈 행으로 제거된 수: ${rawDataLines.length - dataLines.length}`)
     } catch (readError) {
       console.error("파일 읽기 오류:", readError)
       return NextResponse.json({ 
-        error: "파일을 읽을 수 없습니다. CSV 파일인지 확인해주세요.",
+        error: "파일을 읽을 수 없습니다. CSV 또는 Excel 파일인지 확인해주세요.",
         details: readError instanceof Error ? readError.message : "Unknown error"
       }, { status: 400 })
     }
     
-    console.log(`📊 파일 처리 완료: ${file.name}, 데이터 행 수: ${dataLines.length}`)
-    if (dataLines.length > 0) {
-      console.log("📊 첫 번째 데이터 행:", dataLines[0])
-      console.log("📊 두 번째 데이터 행:", dataLines[1] || "없음")
+    console.log(`📊 파일 처리 완료: ${file.name}, 데이터 행 수: ${rawData.length}`)
+    if (rawData.length > 0) {
+      console.log("📊 첫 번째 데이터 행 키:", Object.keys(rawData[0]))
+      console.log("📊 첫 번째 데이터 행 값:", rawData[0])
     }
 
     const contents: ContentData[] = []
@@ -112,150 +151,111 @@ export async function POST(request: NextRequest) {
     let invalidColumnCount = 0
     let missingFieldCount = 0
     
-    for (const line of dataLines) {
-      if (!line || line.trim() === '') {
+    for (const row of rawData) {
+      if (!row || typeof row !== 'object') {
         skippedCount++
         continue
       }
       
-      // CSV 파싱 - 완전히 새로운 방법으로 교체
-      let columns: string[] = []
-      
-      // 단순한 경우: 따옴표가 없는 경우
-      if (!line.includes('"')) {
-        columns = line.split(',').map(col => col.trim())
-      } else {
-        // 복잡한 경우: 따옴표가 있는 경우 - 문자 단위로 파싱
-        let current = ''
-        let inQuotes = false
-        let i = 0
-        
-        while (i < line.length) {
-          const char = line[i]
-          
-          if (char === '"') {
-            // 다음 문자가 또 따옴표인지 확인 (이스케이프된 따옴표)
-            if (i + 1 < line.length && line[i + 1] === '"') {
-              current += '"'
-              i += 2 // 두 문자 건너뛰기
-            } else {
-              inQuotes = !inQuotes
-              i++
-            }
-          } else if (char === ',' && !inQuotes) {
-            columns.push(current.trim())
-            current = ''
-            i++
-          } else {
-            current += char
-            i++
-          }
-        }
-        
-        // 마지막 컬럼 추가
-        columns.push(current.trim())
-      }
-      
       processedCount++
       if (processedCount <= 5) {
-        console.log(`🔍 행 ${processedCount} - 컬럼 수: ${columns.length}`)
-        console.log(`🔍 컬럼 내용:`, columns.slice(0, 5).map((col, idx) => `[${idx}]: "${col}"`).join(", "))
+        console.log(`🔍 행 ${processedCount} - 키 수: ${Object.keys(row).length}`)
+        console.log(`🔍 행 내용:`, Object.entries(row).slice(0, 5).map(([key, val], idx) => `[${idx}]: "${key}": "${val}"`).join(", "))
       }
       
-      // 컬럼 수 체크 완전 제거 - 모든 행을 처리 시도
-      if (columns.length > 0) {
-        // 컬럼이 부족한 경우를 대비한 기본값 설정
-        const [
-          content_title = "", // Video name
-          video_link = "", // Video link
-          publish_date = "", // Video post date
-          creator_name = "", // Creator username
-          gmv = "0",
-          affiliate_items_sold = "0",
-          affiliate_gmv = "0", // Affiliate shoppable video GMV
-          shoppable_avg_order_value = "0",
-          est_commission = "0",
-          est_flat_fee = "--",
-          affiliate_orders = "0",
-          shoppable_impressions = "0",
-          affiliate_ctr = "0",
-          shoppable_gpm = "0",
-          affiliate_items_refunded = "0",
-          affiliate_refunded_gmv = "0",
-          comment_count = "0", // Shoppable video comments
-          like_count = "0" // Shoppable video likes
-        ] = columns
-        
-        // 날짜 형식 처리
-        let formattedDate = publish_date
-        try {
-          // YYYY-MM-DD 형식 확인
-          if (publish_date.includes("-") && publish_date.split("-").length === 3) {
-            formattedDate = publish_date
-          }
-          // MM/DD/YYYY 형식
-          else if (publish_date.includes("/")) {
-            const parts = publish_date.split("/")
-            if (parts.length === 3) {
-              const [month, day, year] = parts
-              formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
-            }
-          }
-          // 다른 형식이면 그대로 사용
-        } catch (e) {
-          console.log(`⚠️ 날짜 형식 변환 실패: ${publish_date}`)
-        }
-        
-        // 필수 필드가 있는지 확인 - video_link 또는 content_title 중 하나라도 있으면 처리
-        const hasValidTitle = content_title && content_title.trim() !== ''
-        const hasValidLink = video_link && video_link.trim() !== ''
-        
-        if (hasValidTitle || hasValidLink) {
-          contents.push({
-            content_title: content_title || "제목 없음",
-            creator_name: creator_name || "크리에이터 없음",
-            publish_date: formattedDate,
-            video_link: video_link || `generated-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-            gmv: parseFloat(gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
-            affiliate_items_sold: parseInt(affiliate_items_sold.toString().replace(/[^0-9-]/g, '')) || 0,
-            affiliate_gmv: parseFloat(affiliate_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
-            shoppable_avg_order_value: parseFloat(shoppable_avg_order_value.toString().replace(/[^0-9.-]/g, '')) || 0,
-            est_commission: parseFloat(est_commission.toString().replace(/[^0-9.-]/g, '')) || 0,
-            est_flat_fee: est_flat_fee || "--",
-            affiliate_orders: parseInt(affiliate_orders.toString().replace(/[^0-9-]/g, '')) || 0,
-            shoppable_impressions: parseInt(shoppable_impressions.toString().replace(/[^0-9-]/g, '')) || 0,
-            affiliate_ctr: parseFloat(affiliate_ctr.toString().replace(/[^0-9.-]/g, '').replace('%', '')) || 0,
-            shoppable_gpm: parseFloat(shoppable_gpm.toString().replace(/[^0-9.-]/g, '')) || 0,
-            affiliate_items_refunded: parseInt(affiliate_items_refunded.toString().replace(/[^0-9-]/g, '')) || 0,
-            affiliate_refunded_gmv: parseFloat(affiliate_refunded_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
-            comment_count: parseInt(comment_count.toString().replace(/[^0-9-]/g, '')) || 0,
-            like_count: parseInt(like_count.toString().replace(/[^0-9-]/g, '')) || 0,
-          })
-        } else {
-          missingFieldCount++
-          if (missingFieldCount <= 10) {
-            console.log(`⚠️ 행 ${processedCount} 건너뜀 - title과 link 모두 없음`)
-            console.log(`   title: "${content_title}", link: "${video_link}"`)
-            console.log(`   전체 내용: ${line.substring(0, 200)}...`)
+      // 객체에서 필요한 필드들 추출 (다양한 가능한 키 이름들을 지원)
+      const getFieldValue = (row: any, possibleKeys: string[]): string => {
+        for (const key of possibleKeys) {
+          if (row[key] !== undefined && row[key] !== null) {
+            return String(row[key]).trim()
           }
         }
+        return ""
+      }
+      
+      const content_title = getFieldValue(row, ['Video name', 'video name', 'title', 'content_title'])
+      const video_link = getFieldValue(row, ['Video link', 'video link', 'link', 'video_link', 'url'])
+      const publish_date = getFieldValue(row, ['Video post date', 'video post date', 'date', 'publish_date'])
+      const creator_name = getFieldValue(row, ['Creator username', 'creator username', 'creator', 'creator_name'])
+      const gmv = getFieldValue(row, ['GMV', 'gmv'])
+      const affiliate_items_sold = getFieldValue(row, ['Affiliate items sold', 'affiliate items sold', 'items sold', 'affiliate_items_sold'])
+      const affiliate_gmv = getFieldValue(row, ['Affiliate shoppable video GMV', 'affiliate gmv', 'affiliate_gmv'])
+      const shoppable_avg_order_value = getFieldValue(row, ['Shoppable video avg. order value', 'avg order value', 'shoppable_avg_order_value'])
+      const est_commission = getFieldValue(row, ['Est. commission', 'commission', 'est_commission'])
+      const est_flat_fee = getFieldValue(row, ['Est. flat fee', 'flat fee', 'est_flat_fee'])
+      const affiliate_orders = getFieldValue(row, ['Affiliate orders', 'orders', 'affiliate_orders'])
+      const shoppable_impressions = getFieldValue(row, ['Shoppable video impressions', 'impressions', 'shoppable_impressions'])
+      const affiliate_ctr = getFieldValue(row, ['Affiliate CTR', 'ctr', 'affiliate_ctr'])
+      const shoppable_gpm = getFieldValue(row, ['Shoppable video GPM', 'gpm', 'shoppable_gpm'])
+      const affiliate_items_refunded = getFieldValue(row, ['Affiliate items refunded', 'refunded items', 'affiliate_items_refunded'])
+      const affiliate_refunded_gmv = getFieldValue(row, ['Affiliate refunded GMV', 'refunded gmv', 'affiliate_refunded_gmv'])
+      const comment_count = getFieldValue(row, ['Shoppable video comments', 'comments', 'comment_count'])
+      const like_count = getFieldValue(row, ['Shoppable video likes', 'likes', 'like_count'])
+        
+      
+      // 날짜 형식 처리
+      let formattedDate = publish_date
+      try {
+        // YYYY-MM-DD 형식 확인
+        if (publish_date.includes("-") && publish_date.split("-").length === 3) {
+          formattedDate = publish_date
+        }
+        // MM/DD/YYYY 형식
+        else if (publish_date.includes("/")) {
+          const parts = publish_date.split("/")
+          if (parts.length === 3) {
+            const [month, day, year] = parts
+            formattedDate = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`
+          }
+        }
+        // 다른 형식이면 그대로 사용
+      } catch (e) {
+        console.log(`⚠️ 날짜 형식 변환 실패: ${publish_date}`)
+      }
+      
+      // 필수 필드가 있는지 확인 - video_link 또는 content_title 중 하나라도 있으면 처리
+      const hasValidTitle = content_title && content_title.trim() !== ''
+      const hasValidLink = video_link && video_link.trim() !== ''
+      
+      if (hasValidTitle || hasValidLink) {
+        contents.push({
+          content_title: content_title || "제목 없음",
+          creator_name: creator_name || "크리에이터 없음",
+          publish_date: formattedDate,
+          video_link: video_link || `generated-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          gmv: parseFloat(gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
+          affiliate_items_sold: parseInt(affiliate_items_sold.toString().replace(/[^0-9-]/g, '')) || 0,
+          affiliate_gmv: parseFloat(affiliate_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
+          shoppable_avg_order_value: parseFloat(shoppable_avg_order_value.toString().replace(/[^0-9.-]/g, '')) || 0,
+          est_commission: parseFloat(est_commission.toString().replace(/[^0-9.-]/g, '')) || 0,
+          est_flat_fee: est_flat_fee || "--",
+          affiliate_orders: parseInt(affiliate_orders.toString().replace(/[^0-9-]/g, '')) || 0,
+          shoppable_impressions: parseInt(shoppable_impressions.toString().replace(/[^0-9-]/g, '')) || 0,
+          affiliate_ctr: parseFloat(affiliate_ctr.toString().replace(/[^0-9.-]/g, '').replace('%', '')) || 0,
+          shoppable_gpm: parseFloat(shoppable_gpm.toString().replace(/[^0-9.-]/g, '')) || 0,
+          affiliate_items_refunded: parseInt(affiliate_items_refunded.toString().replace(/[^0-9-]/g, '')) || 0,
+          affiliate_refunded_gmv: parseFloat(affiliate_refunded_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
+          comment_count: parseInt(comment_count.toString().replace(/[^0-9-]/g, '')) || 0,
+          like_count: parseInt(like_count.toString().replace(/[^0-9-]/g, '')) || 0,
+        })
       } else {
-        invalidColumnCount++
-        if (invalidColumnCount <= 10) {
-          console.log(`⚠️ 행 ${processedCount} 건너뜀 - 빈 행`)
-          console.log(`   내용: "${line}"`)
+        missingFieldCount++
+        if (missingFieldCount <= 10) {
+          console.log(`⚠️ 행 ${processedCount} 건너뜀 - title과 link 모두 없음`)
+          console.log(`   title: "${content_title}", link: "${video_link}"`)
+          console.log(`   전체 내용:`, Object.keys(row).join(', '))
         }
       }
     }
 
     console.log(`📊 처리 결과:`)
-    console.log(`  - 전체 행: ${dataLines.length}`)
+    console.log(`  - 전체 행: ${rawData.length}`)
     console.log(`  - 처리된 행: ${processedCount}`)
     console.log(`  - 빈 행: ${skippedCount}`)
     console.log(`  - 컬럼 수 부족: ${invalidColumnCount}`)
     console.log(`  - 필수 필드 누락: ${missingFieldCount}`)
     console.log(`  - 유효한 콘텐츠: ${contents.length}`)
-    console.log(`  - 누락된 콘텐츠: ${dataLines.length - contents.length}개`)
+    console.log(`  - 누락된 콘텐츠: ${rawData.length - contents.length}개`)
     
     if (contents.length > 0) {
       console.log("🔍 첫 번째 콘텐츠 데이터:", JSON.stringify(contents[0], null, 2))

@@ -251,8 +251,17 @@ export default function UploadContentPage() {
         throw new Error(result.error || `업로드에 실패했습니다. (${response.status})`)
       }
 
-      const uploadedCount = result.uploadedCount || result.processedCount || 0
-      let messageText = `✅ 콘텐츠 데이터 업로드 완료!\n📊 업로드된 콘텐츠: ${uploadedCount}개`
+      const processedCount = result.processedCount || 0
+      const insertedCount = result.insertedCount || 0
+      const updatedCount = result.updatedCount || 0
+      const totalProcessed = insertedCount + updatedCount
+      
+      let messageText = `✅ 콘텐츠 데이터 업로드 완료!\n📊 처리된 콘텐츠: ${processedCount}개`
+      
+      if (insertedCount > 0 || updatedCount > 0) {
+        messageText += `\n  - 새로 추가: ${insertedCount}개`
+        messageText += `\n  - 업데이트: ${updatedCount}개`
+      }
       
       if (result.note) {
         messageText += `\n⚠️ ${result.note}`
