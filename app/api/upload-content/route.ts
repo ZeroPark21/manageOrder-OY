@@ -73,17 +73,31 @@ export async function POST(request: NextRequest) {
         size: file.size
       })
       
-      // 파일 타입에 따른 처리
-      const isExcelFile = file.name.endsWith('.xlsx') || 
+      // 파일 타입에 따른 처리 - 파일 내용을 먼저 확인하여 Excel인지 판단
+      const buffer = await file.arrayBuffer()
+      const uint8Array = new Uint8Array(buffer.slice(0, 8))
+      
+      // Excel 파일 시그니처 확인 (PK 또는 D0CF로 시작)
+      const isPkZip = uint8Array[0] === 0x50 && uint8Array[1] === 0x4B // PK (ZIP based Excel)
+      const isOleCompound = uint8Array[0] === 0xD0 && uint8Array[1] === 0xCF // Old Excel format
+      
+      const isExcelFile = isPkZip || isOleCompound || 
+                         file.name.endsWith('.xlsx') || 
                          file.name.endsWith('.xls') || 
                          file.type.includes('spreadsheet') ||
                          file.type.includes('excel')
       
+      console.log("📊 파일 시그니처 분석:", {
+        first8bytes: Array.from(uint8Array).map(b => b.toString(16)).join(' '),
+        isPkZip,
+        isOleCompound,
+        isExcelFile
+      })
+      
       if (isExcelFile) {
         console.log("📊 Excel 파일로 감지, XLSX 라이브러리 사용")
         
-        // Excel 파일 처리
-        const buffer = await file.arrayBuffer()
+        // Excel 파일 처리 (이미 buffer가 있으므로 재사용)
         const workbook = XLSX.read(buffer, { type: 'buffer' })
         const sheetName = workbook.SheetNames[0]
         const worksheet = workbook.Sheets[sheetName]
@@ -322,35 +336,18 @@ export async function POST(request: NextRequest) {
               continue
             }
 
-            // 4. 동일한 콘텐츠 - gmv, shoppable_impressions 비교
-            const hasDataChanged = (
-              existingData.gmv !== newContent.gmv ||
-              existingData.shoppable_impressions !== newContent.shoppable_impressions ||
-              existingData.affiliate_items_sold !== newContent.affiliate_items_sold ||
-              existingData.affiliate_orders !== newContent.affiliate_orders ||
-              existingData.est_commission !== newContent.est_commission ||
-              existingData.comment_count !== newContent.comment_count ||
-              existingData.like_count !== newContent.like_count
-            )
+            // 4. 동일한 콘텐츠 - 항상 모든 값을 덮어쓰기
+            const { error: updateError } = await supabase
+              .from("contents")
+              .update(newContent)
+              .eq("video_link", newContent.video_link)
 
-            if (hasDataChanged) {
-              // 5. 데이터가 변경됨 - 최신 데이터로 업데이트
-              const { error: updateError } = await supabase
-                .from("contents")
-                .update(newContent)
-                .eq("video_link", newContent.video_link)
-
-              if (updateError) {
-                console.error(`업데이트 오류 (${newContent.video_link}):`, updateError)
-                errorCount++
-              } else {
-                updatedCount++
-                console.log(`🔄 콘텐츠 업데이트: ${newContent.content_title} (GMV: ${existingData.gmv} → ${newContent.gmv})`)
-              }
+            if (updateError) {
+              console.error(`업데이트 오류 (${newContent.video_link}):`, updateError)
+              errorCount++
             } else {
-              // 6. 모든 값이 동일 - 무시
-              skippedCount++
-              console.log(`⏭️ 동일한 데이터로 스킵: ${newContent.content_title}`)
+              updatedCount++
+              console.log(`🔄 콘텐츠 업데이트 (덮어쓰기): ${newContent.content_title}`)
             }
           }
         } catch (itemError) {
