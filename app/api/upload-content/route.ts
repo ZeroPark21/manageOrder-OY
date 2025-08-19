@@ -106,6 +106,8 @@ export async function POST(request: NextRequest) {
     const contents: ContentData[] = []
     let processedCount = 0
     let skippedCount = 0
+    let invalidColumnCount = 0
+    let missingFieldCount = 0
     
     for (const line of dataLines) {
       if (!line || line.trim() === '') {
@@ -125,17 +127,16 @@ export async function POST(request: NextRequest) {
         if (match[4] === '') break // 마지막 컬럼
       }
       
-      // 빈 문자열 컬럼 제거
-      columns = columns.filter(col => col !== undefined)
+      // 빈 문자열 컬럼 제거하지 않음 - 위치가 중요함
       
       processedCount++
-      if (processedCount <= 3) {
+      if (processedCount <= 5) {
         console.log(`🔍 행 ${processedCount} - 컬럼 수: ${columns.length}`)
         console.log(`🔍 컬럼 내용:`, columns.slice(0, 5).map((col, idx) => `[${idx}]: "${col}"`).join(", "))
       }
       
-      // 최소 4개 컬럼만 있어도 처리 (Video name, link, date, creator)
-      if (columns.length >= 4) {
+      // 컬럼 수 체크를 더 관대하게 변경 (최소 2개 - title, link만 있어도)
+      if (columns.length >= 2) {
         // 컬럼이 부족한 경우를 대비한 기본값 설정
         const [
           content_title = "", // Video name
@@ -178,8 +179,8 @@ export async function POST(request: NextRequest) {
           console.log(`⚠️ 날짜 형식 변환 실패: ${publish_date}`)
         }
         
-        // 필수 필드가 있는지 확인
-        if (content_title && video_link) {
+        // 필수 필드가 있는지 확인 - video_link만 필수로 변경
+        if (video_link.trim() !== '') {
           contents.push({
             content_title: content_title || "제목 없음",
             creator_name: creator_name || "크리에이터 없음",
@@ -201,7 +202,16 @@ export async function POST(request: NextRequest) {
             like_count: parseInt(like_count.toString().replace(/[^0-9-]/g, '')) || 0,
           })
         } else {
-          console.log(`⚠️ 행 ${processedCount} 건너뜀 - 필수 필드 누락 (title: "${content_title}", link: "${video_link}")`)
+          missingFieldCount++
+          if (missingFieldCount <= 5) {
+            console.log(`⚠️ 행 ${processedCount} 건너뜀 - video_link 누락 (link: "${video_link.trim()}")`)
+          }
+        }
+      } else {
+        invalidColumnCount++
+        if (invalidColumnCount <= 5) {
+          console.log(`⚠️ 행 ${processedCount} 건너뜀 - 컬럼 수 부족 (${columns.length}개, 최소 2개 필요)`)
+          console.log(`   내용: ${line.substring(0, 100)}...`)
         }
       }
     }
@@ -210,7 +220,10 @@ export async function POST(request: NextRequest) {
     console.log(`  - 전체 행: ${dataLines.length}`)
     console.log(`  - 처리된 행: ${processedCount}`)
     console.log(`  - 빈 행: ${skippedCount}`)
+    console.log(`  - 컬럼 수 부족: ${invalidColumnCount}`)
+    console.log(`  - 필수 필드 누락: ${missingFieldCount}`)
     console.log(`  - 유효한 콘텐츠: ${contents.length}`)
+    console.log(`  - 누락된 콘텐츠: ${dataLines.length - contents.length}개`)
     
     if (contents.length > 0) {
       console.log("🔍 첫 번째 콘텐츠 데이터:", JSON.stringify(contents[0], null, 2))
@@ -225,75 +238,118 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
     console.log("🔗 Supabase 클라이언트 생성 완료")
 
-    // 간단한 upsert 처리 (배치 없이 전체 한번에)
-    console.log("📤 데이터 업서트 시작...")
+    // 스마트 업서트 처리 - 중복 체크 및 데이터 비교
+    console.log("📤 스마트 데이터 업서트 시작...")
     
     try {
-      // 모든 데이터를 한 번에 upsert
-      const { data, error: insertError } = await supabase
-        .from("contents")
-        .upsert(contents, {
-          onConflict: 'video_link',
-          ignoreDuplicates: false
-        })
-        .select()
+      let insertedCount = 0
+      let updatedCount = 0
+      let skippedCount = 0
+      let errorCount = 0
+      
+      for (const newContent of contents) {
+        try {
+          // 1. video_link 기준으로 기존 데이터 조회
+          const { data: existingData, error: selectError } = await supabase
+            .from("contents")
+            .select("*")
+            .eq("video_link", newContent.video_link)
+            .single()
 
-      if (insertError) {
-        console.error("데이터 삽입 실패:", insertError)
-        
-        // ON CONFLICT 오류인 경우
-        if (insertError.message.includes('ON CONFLICT') || insertError.message.includes('unique constraint')) {
-          // 개별 처리 시도
-          console.log("🔄 개별 처리 모드로 전환...")
-          let successCount = 0
-          
-          for (const content of contents) {
-            try {
-              const { error: singleError } = await supabase
+          if (selectError && selectError.code !== 'PGRST116') {
+            // PGRST116은 "not found" 에러 코드
+            console.error(`조회 오류 (${newContent.video_link}):`, selectError)
+            errorCount++
+            continue
+          }
+
+          if (!existingData) {
+            // 2. 새로운 데이터 - 바로 삽입
+            const { error: insertError } = await supabase
+              .from("contents")
+              .insert(newContent)
+
+            if (insertError) {
+              console.error(`삽입 오류 (${newContent.video_link}):`, insertError)
+              errorCount++
+            } else {
+              insertedCount++
+              console.log(`✅ 새 콘텐츠 삽입: ${newContent.content_title}`)
+            }
+          } else {
+            // 3. 기존 데이터 존재 - video_link, content_title, creator_name 확인
+            const isSameContent = (
+              existingData.video_link === newContent.video_link &&
+              existingData.content_title === newContent.content_title &&
+              existingData.creator_name === newContent.creator_name
+            )
+
+            if (!isSameContent) {
+              console.log(`⚠️ 다른 콘텐츠 (동일 video_link): ${newContent.video_link}`)
+              skippedCount++
+              continue
+            }
+
+            // 4. 동일한 콘텐츠 - gmv, shoppable_impressions 비교
+            const hasDataChanged = (
+              existingData.gmv !== newContent.gmv ||
+              existingData.shoppable_impressions !== newContent.shoppable_impressions ||
+              existingData.affiliate_items_sold !== newContent.affiliate_items_sold ||
+              existingData.affiliate_orders !== newContent.affiliate_orders ||
+              existingData.est_commission !== newContent.est_commission ||
+              existingData.comment_count !== newContent.comment_count ||
+              existingData.like_count !== newContent.like_count
+            )
+
+            if (hasDataChanged) {
+              // 5. 데이터가 변경됨 - 최신 데이터로 업데이트
+              const { error: updateError } = await supabase
                 .from("contents")
-                .upsert(content, {
-                  onConflict: 'video_link',
-                  ignoreDuplicates: true
-                })
-              
-              if (!singleError) {
-                successCount++
+                .update(newContent)
+                .eq("video_link", newContent.video_link)
+
+              if (updateError) {
+                console.error(`업데이트 오류 (${newContent.video_link}):`, updateError)
+                errorCount++
+              } else {
+                updatedCount++
+                console.log(`🔄 콘텐츠 업데이트: ${newContent.content_title} (GMV: ${existingData.gmv} → ${newContent.gmv})`)
               }
-            } catch (e) {
-              // 개별 오류는 무시
+            } else {
+              // 6. 모든 값이 동일 - 무시
+              skippedCount++
+              console.log(`⏭️ 동일한 데이터로 스킵: ${newContent.content_title}`)
             }
           }
-          
-          return NextResponse.json({
-            message: `${successCount}개의 콘텐츠가 업로드되었습니다.`,
-            processedCount: successCount,
-            uploadedCount: successCount,
-            totalCount: contents.length
-          })
+        } catch (itemError) {
+          console.error(`항목 처리 오류 (${newContent.video_link}):`, itemError)
+          errorCount++
         }
-        
-        return NextResponse.json({ 
-          error: insertError.message,
-          processedCount: 0
-        }, { status: 500 })
       }
 
-      console.log("✅ 콘텐츠 업서트 완료")
+      console.log("📊 처리 결과:")
+      console.log(`  - 삽입: ${insertedCount}개`)
+      console.log(`  - 업데이트: ${updatedCount}개`)
+      console.log(`  - 스킵: ${skippedCount}개`)
+      console.log(`  - 오류: ${errorCount}개`)
 
-      // 업서트 후 전체 레코드 수 확인
+      // 업데이트 후 전체 레코드 수 확인
       const { count } = await supabase
         .from('contents')
         .select('*', { count: 'exact', head: true })
 
       return NextResponse.json({
-        message: "콘텐츠 데이터가 성공적으로 업서트되었습니다.",
+        message: `콘텐츠 처리 완료: 삽입 ${insertedCount}개, 업데이트 ${updatedCount}개, 스킵 ${skippedCount}개`,
         processedCount: contents.length,
-        uploadedCount: contents.length,
+        insertedCount: insertedCount,
+        updatedCount: updatedCount,
+        skippedCount: skippedCount,
+        errorCount: errorCount,
         totalRecordsInDB: count
       })
       
     } catch (error) {
-      console.error("업서트 처리 중 오류:", error)
+      console.error("스마트 업서트 처리 중 오류:", error)
       return NextResponse.json({ 
         error: "데이터 처리 중 오류가 발생했습니다.",
         details: error instanceof Error ? error.message : "Unknown error"
