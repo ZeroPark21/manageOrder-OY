@@ -168,20 +168,8 @@ function groupByMonth(contents: ContentSimple[]) {
 function groupByCreator(contents: ContentSimple[]) {
   const grouped: { [key: string]: { creator: string; totalCount: number; contents: ContentSimple[] } } = {}
 
-  // 먼저 video_link 기준으로 중복 제거 (전체 URL 기준)
-  const uniqueVideosMap = new Map<string, ContentSimple>()
-  
+  // 이미 중복 제거된 콘텐츠를 사용하므로 추가 중복 제거 불필요
   contents.forEach((content) => {
-    if (content.video_link && !uniqueVideosMap.has(content.video_link)) {
-      uniqueVideosMap.set(content.video_link, content)
-    }
-  })
-  
-  // 중복 제거된 콘텐츠로 그룹핑
-  const uniqueContents = Array.from(uniqueVideosMap.values())
-  console.log(`중복 제거: ${contents.length}개 → ${uniqueContents.length}개`)
-  
-  uniqueContents.forEach((content) => {
     const creatorKey = content.creator_name
 
     if (!grouped[creatorKey]) {
