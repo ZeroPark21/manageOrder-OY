@@ -85,10 +85,13 @@ export async function POST(request: NextRequest) {
         console.log("📊 헤더 컬럼 (처음 5개):", simpleColumns.slice(0, 5).map(h => `"${h.trim()}"`).join(", "))
       }
       
-      // 빈 줄 제거
-      dataLines = lines.slice(1).filter((line: string) => line.length > 0)
+      // 빈 줄 제거 전후 비교
+      const rawDataLines = lines.slice(1)
+      dataLines = rawDataLines.filter((line: string) => line.length > 0)
       
-      console.log(`📊 데이터 행 수: ${dataLines.length}`)
+      console.log(`📊 헤더 제외 원본 행 수: ${rawDataLines.length}`)
+      console.log(`📊 빈 행 제거 후 데이터 행 수: ${dataLines.length}`)
+      console.log(`📊 빈 행으로 제거된 수: ${rawDataLines.length - dataLines.length}`)
     } catch (readError) {
       console.error("파일 읽기 오류:", readError)
       return NextResponse.json({ 
@@ -115,19 +118,43 @@ export async function POST(request: NextRequest) {
         continue
       }
       
-      // CSV 파싱 - 더 강력한 방법
+      // CSV 파싱 - 완전히 새로운 방법으로 교체
       let columns: string[] = []
       
-      // 쉼표가 따옴표 안에 있는 경우를 처리
-      const regex = /("([^"]*)"|([^,]*))(,|$)/g
-      let match
-      while ((match = regex.exec(line)) !== null) {
-        const value = match[2] !== undefined ? match[2] : match[3]
-        columns.push(value.trim())
-        if (match[4] === '') break // 마지막 컬럼
+      // 단순한 경우: 따옴표가 없는 경우
+      if (!line.includes('"')) {
+        columns = line.split(',').map(col => col.trim())
+      } else {
+        // 복잡한 경우: 따옴표가 있는 경우 - 문자 단위로 파싱
+        let current = ''
+        let inQuotes = false
+        let i = 0
+        
+        while (i < line.length) {
+          const char = line[i]
+          
+          if (char === '"') {
+            // 다음 문자가 또 따옴표인지 확인 (이스케이프된 따옴표)
+            if (i + 1 < line.length && line[i + 1] === '"') {
+              current += '"'
+              i += 2 // 두 문자 건너뛰기
+            } else {
+              inQuotes = !inQuotes
+              i++
+            }
+          } else if (char === ',' && !inQuotes) {
+            columns.push(current.trim())
+            current = ''
+            i++
+          } else {
+            current += char
+            i++
+          }
+        }
+        
+        // 마지막 컬럼 추가
+        columns.push(current.trim())
       }
-      
-      // 빈 문자열 컬럼 제거하지 않음 - 위치가 중요함
       
       processedCount++
       if (processedCount <= 5) {
@@ -135,8 +162,8 @@ export async function POST(request: NextRequest) {
         console.log(`🔍 컬럼 내용:`, columns.slice(0, 5).map((col, idx) => `[${idx}]: "${col}"`).join(", "))
       }
       
-      // 컬럼 수 체크를 더 관대하게 변경 (최소 2개 - title, link만 있어도)
-      if (columns.length >= 2) {
+      // 컬럼 수 체크 완전 제거 - 모든 행을 처리 시도
+      if (columns.length > 0) {
         // 컬럼이 부족한 경우를 대비한 기본값 설정
         const [
           content_title = "", // Video name
@@ -179,13 +206,16 @@ export async function POST(request: NextRequest) {
           console.log(`⚠️ 날짜 형식 변환 실패: ${publish_date}`)
         }
         
-        // 필수 필드가 있는지 확인 - video_link만 필수로 변경
-        if (video_link.trim() !== '') {
+        // 필수 필드가 있는지 확인 - video_link 또는 content_title 중 하나라도 있으면 처리
+        const hasValidTitle = content_title && content_title.trim() !== ''
+        const hasValidLink = video_link && video_link.trim() !== ''
+        
+        if (hasValidTitle || hasValidLink) {
           contents.push({
             content_title: content_title || "제목 없음",
             creator_name: creator_name || "크리에이터 없음",
             publish_date: formattedDate,
-            video_link: video_link || "",
+            video_link: video_link || `generated-${Date.now()}-${Math.random().toString(36).substring(7)}`,
             gmv: parseFloat(gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
             affiliate_items_sold: parseInt(affiliate_items_sold.toString().replace(/[^0-9-]/g, '')) || 0,
             affiliate_gmv: parseFloat(affiliate_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
@@ -203,15 +233,17 @@ export async function POST(request: NextRequest) {
           })
         } else {
           missingFieldCount++
-          if (missingFieldCount <= 5) {
-            console.log(`⚠️ 행 ${processedCount} 건너뜀 - video_link 누락 (link: "${video_link.trim()}")`)
+          if (missingFieldCount <= 10) {
+            console.log(`⚠️ 행 ${processedCount} 건너뜀 - title과 link 모두 없음`)
+            console.log(`   title: "${content_title}", link: "${video_link}"`)
+            console.log(`   전체 내용: ${line.substring(0, 200)}...`)
           }
         }
       } else {
         invalidColumnCount++
-        if (invalidColumnCount <= 5) {
-          console.log(`⚠️ 행 ${processedCount} 건너뜀 - 컬럼 수 부족 (${columns.length}개, 최소 2개 필요)`)
-          console.log(`   내용: ${line.substring(0, 100)}...`)
+        if (invalidColumnCount <= 10) {
+          console.log(`⚠️ 행 ${processedCount} 건너뜀 - 빈 행`)
+          console.log(`   내용: "${line}"`)
         }
       }
     }
