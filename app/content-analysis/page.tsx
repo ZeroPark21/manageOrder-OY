@@ -227,7 +227,7 @@ export default function ContentAnalysisPage() {
   }, [videoData, searchTerm])
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ko-KR", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
     }).format(amount)
