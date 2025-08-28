@@ -3,6 +3,10 @@ import { createServerClient } from "@/lib/supabase"
 
 export const runtime = "edge"
 
+// Redis-like in-memory cache for Edge runtime
+const cache = new Map()
+const CACHE_TTL = 60000 // 1 minute cache
+
 interface GmvDataSimple {
   id: number
   video_id: string
@@ -108,14 +112,39 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const groupBy = searchParams.get("groupBy") || "account"
+    
+    // Check cache first
+    const cacheKey = `gmv-data-${groupBy}`
+    const cached = cache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      const response = NextResponse.json(cached.data)
+      response.headers.set('X-Cache', 'HIT')
+      return response
+    }
 
     const supabase = createServerClient()
     
-    // gmv_data 테이블에서 데이터 조회
+    // Select only required fields to reduce payload size
     const { data, error: dbError } = await supabase
       .from("gmv_data")
-      .select("*")
+      .select(`
+        id,
+        video_id,
+        video_title,
+        tiktok_account,
+        creative_type,
+        status,
+        orders,
+        gross_revenue,
+        ad_impressions,
+        ad_clicks,
+        ad_click_rate,
+        ad_conversion_rate,
+        campaign_name,
+        campaign_id
+      `)
       .order("gross_revenue", { ascending: false })
+      .limit(1000) // Limit results for better performance
 
     if (dbError) {
       // 테이블이 없으면 빈 데이터로 응답
@@ -151,13 +180,24 @@ export async function GET(request: NextRequest) {
         groupedData = groupByAccount(gmvData)
     }
 
-    return NextResponse.json({
+    const result = {
       data: groupedData,
       totalRecords: gmvData.length,
       totalOrders: gmvData.reduce((sum, item) => sum + (item.orders || 0), 0),
       totalRevenue: gmvData.reduce((sum, item) => sum + (item.gross_revenue || 0), 0),
       uniqueAccounts: uniqueAccounts,
+    }
+    
+    // Store in cache
+    cache.set(cacheKey, {
+      data: result,
+      timestamp: Date.now()
     })
+    
+    const response = NextResponse.json(result)
+    response.headers.set('X-Cache', 'MISS')
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30')
+    return response
   } catch (err: any) {
     console.error("API /api/gmv-data error:", err)
     return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 })

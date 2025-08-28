@@ -1,5 +1,12 @@
 // TikTok Ads Auto Downloader - Content Script
-console.log('TikTok Ads Auto Downloader content script loaded');
+// Prevent duplicate loading
+if (window.tiktokAdsAutoDownloaderLoaded) {
+  console.log('🚫 Content script already loaded, skipping...');
+  throw new Error('Script already loaded');
+}
+window.tiktokAdsAutoDownloaderLoaded = true;
+
+console.log('🚀 TikTok Ads Auto Downloader content script loaded (fresh)');
 
 // Current download state
 let currentDownloadState = {
@@ -9,37 +16,84 @@ let currentDownloadState = {
   maxRetries: 3
 };
 
-// Intercept network requests to catch CSV downloads
-const originalFetch = window.fetch;
+// Enhanced network interception for ALL file types
+if (!window.originalFetchBackup) {
+  window.originalFetchBackup = window.fetch;
+  console.log('💾 Backing up original fetch function');
+}
+
+const originalFetch = window.originalFetchBackup;
 window.fetch = async function(...args) {
   const response = await originalFetch.apply(this, args);
   
-  // Check if this is a CSV export request
+  // Log ALL fetch requests for debugging
   const url = args[0];
-  if (typeof url === 'string' && 
-      (url.includes('export') || url.includes('download')) &&
-      (url.includes('csv') || response.headers.get('content-type')?.includes('csv') || 
-       response.headers.get('content-disposition')?.includes('csv'))) {
+  if (typeof url === 'string') {
+    console.log('🌐 Fetch request:', url.substring(0, 100) + '...');
+  }
+  
+  // Check if this is ANY kind of file download
+  const contentType = response.headers.get('content-type') || '';
+  const contentDisposition = response.headers.get('content-disposition') || '';
+  
+  // More comprehensive detection patterns
+  const isExportRequest = typeof url === 'string' && 
+    (url.includes('export') || url.includes('download') || url.includes('blob') || 
+     contentDisposition.includes('attachment'));
     
-    console.log('CSV export detected:', url);
+  const isCsv = url?.includes('csv') || contentType.includes('csv') || contentDisposition.includes('csv');
+  const isExcel = url?.includes('.xlsx') || url?.includes('.xls') || 
+                  contentType.includes('spreadsheet') || contentType.includes('excel') ||
+                  contentType.includes('vnd.openxmlformats') ||
+                  contentDisposition.includes('.xlsx') || contentDisposition.includes('.xls');
+  
+  // Check for blob URLs or any binary content that might be a file
+  const isBinaryFile = contentType.includes('application/') || url.startsWith('blob:');
+  
+  // Log potential file downloads for debugging
+  if (isExportRequest || isCsv || isExcel || isBinaryFile) {
+    console.log('🔍 Potential file download detected:', {
+      url: url.substring(0, 100) + '...',
+      contentType,
+      contentDisposition,
+      isExportRequest,
+      isCsv,
+      isExcel,
+      isBinaryFile
+    });
+  }
+  
+  if ((isExportRequest || isBinaryFile) && (isCsv || isExcel)) {
+    const fileType = isExcel ? 'Excel' : 'CSV';
+    console.log(`🎯 ${fileType} export detected:`, url);
     
     // Clone the response so we can read it without affecting the original download
     const clonedResponse = response.clone();
     
     try {
-      const csvData = await clonedResponse.text();
-      console.log('CSV data captured, length:', csvData.length);
+      let fileData;
       
-      // Send CSV data to background script for processing
+      if (isExcel) {
+        // For Excel files, get as ArrayBuffer
+        fileData = await clonedResponse.arrayBuffer();
+        console.log('📊 Excel data captured, size:', fileData.byteLength, 'bytes');
+      } else {
+        // For CSV files, get as text
+        fileData = await clonedResponse.text();
+        console.log('📄 CSV data captured, length:', fileData.length);
+      }
+      
+      // Send file data to background script for processing
       chrome.runtime.sendMessage({
-        action: 'csvDataCaptured',
-        csvData: csvData,
+        action: 'csvDataCaptured', // Keep same action name for compatibility
+        csvData: fileData,
         date: currentDownloadState.currentDate,
-        url: url
+        url: url,
+        fileType: fileType.toLowerCase()
       });
       
     } catch (error) {
-      console.error('Error processing CSV data:', error);
+      console.error(`❌ Error processing ${fileType} data:`, error);
     }
   }
   
@@ -64,27 +118,49 @@ XMLHttpRequest.prototype.send = function(...args) {
     const contentType = xhr.getResponseHeader('content-type') || '';
     const contentDisposition = xhr.getResponseHeader('content-disposition') || '';
     
-    // Check if this is a CSV response
-    if (typeof url === 'string' && 
-        (url.includes('export') || url.includes('download')) &&
-        (contentType.includes('csv') || contentDisposition.includes('csv') || xhr.responseText?.includes(','))) {
+    const isExportRequest = typeof url === 'string' && 
+      (url.includes('export') || url.includes('download'));
       
-      console.log('CSV export detected via XHR:', url);
+    const isCsv = url?.includes('csv') || contentType.includes('csv') || 
+                  contentDisposition.includes('csv') || xhr.responseText?.includes(',');
+    const isExcel = url?.includes('.xlsx') || url?.includes('.xls') || 
+                    contentType.includes('spreadsheet') || contentType.includes('excel') ||
+                    contentDisposition.includes('.xlsx') || contentDisposition.includes('.xls');
+    
+    // Check if this is a CSV or Excel response
+    if (isExportRequest && (isCsv || isExcel)) {
+      const fileType = isExcel ? 'Excel' : 'CSV';
+      console.log(`${fileType} export detected via XHR:`, url);
       
       try {
-        const csvData = xhr.responseText;
-        if (csvData && csvData.length > 100) { // Basic validation
-          console.log('CSV data captured via XHR, length:', csvData.length);
-          
+        let fileData;
+        
+        if (isExcel) {
+          // For Excel files, get response as ArrayBuffer
+          fileData = xhr.response; // Should be ArrayBuffer if responseType was set
+          if (!fileData || fileData.constructor !== ArrayBuffer) {
+            // Fallback: convert responseText to ArrayBuffer
+            const encoder = new TextEncoder();
+            fileData = encoder.encode(xhr.responseText).buffer;
+          }
+          console.log('Excel data captured via XHR, size:', fileData.byteLength, 'bytes');
+        } else {
+          // For CSV files, get as text
+          fileData = xhr.responseText;
+          console.log('CSV data captured via XHR, length:', fileData.length);
+        }
+        
+        if (fileData && (isExcel || fileData.length > 100)) { // Basic validation
           chrome.runtime.sendMessage({
-            action: 'csvDataCaptured',
-            csvData: csvData,
+            action: 'csvDataCaptured', // Keep same action name for compatibility
+            csvData: fileData,
             date: currentDownloadState.currentDate,
-            url: url
+            url: url,
+            fileType: fileType.toLowerCase()
           });
         }
       } catch (error) {
-        console.error('Error processing XHR CSV data:', error);
+        console.error(`Error processing XHR ${fileType} data:`, error);
       }
     }
   });
@@ -341,48 +417,60 @@ async function setDateRange(startDate, endDate) {
 // Click the export dropdown button
 async function clickExportDropdown() {
   try {
-    console.log('🎯 Looking for EXACT export dropdown button: bulk-export-index-fLhhd2');
+    console.log('🎯 Looking for EXACT button: data-testid="bulk-export-index-fLhhd2"');
     
-    // ONLY look for the exact button - no other methods
-    const correctButton = document.querySelector('button[data-testid="bulk-export-index-fLhhd2"]');
+    // ONLY look for the exact button - NO FALLBACK STRATEGIES
+    const exactButton = document.querySelector('button[data-testid="bulk-export-index-fLhhd2"]');
     
-    if (correctButton) {
-      console.log('✅ FOUND CORRECT EXPORT BUTTON: data-testid="bulk-export-index-fLhhd2"');
-      console.log('Button element:', correctButton);
+    if (exactButton) {
+      console.log('✅ FOUND EXACT BUTTON: data-testid="bulk-export-index-fLhhd2"');
+      console.log('Button details:', {
+        'data-testid': exactButton.getAttribute('data-testid'),
+        'data-tid': exactButton.getAttribute('data-tid'),
+        'className': exactButton.className,
+        'hasLaunchIcon': !!exactButton.querySelector('svg.theme-arco-icon-launch'),
+        'hasOrderIcon': !!exactButton.querySelector('svg.theme-arco-icon-order')
+      });
       
       try {
-        correctButton.click();
-        console.log('✅ Export dropdown clicked successfully');
+        exactButton.click();
+        console.log('✅ EXACT BUTTON CLICKED SUCCESSFULLY');
         await sleep(2000);
         return true;
       } catch (clickError) {
         console.log('❌ Direct click failed, trying dispatchEvent...');
-        correctButton.dispatchEvent(new MouseEvent('click', {
+        exactButton.dispatchEvent(new MouseEvent('click', {
           bubbles: true,
           cancelable: true,
           view: window
         }));
-        console.log('✅ Export dropdown dispatch click successful');
+        console.log('✅ EXACT BUTTON DISPATCH CLICK SUCCESSFUL');
         await sleep(2000);
         return true;
       }
     }
     
-    // If exact button not found, log all buttons for debugging
+    // If exact button not found, STOP and debug
     console.error('❌ EXACT BUTTON NOT FOUND: data-testid="bulk-export-index-fLhhd2"');
     console.log('=== DEBUGGING: All buttons with data-testid ===');
     
     const allButtonsWithTestId = document.querySelectorAll('button[data-testid]');
+    console.log(`Total buttons with data-testid found: ${allButtonsWithTestId.length}`);
+    
     allButtonsWithTestId.forEach((btn, index) => {
       const testId = btn.getAttribute('data-testid');
-      console.log(`Button ${index + 1}: data-testid="${testId}"`);
+      const hasLaunchIcon = btn.querySelector('svg.theme-arco-icon-launch') ? '✅' : '❌';
+      const hasOrderIcon = btn.querySelector('svg.theme-arco-icon-order') ? '📋' : '';
+      const isExactMatch = testId === 'bulk-export-index-fLhhd2' ? '🎯' : '';
+      console.log(`Button ${index + 1}: ${isExactMatch} data-testid="${testId}" Launch:${hasLaunchIcon} Order:${hasOrderIcon}`);
     });
     
     console.log('=== END DEBUGGING ===');
+    console.error('❌ FUNCTION FAILED - WILL NOT CLICK ANY OTHER BUTTONS');
     return false;
     
   } catch (error) {
-    console.error('Error clicking export dropdown:', error);
+    console.error('Error in clickExportDropdown:', error);
     return false;
   }
 }
@@ -390,97 +478,210 @@ async function clickExportDropdown() {
 // Click the Export button in the dropdown
 async function clickExportButton() {
   try {
-    console.log('🎯 Looking for Export button in Real-time campaign data container...');
+    console.log('🎯 Looking for Export button after Real-time campaign data text...');
     
     // Wait for dropdown to appear
     await sleep(2000);
     
-    // Priority 1: Find by exact data-uid first  
-    const exactButton = document.querySelector('button[data-uid="bulkexportoptionsitem:button:b1c07"]');
-    if (exactButton) {
-      console.log('✅ FOUND EXACT Export button by data-uid="bulkexportoptionsitem:button:b1c07"');
-      exactButton.click();
-      console.log('✅ Export button clicked successfully');
-      await sleep(3000);
-      return true;
-    }
+    // Find "Real-time campaign data" text and then look for Export button that comes right after it
+    console.log('Strategy: Find Real-time campaign data text and the Export button right after it');
     
-    // Priority 2: Find container with "Real-time campaign data" text
-    console.log('Looking for Real-time campaign data container...');
+    // Use XPath to find text nodes containing "Real-time campaign data"
+    const xpath = "//text()[contains(., 'Real-time campaign data')]";
+    const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+    const realTimeTextNode = result.singleNodeValue;
     
-    // Get all elements and find the one containing "Real-time campaign data"
-    const allDivs = document.querySelectorAll('div');
-    let exportButton = null;
-    
-    for (const div of allDivs) {
-      // Check if this div contains "Real-time campaign data" text
-      if (div.textContent?.includes('Real-time campaign data')) {
-        // Look for button within this container
-        const buttons = div.querySelectorAll('button');
-        for (const btn of buttons) {
-          // Check if button has Export text
-          if (btn.textContent?.trim() === 'Export' || 
-              btn.querySelector('span')?.textContent?.trim() === 'Export') {
-            // Make sure it's not the dropdown trigger (no SVG icon)
-            if (!btn.querySelector('svg')) {
-              exportButton = btn;
-              console.log('✅ Found Export button in Real-time campaign data container');
-              console.log('Button data-uid:', btn.getAttribute('data-uid'));
-              console.log('Button text:', btn.textContent);
-              break;
+    if (realTimeTextNode) {
+      console.log('✅ Found Real-time campaign data text node');
+      
+      // Get the parent element of the text node
+      const textParent = realTimeTextNode.parentElement;
+      console.log('Text parent element:', textParent);
+      
+      // Look for the Export button in the same container or next sibling containers
+      // Start from the text parent and go up to find the container that has both text and button
+      let container = textParent;
+      let levels = 0;
+      
+      while (container && levels < 5) {
+        console.log(`Checking container at level ${levels}:`, container);
+        
+        // Look for Export buttons in this container
+        const exportButtons = container.querySelectorAll('button');
+        
+        for (const btn of exportButtons) {
+          const btnText = btn.textContent?.trim();
+          const dataUid = btn.getAttribute('data-uid');
+          const dataTestId = btn.getAttribute('data-testid');
+          
+          console.log(`Found button: "${btnText}", data-uid: ${dataUid}, data-testid: ${dataTestId}`);
+          
+          // Look for button with Export text and matching pattern
+          if (btnText === 'Export' && 
+              dataUid?.includes('bulkexportoptionsitem:button') &&
+              dataTestId?.includes('bulk-export-options-item')) {
+            
+            console.log('✅ Found EXACT Export button after Real-time campaign data!');
+            console.log('Button details:', {
+              'data-uid': dataUid,
+              'data-testid': dataTestId,
+              'text': btnText,
+              'className': btn.className
+            });
+            
+            try {
+              btn.click();
+              console.log('✅ Export button clicked successfully');
+              await sleep(3000);
+              return true;
+            } catch (clickError) {
+              console.log('❌ Direct click failed, trying dispatchEvent...');
+              btn.dispatchEvent(new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                view: window
+              }));
+              console.log('✅ Export button dispatch click successful');
+              await sleep(3000);
+              return true;
             }
           }
         }
-        if (exportButton) break;
+        
+        // Move up one level in the DOM
+        container = container.parentElement;
+        levels++;
       }
     }
     
-    if (exportButton) {
-      console.log('🎯 Clicking Export button...');
+    // Fallback 1: Look for any Export button with the specific pattern
+    console.log('❌ Real-time text method failed. Fallback 1: Looking for Export buttons with specific pattern...');
+    
+    const allButtons = document.querySelectorAll('button[data-uid*="bulkexportoptionsitem:button"]');
+    console.log(`Found ${allButtons.length} buttons with bulkexportoptionsitem pattern`);
+    
+    for (const btn of allButtons) {
+      const btnText = btn.textContent?.trim();
+      if (btnText === 'Export') {
+        console.log('✅ Found Export button via fallback method');
+        console.log('Button details:', {
+          'data-uid': btn.getAttribute('data-uid'),
+          'data-testid': btn.getAttribute('data-testid'),
+          'text': btnText
+        });
+        
+        try {
+          btn.click();
+          console.log('✅ Export button clicked successfully');
+          await sleep(3000);
+          return true;
+        } catch (clickError) {
+          btn.dispatchEvent(new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+          }));
+          console.log('✅ Export button dispatch click successful');
+          await sleep(3000);
+          return true;
+        }
+      }
+    }
+    
+    // Fallback 2: Look for ANY Export button in the page
+    console.log('❌ Specific pattern failed. Fallback 2: Looking for ANY Export button...');
+    
+    const allPageButtons = document.querySelectorAll('button, [role="button"]');
+    console.log(`Found ${allPageButtons.length} total buttons/clickable elements`);
+    
+    const exportCandidates = [];
+    
+    for (const btn of allPageButtons) {
+      const btnText = btn.textContent?.trim();
+      const isVisible = window.getComputedStyle(btn).display !== 'none' && 
+                       window.getComputedStyle(btn).visibility !== 'hidden';
+      
+      if (btnText === 'Export' && isVisible) {
+        exportCandidates.push({
+          button: btn,
+          'data-uid': btn.getAttribute('data-uid'),
+          'data-testid': btn.getAttribute('data-testid'),
+          className: btn.className,
+          parentText: btn.closest('div')?.textContent?.substring(0, 100) || 'No parent text'
+        });
+      }
+    }
+    
+    console.log(`Found ${exportCandidates.length} Export button candidates:`, exportCandidates);
+    
+    // Try each candidate
+    for (const candidate of exportCandidates) {
+      console.log('Trying Export button candidate:', candidate);
+      
       try {
-        exportButton.click();
-        console.log('✅ Export button clicked successfully');
-      } catch (e) {
-        console.log('Direct click failed, using dispatchEvent...');
-        exportButton.dispatchEvent(new MouseEvent('click', {
+        candidate.button.click();
+        console.log('✅ Export button clicked successfully (generic fallback)');
+        await sleep(3000);
+        return true;
+      } catch (clickError) {
+        console.log('Direct click failed, trying dispatch...');
+        candidate.button.dispatchEvent(new MouseEvent('click', {
           bubbles: true,
           cancelable: true,
           view: window
         }));
-        console.log('✅ Export button clicked via dispatchEvent');
+        console.log('✅ Export button dispatch clicked (generic fallback)');
+        await sleep(3000);
+        return true;
       }
-      await sleep(3000);
-      return true;
     }
     
-    // Priority 3: Fallback - look for any button with specific class pattern
-    console.log('Trying fallback method...');
-    const fallbackButton = document.querySelector('button[data-uid*="bulkexportoptionsitem:button"]');
-    if (fallbackButton && fallbackButton.textContent?.includes('Export')) {
-      console.log('✅ Found Export button by fallback method');
-      console.log('Button data-uid:', fallbackButton.getAttribute('data-uid'));
-      fallbackButton.click();
-      await sleep(3000);
-      return true;
-    }
+    // Fallback 3: Look for download-related buttons
+    console.log('❌ Export buttons failed. Fallback 3: Looking for download-related buttons...');
     
-    console.error('❌ Export button not found after all attempts');
-    
-    // Debug info
-    console.log('=== DEBUGGING INFO ===');
-    const debugButtons = document.querySelectorAll('button');
-    let exportCount = 0;
-    debugButtons.forEach(btn => {
-      if (btn.textContent?.includes('Export')) {
-        exportCount++;
-        console.log(`Export button ${exportCount}:`, {
-          'data-uid': btn.getAttribute('data-uid'),
-          'data-testid': btn.getAttribute('data-testid'),
-          'text': btn.textContent?.trim(),
-          'has-svg': !!btn.querySelector('svg')
-        });
-      }
+    const downloadButtons = Array.from(allPageButtons).filter(btn => {
+      const text = btn.textContent?.toLowerCase() || '';
+      const className = btn.className?.toLowerCase() || '';
+      return (text.includes('download') || className.includes('download')) && 
+             window.getComputedStyle(btn).display !== 'none';
     });
+    
+    console.log(`Found ${downloadButtons.length} download-related buttons`);
+    downloadButtons.forEach((btn, i) => {
+      console.log(`Download button ${i+1}: "${btn.textContent?.trim()}"`, {
+        'data-uid': btn.getAttribute('data-uid'),
+        'data-testid': btn.getAttribute('data-testid')
+      });
+    });
+    
+    if (downloadButtons.length > 0) {
+      console.log('Trying first download button...');
+      try {
+        downloadButtons[0].click();
+        console.log('✅ Download button clicked successfully');
+        await sleep(3000);
+        return true;
+      } catch (error) {
+        console.log('❌ Download button click failed');
+      }
+    }
+    
+    console.error('❌ Export button not found');
+    
+    // Enhanced Debug info
+    console.log('=== DEBUGGING INFO ===');
+    console.log('All buttons with data-uid containing "bulkexportoptionsitem":');
+    
+    const debugButtons = document.querySelectorAll('button[data-uid*="bulkexportoptionsitem"]');
+    debugButtons.forEach((btn, i) => {
+      console.log(`Button ${i + 1}:`, {
+        text: btn.textContent?.trim(),
+        'data-uid': btn.getAttribute('data-uid'),
+        'data-testid': btn.getAttribute('data-testid'),
+        className: btn.className
+      });
+    });
+    
     console.log('=== END DEBUG ===');
     
     return false;
@@ -565,7 +766,7 @@ function sleep(ms) {
 }
 
 // Monitor page changes (for SPA navigation)
-const observer = new MutationObserver((mutations) => {
+const observer = new MutationObserver(() => {
   // Check if we're on the right page
   if (window.location.href.includes('tiktokglobalshop.com/ads-creation') || 
       window.location.href.includes('ads.tiktok.com')) {
@@ -580,5 +781,155 @@ observer.observe(document.body, {
   subtree: true
 });
 
+// Alternative: Monitor for direct file downloads using Chrome Downloads API
+async function monitorDownloads() {
+  console.log('🔍 Setting up download monitoring...');
+  
+  // Send message to background script to start monitoring downloads
+  chrome.runtime.sendMessage({
+    action: 'startDownloadMonitoring',
+    date: currentDownloadState.currentDate
+  });
+}
+
+// Enhanced download detection - monitor DOM for download links AND blob URLs
+function monitorDownloadLinks() {
+  console.log('🔍 Monitoring for download links and blob URLs...');
+  
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          // Check for ALL download links including blob URLs
+          const downloadLinks = node.querySelectorAll('a[download], a[href*=".xlsx"], a[href*=".xls"], a[href*="export"], a[href*="download"], a[href^="blob:"]');
+          
+          downloadLinks.forEach((link) => {
+            console.log('🔗 Download link detected:', {
+              href: link.href,
+              download: link.download,
+              text: link.textContent?.trim(),
+              isBlob: link.href.startsWith('blob:')
+            });
+            
+            // Auto-click if it's an Excel file OR a blob URL
+            if (link.href.includes('.xlsx') || link.href.includes('.xls') || 
+                link.download?.includes('.xlsx') || link.download?.includes('.xls') ||
+                link.href.startsWith('blob:')) {
+              
+              console.log('📁 Auto-clicking file download link...');
+              
+              // Try to intercept blob URL before clicking
+              if (link.href.startsWith('blob:')) {
+                console.log('🧬 Blob URL detected, attempting to read:', link.href);
+                interceptBlobUrl(link.href, link.download || 'unknown.xlsx');
+              }
+              
+              setTimeout(() => {
+                link.click();
+              }, 1000);
+            }
+          });
+          
+          // Check for new buttons that might be export buttons
+          const newButtons = node.querySelectorAll('button');
+          newButtons.forEach((btn) => {
+            const text = btn.textContent?.toLowerCase() || '';
+            if (text.includes('export') || text.includes('download')) {
+              console.log('🆕 New export/download button detected:', {
+                text: btn.textContent?.trim(),
+                'data-uid': btn.getAttribute('data-uid'),
+                'data-testid': btn.getAttribute('data-testid')
+              });
+            }
+          });
+        }
+      });
+    });
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
+  console.log('✅ Download link and blob URL monitoring started');
+}
+
+// Intercept blob URLs to get file data
+async function interceptBlobUrl(blobUrl, filename) {
+  try {
+    console.log('🧬 Attempting to read blob URL:', blobUrl);
+    
+    const response = await fetch(blobUrl);
+    const contentType = response.headers.get('content-type') || '';
+    
+    console.log('🧬 Blob response:', {
+      contentType,
+      size: response.headers.get('content-length'),
+      filename
+    });
+    
+    // Check if it's an Excel file
+    if (filename?.includes('.xlsx') || filename?.includes('.xls') || 
+        contentType.includes('spreadsheet') || contentType.includes('excel')) {
+      
+      console.log('📊 Excel blob detected, reading data...');
+      const arrayBuffer = await response.arrayBuffer();
+      
+      console.log('📊 Excel blob data captured, size:', arrayBuffer.byteLength, 'bytes');
+      
+      // Send to background script
+      chrome.runtime.sendMessage({
+        action: 'csvDataCaptured',
+        csvData: arrayBuffer,
+        date: currentDownloadState.currentDate,
+        url: blobUrl,
+        fileType: 'excel'
+      });
+      
+    } else {
+      console.log('📄 Non-Excel blob, trying as CSV...');
+      const text = await response.text();
+      
+      if (text.includes(',') && text.includes('\n')) {
+        console.log('📄 CSV blob data captured, length:', text.length);
+        
+        chrome.runtime.sendMessage({
+          action: 'csvDataCaptured',
+          csvData: text,
+          date: currentDownloadState.currentDate,
+          url: blobUrl,
+          fileType: 'csv'
+        });
+      }
+    }
+    
+  } catch (error) {
+    console.error('❌ Error reading blob URL:', error);
+  }
+}
+
+// Start monitoring when content script loads
+setTimeout(() => {
+  monitorDownloadLinks();
+}, 3000);
+
+// Manual trigger function for testing
+window.triggerExportMonitoring = function() {
+  console.log('🧪 Manual export monitoring triggered');
+  monitorDownloadLinks();
+  monitorDownloads();
+};
+
+// Test network interception immediately
+setTimeout(() => {
+  console.log('🧪 Testing network interception...');
+  fetch('/favicon.ico')
+    .then(() => console.log('✅ Network interception working'))
+    .catch(() => console.log('❌ Network interception test failed'));
+}, 1000);
+
 // Log that content script is ready
 console.log('Content script initialized and ready for commands');
+console.log('💡 Manual test: triggerExportMonitoring()');
+console.log('💡 Manual test: testNetworkMonitoring()');

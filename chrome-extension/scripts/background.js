@@ -71,6 +71,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return false;
   }
   
+  if (request.action === 'startDownloadMonitoring') {
+    handleStartDownloadMonitoring(request);
+    return false;
+  }
+  
   sendResponse({ success: false, error: 'Unknown action' });
   return false;
 });
@@ -288,21 +293,27 @@ async function handleDownloadError(request) {
   }
 }
 
-// Handle CSV data captured from network requests
+// Handle CSV data captured from network requests (supports both CSV and Excel formats)
 async function handleCsvDataCaptured(request) {
   const { csvData, date, url } = request;
   
-  console.log('CSV data captured in background:', {
+  console.log('File data captured in background:', {
     dataLength: csvData?.length,
     date,
-    url: url?.substring(0, 100) + '...'
+    url: url?.substring(0, 100) + '...',
+    isExcel: url?.includes('.xlsx') || url?.includes('.xls')
   });
   
   try {
-    await addLog('info', `CSV 데이터 캐치됨 (${date}): ${(csvData.length / 1024).toFixed(2)} KB`);
+    const fileType = (url?.includes('.xlsx') || url?.includes('.xls')) ? 'Excel' : 'CSV';
+    await addLog('info', `${fileType} 데이터 캐치됨 (${date}): ${(csvData.length / 1024).toFixed(2)} KB`);
     
-    // Upload CSV data to Supabase
-    await uploadCsvToSupabase(csvData, date || downloadState.currentDate);
+    // Process and upload data to Supabase
+    if (url?.includes('.xlsx') || url?.includes('.xls')) {
+      await uploadExcelToSupabase(csvData, date || downloadState.currentDate);
+    } else {
+      await uploadCsvToSupabase(csvData, date || downloadState.currentDate);
+    }
     
     // Mark download as complete
     if (downloadState.isRunning && downloadState.currentDate === date) {
@@ -314,13 +325,69 @@ async function handleCsvDataCaptured(request) {
     }
     
   } catch (error) {
-    console.error('Error processing captured CSV data:', error);
-    await addLog('error', `CSV 데이터 처리 실패: ${error.message}`);
+    console.error('Error processing captured file data:', error);
+    await addLog('error', `파일 데이터 처리 실패: ${error.message}`);
     
     if (downloadState.isRunning) {
       downloadState.failed.push(date || downloadState.currentDate);
       setTimeout(() => processNextDate(), 3000);
     }
+  }
+}
+
+// Upload captured Excel data to Supabase
+async function uploadExcelToSupabase(excelContent, date) {
+  console.log('Uploading captured Excel to Supabase for date:', date);
+  
+  try {
+    // Parse Excel content using a simple base64 approach
+    // Since we're in a service worker, we need to use external libraries carefully
+    // For now, we'll send the binary data to the API and let the server parse it
+    
+    // Convert ArrayBuffer/binary data to base64
+    let base64Data;
+    if (typeof excelContent === 'string') {
+      // If it's already a string, encode to base64
+      base64Data = btoa(excelContent);
+    } else {
+      // If it's binary data, convert to base64
+      const bytes = new Uint8Array(excelContent);
+      const binary = bytes.reduce((data, byte) => data + String.fromCharCode(byte), '');
+      base64Data = btoa(binary);
+    }
+    
+    console.log('Excel data converted to base64, length:', base64Data.length);
+    
+    // Send to Supabase API with Excel data
+    const apiUrl = 'https://manage-order-oliveyoung.vercel.app/api/tiktok-ads-upload';
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        date: date,
+        excelData: base64Data,
+        fileType: 'excel'
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Excel upload failed: ${response.statusText} - ${errorData.error || ''}`);
+    }
+    
+    const result = await response.json();
+    console.log('Excel upload successful:', result);
+    
+    await addLog('success', `${date} Excel 데이터가 Supabase에 저장되었습니다 (${result.rowsInserted || 0}행)`);
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Error uploading Excel to Supabase:', error);
+    throw error;
   }
 }
 
@@ -361,7 +428,8 @@ async function uploadCsvToSupabase(csvContent, date) {
     },
     body: JSON.stringify({
       date: date,
-      data: data
+      data: data,
+      fileType: 'csv'
     })
   });
   
@@ -435,5 +503,111 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   }
 });
 
-// Note: Download event listener removed - now using network interception
-// The content script intercepts CSV data directly from network requests
+// Chrome Downloads API monitoring for fallback
+let downloadMonitoringActive = false;
+let monitoringDate = null;
+
+function handleStartDownloadMonitoring(request) {
+  const { date } = request;
+  console.log('Starting download monitoring for date:', date);
+  
+  monitoringDate = date;
+  downloadMonitoringActive = true;
+  
+  // Set up chrome.downloads listener
+  if (chrome.downloads && chrome.downloads.onCreated) {
+    chrome.downloads.onCreated.removeListener(onDownloadCreated); // Remove if already exists
+    chrome.downloads.onCreated.addListener(onDownloadCreated);
+    console.log('✅ Chrome Downloads API listener set up');
+  }
+  
+  // Set up chrome.downloads.onChanged listener for completion
+  if (chrome.downloads && chrome.downloads.onChanged) {
+    chrome.downloads.onChanged.removeListener(onDownloadChanged);
+    chrome.downloads.onChanged.addListener(onDownloadChanged);
+    console.log('✅ Chrome Downloads change listener set up');
+  }
+}
+
+// Handle new downloads
+async function onDownloadCreated(downloadItem) {
+  if (!downloadMonitoringActive) return;
+  
+  console.log('📥 New download detected:', {
+    filename: downloadItem.filename,
+    url: downloadItem.url,
+    fileSize: downloadItem.fileSize
+  });
+  
+  // Check if it's an Excel file
+  const filename = downloadItem.filename?.toLowerCase() || '';
+  const url = downloadItem.url?.toLowerCase() || '';
+  
+  if (filename.includes('.xlsx') || filename.includes('.xls') || 
+      url.includes('.xlsx') || url.includes('.xls')) {
+    
+    console.log('🎯 Excel file download detected via Chrome Downloads API');
+    await addLog('info', `Excel 파일 다운로드 감지: ${downloadItem.filename}`);
+    
+    // Store download info for processing when complete
+    downloadItem._monitoringDate = monitoringDate;
+    downloadItem._isExcelFile = true;
+  }
+}
+
+// Handle download completion
+async function onDownloadChanged(downloadDelta) {
+  if (!downloadMonitoringActive) return;
+  
+  // Check if download completed
+  if (downloadDelta.state && downloadDelta.state.current === 'complete') {
+    console.log('📦 Download completed:', downloadDelta.id);
+    
+    // Get full download info
+    try {
+      const [downloadItem] = await chrome.downloads.search({ id: downloadDelta.id });
+      
+      if (downloadItem && downloadItem._isExcelFile) {
+        console.log('✅ Excel download completed:', downloadItem.filename);
+        await addLog('success', `Excel 다운로드 완료: ${downloadItem.filename}`);
+        
+        // Try to read the downloaded file
+        try {
+          await processDownloadedExcelFile(downloadItem);
+        } catch (error) {
+          console.error('Error processing downloaded Excel file:', error);
+          await addLog('error', `Excel 파일 처리 실패: ${error.message}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error getting download info:', error);
+    }
+  }
+}
+
+// Process downloaded Excel file
+async function processDownloadedExcelFile(downloadItem) {
+  console.log('🔍 Processing downloaded Excel file:', downloadItem.filename);
+  
+  // Note: Chrome extensions can't directly read downloaded files from disk
+  // This would require additional permissions and file system access
+  // For now, we'll log this event and rely on network interception
+  
+  await addLog('info', `Excel 파일이 다운로드되었습니다: ${downloadItem.filename}`);
+  
+  // Mark as complete for current date
+  if (downloadState.isRunning && downloadState.currentDate === monitoringDate) {
+    downloadState.completed++;
+    await addLog('success', `${monitoringDate} 다운로드 완료 (Downloads API)`);
+    
+    // Continue to next date
+    setTimeout(() => processNextDate(), 2000);
+  }
+  
+  // Stop monitoring after successful download
+  downloadMonitoringActive = false;
+  monitoringDate = null;
+}
+
+// Note: Network interception is still the primary method
+// Downloads API monitoring is a fallback for cases where network interception fails

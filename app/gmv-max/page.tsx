@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { DatePickerWithRange } from "@/components/ui/date-range-picker"
@@ -106,19 +106,31 @@ export default function GmvMaxPage() {
   const [salesStats, setSalesStats] = useState<SalesStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [displayCount, setDisplayCount] = useState(10)
 
-  // 실제 GMV 데이터 및 예산 계획 데이터 로드
+  // Load initial data with optimized fetching
   useEffect(() => {
+    const controller = new AbortController()
+    
     async function loadData() {
       try {
         setLoading(true)
         setError(null)
         
-        // GMV 데이터, 예산 계획, 판매 통계 데이터를 병렬로 로드
+        // Parallel data fetching with timeout
+        const fetchWithTimeout = (url: string, timeout = 10000) => {
+          return Promise.race([
+            fetch(url, { signal: controller.signal }),
+            new Promise<Response>((_, reject) => 
+              setTimeout(() => reject(new Error('Request timeout')), timeout)
+            )
+          ])
+        }
+        
         const [gmvResponse, budgetResponse, salesResponse] = await Promise.all([
-          fetch('/api/gmv-data?groupBy=account'),
-          fetch('/api/budget-plan?year=2025'),
-          fetch('/api/gmv-sales-stats')
+          fetchWithTimeout('/api/gmv-data?groupBy=account'),
+          fetchWithTimeout('/api/budget-plan?year=2025'),
+          fetchWithTimeout('/api/gmv-sales-stats')
         ])
         
         if (!gmvResponse.ok) {
@@ -159,14 +171,16 @@ export default function GmvMaxPage() {
     }
 
     loadData()
+    
+    return () => controller.abort()
   }, [])
 
-  const formatCurrency = (value: number) => {
-    return `₩${value.toLocaleString()}`
-  }
+  const formatCurrency = useCallback((value: number) => {
+    return `₩${value.toLocaleString('ko-KR')}`
+  }, [])
 
-  // 실제 데이터에서 계산된 통계
-  const calculateStats = () => {
+  // Memoized stats calculation
+  const stats = useMemo(() => {
     const totalRevenue = gmvData.reduce((sum, account) => sum + (account.totalRevenue || 0), 0)
     const totalOrders = gmvData.reduce((sum, account) => sum + (account.totalOrders || 0), 0)
     const totalImpressions = gmvData.reduce((sum, account) => sum + (account.totalImpressions || 0), 0)
@@ -190,12 +204,10 @@ export default function GmvMaxPage() {
       avgROI: Math.round(avgROI),
       activeCampaigns: campaigns?.length || 0
     }
-  }
+  }, [gmvData, campaigns])
 
-  const stats = calculateStats()
-
-  // GMV 추이 데이터 생성
-  const generateGmvTrendData = () => {
+  // GMV 추이 데이터 생성 (Memoized)
+  const gmvTrendData = useMemo(() => {
     if (!gmvData || !gmvData.length) return []
     
     // 실제 데이터를 기반으로 월별 트렌드 생성 (간단한 시뮬레이션)
@@ -207,12 +219,10 @@ export default function GmvMaxPage() {
       gmv: Math.round(baseRevenue * (0.7 + Math.random() * 0.6) * (index + 1) / 4),
       orders: Math.round((stats.totalOrders / 7) * (0.7 + Math.random() * 0.6) * (index + 1) / 4)
     }))
-  }
+  }, [gmvData, stats])
 
-  const gmvTrendData = generateGmvTrendData()
-
-  // 예산 사용 추이 데이터 (실제 데이터 기반)
-  const generateBudgetTrendData = () => {
+  // 예산 사용 추이 데이터 (Memoized)
+  const budgetTrendData = useMemo(() => {
     const currentAdSpend = stats.totalAdSpend
     
     // 현재까지의 누적 사용 비율을 기반으로 월별 추이 생성
@@ -234,9 +244,7 @@ export default function GmvMaxPage() {
         usageRate: cumulativeAllocated > 0 ? Math.round((cumulativeSpend / cumulativeAllocated) * 100) : 0
       }
     })
-  }
-
-  const budgetTrendData = generateBudgetTrendData()
+  }, [budgetPlan, stats])
 
   if (loading) {
     return (
@@ -568,7 +576,7 @@ export default function GmvMaxPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {gmvData && gmvData.length > 0 ? gmvData.slice(0, 10).map((account, index) => (
+              {gmvData && gmvData.length > 0 ? gmvData.slice(0, displayCount).map((account, index) => (
                 <TableRow key={`${account.account}-${index}`}>
                   <TableCell className="font-medium">{account.account}</TableCell>
                   <TableCell className="text-right">{account.videoCount}</TableCell>
@@ -596,6 +604,18 @@ export default function GmvMaxPage() {
               )}
             </TableBody>
           </Table>
+          
+          {/* Load more button for pagination */}
+          {gmvData.length > displayCount && (
+            <div className="flex justify-center mt-4 pb-4">
+              <Button
+                variant="outline"
+                onClick={() => setDisplayCount(prev => Math.min(prev + 10, gmvData.length))}
+              >
+                더 보기 ({displayCount}/{gmvData.length})
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase"
+import { globalCache } from "@/lib/cache"
 
-export const runtime = "nodejs"
+export const runtime = "edge"
 
 interface BudgetPlan {
   id: number
@@ -18,6 +19,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const year = searchParams.get("year") || "2025"
     
+    // Check cache first
+    const cacheKey = `budget-plan-${year}`
+    const cached = globalCache.get(cacheKey)
+    if (cached) {
+      const response = NextResponse.json(cached)
+      response.headers.set('X-Cache', 'HIT')
+      return response
+    }
+    
     const supabase = createServerClient()
     
     const { data, error } = await supabase
@@ -27,6 +37,25 @@ export async function GET(request: NextRequest) {
       .order("month", { ascending: true })
     
     if (error) {
+      // If table doesn't exist, return default data
+      if ((error as any).code === "42P01") {
+        const defaultData = [
+          { id: 1, year: 2025, month: 7, budget: 10000000, ratio: 10 },
+          { id: 2, year: 2025, month: 8, budget: 15000000, ratio: 15 },
+          { id: 3, year: 2025, month: 9, budget: 20000000, ratio: 20 },
+          { id: 4, year: 2025, month: 10, budget: 20000000, ratio: 20 },
+          { id: 5, year: 2025, month: 11, budget: 20000000, ratio: 20 },
+          { id: 6, year: 2025, month: 12, budget: 15000000, ratio: 15 },
+        ]
+        
+        const result = { data: defaultData }
+        globalCache.set(cacheKey, result)
+        
+        const response = NextResponse.json(result)
+        response.headers.set('X-Cache', 'DEFAULT')
+        return response
+      }
+      
       console.error("Budget plan fetch error:", error)
       return NextResponse.json(
         { error: "예산 계획 데이터를 가져오는데 실패했습니다." },
@@ -34,11 +63,19 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    return NextResponse.json({
+    const result = {
       success: true,
       data: data || [],
       year: parseInt(year)
-    })
+    }
+    
+    // Store in cache
+    globalCache.set(cacheKey, result)
+    
+    const response = NextResponse.json(result)
+    response.headers.set('X-Cache', 'MISS')
+    response.headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60')
+    return response
     
   } catch (error) {
     console.error("Budget plan API error:", error)

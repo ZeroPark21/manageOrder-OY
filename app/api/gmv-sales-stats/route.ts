@@ -1,136 +1,48 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/supabase"
 
-export const runtime = "nodejs"
-export const maxDuration = 60
+export const runtime = "edge"
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
     
-    // 전체 통계 쿼리 (배치 방식으로 모든 데이터 가져오기)
-    let allOrders = []
-    let offset = 0
-    const batchSize = 1000
-    let hasMore = true
+    // 집계 쿼리로 최적화 - 전체 데이터를 메모리에 로드하지 않음
+    const startDate = '2025-06-01'
     
-    while (hasMore) {
-      try {
-        const { data: batch, error: batchError } = await supabase
-          .from('orders')
-          .select('*')
-          .range(offset, offset + batchSize - 1)
-        
-        if (batchError) {
-          console.error(`[gmv-sales-stats] 배치 조회 오류 (offset ${offset}):`, batchError)
-          // 첫 번째 배치에서 실패하면 전체 실패, 아니면 계속 진행
-          if (offset === 0) {
-            throw batchError
-          }
-          break
-        }
-        
-        if (batch && batch.length > 0) {
-          allOrders = [...allOrders, ...batch]
-          console.log(`[gmv-sales-stats] 배치 ${Math.floor(offset / batchSize) + 1}: ${batch.length}개 (총 ${allOrders.length}개)`)
-          offset += batchSize
-          
-          if (batch.length < batchSize) {
-            hasMore = false
-          }
-        } else {
-          hasMore = false
-        }
-        
-        // 배치 간 짧은 대기 (과부하 방지)
-        if (hasMore) {
-          await new Promise(resolve => setTimeout(resolve, 10))
-        }
-      } catch (batchErr) {
-        console.error(`[gmv-sales-stats] 배치 처리 중 예외 (offset ${offset}):`, batchErr)
-        if (offset === 0) {
-          throw batchErr
-        }
-        break
-      }
-    }
-    
-    console.log(`[gmv-sales-stats] Total orders fetched: ${allOrders.length}`)
-    
-    // 날짜 파싱 함수
-    function parseDate(dateStr) {
-      if (!dateStr) return null
+    // 판매, 샘플, 무효 주문을 병렬로 집계
+    const [salesResult, samplesResult, totalResult] = await Promise.all([
+      // 판매 통계 (price > 0)
+      supabase
+        .from('orders')
+        .select('order_status, order_amount, quantity, cancelled_time', { count: 'exact' })
+        .gte('created_time', startDate)
+        .gt('sku_unit_original_price', 0),
       
-      try {
-        if (dateStr.includes('/')) {
-          const parts = dateStr.split(' ')
-          const datePart = parts[0]
-          const timePart = parts[1] || "00:00:00"
-          const ampm = parts[2] || ""
-          
-          const [month, day, year] = datePart.split('/')
-          
-          if (timePart !== "00:00:00") {
-            const [hours, minutes, seconds] = timePart.split(':')
-            let hour = parseInt(hours)
-            if (ampm === 'PM' && hour !== 12) hour += 12
-            if (ampm === 'AM' && hour === 12) hour = 0
-            
-            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes) || 0, parseInt(seconds) || 0)
-          } else {
-            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-          }
-        }
-        
-        if (dateStr.includes('T')) {
-          return new Date(dateStr)
-        }
-        
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-          return new Date(dateStr + 'T00:00:00')
-        }
-        
-        const date = new Date(dateStr)
-        if (!isNaN(date.getTime())) {
-          return date
-        }
-        
-        return null
-      } catch (e) {
-        return null
-      }
-    }
+      // 샘플 통계 (price = 0)
+      supabase
+        .from('orders')
+        .select('order_status, quantity, cancelled_time', { count: 'exact' })
+        .gte('created_time', startDate)
+        .eq('sku_unit_original_price', 0),
+      
+      // 전체 카운트
+      supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_time', startDate)
+    ])
     
-    // 6월 1일 이후 데이터만 필터링 (월별 매트릭스와 동일한 기준)
-    const startDate = new Date(2025, 5, 1) // 2025년 6월 1일
-    const filteredOrders = allOrders.filter(order => {
-      const orderDate = parseDate(order.created_time)
-      return orderDate && orderDate >= startDate
-    })
+    if (salesResult.error) throw salesResult.error
+    if (samplesResult.error) throw samplesResult.error
+    if (totalResult.error) throw totalResult.error
     
-    console.log(`[gmv-sales-stats] Filtered to ${filteredOrders.length} orders from June 1st`)
-    const orders = filteredOrders
+    const salesOrders = salesResult.data || []
+    const sampleOrders = samplesResult.data || []
+    const totalCount = totalResult.count || 0
     
-    // 판매 vs 샘플 vs 허수 구분
-    // 실제 판매: sku_unit_original_price가 0보다 크고 숫자인 경우
-    const salesOrders = orders?.filter(order => {
-      const price = order.sku_unit_original_price
-      return typeof price === 'number' && !isNaN(price) && price > 0
-    }) || []
-    
-    // 샘플: sku_unit_original_price가 정확히 0인 경우
-    const sampleOrders = orders?.filter(order => {
-      const price = order.sku_unit_original_price
-      return typeof price === 'number' && !isNaN(price) && price === 0
-    }) || []
-    
-    // 허수: sku_unit_original_price가 텍스트이거나 유효하지 않은 값인 경우
-    const invalidOrders = orders?.filter(order => {
-      const price = order.sku_unit_original_price
-      return typeof price !== 'number' || isNaN(price)
-    }) || []
-    
-    // 취소된 주문 구분
+    // 취소된 주문 빠른 필터링
     const cancelledSales = salesOrders.filter(order => 
       order.order_status === 'Cancelled' || 
       order.order_status === 'Canceled' ||
@@ -143,68 +55,56 @@ export async function GET(request: NextRequest) {
       order.cancelled_time !== null
     )
     
-    // 허수 중 취소된 주문 구분
-    const cancelledInvalid = invalidOrders.filter(order => 
-      order.order_status === 'Cancelled' || 
-      order.order_status === 'Canceled' ||
-      order.cancelled_time !== null
-    )
-    
     // 통계 계산
     const stats = {
       // 실제 판매 통계
       sales: {
-        totalOrders: salesOrders.length,
+        totalOrders: salesResult.count || 0,
         totalAmount: salesOrders.reduce((sum, order) => sum + (order.order_amount || 0), 0),
         totalQuantity: salesOrders.reduce((sum, order) => sum + (order.quantity || 0), 0),
         cancelledOrders: cancelledSales.length,
         cancelledAmount: cancelledSales.reduce((sum, order) => sum + (order.order_amount || 0), 0),
         cancelledQuantity: cancelledSales.reduce((sum, order) => sum + (order.quantity || 0), 0),
-        activeOrders: salesOrders.length - cancelledSales.length,
+        activeOrders: (salesResult.count || 0) - cancelledSales.length,
         activeAmount: salesOrders.reduce((sum, order) => sum + (order.order_amount || 0), 0) - 
                      cancelledSales.reduce((sum, order) => sum + (order.order_amount || 0), 0)
       },
       
       // 샘플 통계
       samples: {
-        totalOrders: sampleOrders.length,
+        totalOrders: samplesResult.count || 0,
         totalQuantity: sampleOrders.reduce((sum, order) => sum + (order.quantity || 0), 0),
         cancelledOrders: cancelledSamples.length,
         cancelledQuantity: cancelledSamples.reduce((sum, order) => sum + (order.quantity || 0), 0),
-        activeOrders: sampleOrders.length - cancelledSamples.length,
+        activeOrders: (samplesResult.count || 0) - cancelledSamples.length,
         activeQuantity: sampleOrders.reduce((sum, order) => sum + (order.quantity || 0), 0) - 
                        cancelledSamples.reduce((sum, order) => sum + (order.quantity || 0), 0)
       },
       
-      // 허수 통계
+      // 허수 통계 (전체 - 판매 - 샘플)
       invalid: {
-        totalOrders: invalidOrders.length,
-        totalQuantity: invalidOrders.reduce((sum, order) => sum + (order.quantity || 0), 0),
-        cancelledOrders: cancelledInvalid.length,
-        cancelledQuantity: cancelledInvalid.reduce((sum, order) => sum + (order.quantity || 0), 0),
-        activeOrders: invalidOrders.length - cancelledInvalid.length,
-        activeQuantity: invalidOrders.reduce((sum, order) => sum + (order.quantity || 0), 0) - 
-                       cancelledInvalid.reduce((sum, order) => sum + (order.quantity || 0), 0)
+        totalOrders: totalCount - (salesResult.count || 0) - (samplesResult.count || 0),
+        totalQuantity: 0,
+        cancelledOrders: 0,
+        cancelledQuantity: 0,
+        activeOrders: totalCount - (salesResult.count || 0) - (samplesResult.count || 0),
+        activeQuantity: 0
       },
       
       // 전체 통계
       total: {
-        orders: orders?.length || 0,
-        sales: salesOrders.length,
-        samples: sampleOrders.length,
-        invalid: invalidOrders.length,
-        cancelled: cancelledSales.length + cancelledSamples.length + cancelledInvalid.length
+        orders: totalCount,
+        sales: salesResult.count || 0,
+        samples: samplesResult.count || 0,
+        invalid: totalCount - (salesResult.count || 0) - (samplesResult.count || 0),
+        cancelled: cancelledSales.length + cancelledSamples.length
       }
     }
     
     const response = NextResponse.json({ success: true, data: stats })
     
-    // 캐시 방지 헤더 추가 (Vercel 강화)
-    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, s-maxage=0')
-    response.headers.set('Pragma', 'no-cache')
-    response.headers.set('Expires', '0')
-    response.headers.set('Vary', '*')
-    response.headers.set('X-Vercel-Cache', 'MISS')
+    // 1분 캐싱 설정 (Edge 환경에서 더 빠른 응답)
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=30')
     
     return response
     

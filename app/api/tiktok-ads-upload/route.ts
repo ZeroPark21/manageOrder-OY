@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import * as XLSX from 'xlsx';
 
 // Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -10,72 +11,111 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { date, data } = body;
+    const { date, data, excelData, fileType } = body;
 
-    if (!date || !data || !Array.isArray(data)) {
+    if (!date) {
       return NextResponse.json(
-        { error: 'Invalid request data' },
+        { error: 'Date is required' },
         { status: 400 }
       );
     }
 
-    console.log(`Processing ${data.length} rows for date ${date}`);
+    let processedData: any[] = [];
 
-    // Transform data for gmv_data table
-    const transformedData = data.map(row => {
+    // Handle Excel file processing
+    if (fileType === 'excel' && excelData) {
+      console.log(`Processing Excel file for date ${date}`);
+      
+      try {
+        // Decode base64 data
+        const binaryString = atob(excelData);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        // Parse Excel file
+        const workbook = XLSX.read(bytes, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert to JSON
+        const excelJsonData = XLSX.utils.sheet_to_json(worksheet);
+        console.log(`Parsed ${excelJsonData.length} rows from Excel file`);
+        
+        processedData = excelJsonData;
+        
+      } catch (error) {
+        console.error('Error processing Excel file:', error);
+        return NextResponse.json(
+          { error: 'Failed to process Excel file', details: error instanceof Error ? error.message : 'Unknown error' },
+          { status: 400 }
+        );
+      }
+    }
+    // Handle CSV/JSON data
+    else if (data && Array.isArray(data)) {
+      console.log(`Processing ${data.length} rows for date ${date}`);
+      processedData = data;
+    }
+    else {
+      return NextResponse.json(
+        { error: 'Invalid request data - either data array or excelData is required' },
+        { status: 400 }
+      );
+    }
+
+    // Transform data for gmv_data table - Updated for actual TikTok data structure
+    const transformedData = processedData.map(row => {
+      console.log('Processing row:', row);
+      
       return {
-        // Map CSV columns to database columns - TikTok Ads specific
-        campaign_name: row['Campaign name'] || row['campaign_name'] || '',
-        campaign_id: row['Campaign ID'] || row['campaign_id'] || '',
-        ad_group_name: row['Ad group name'] || row['ad_group_name'] || '',
-        ad_group_id: row['Ad group ID'] || row['ad_group_id'] || '',
-        ad_name: row['Ad name'] || row['ad_name'] || '',
-        ad_id: row['Ad ID'] || row['ad_id'] || '',
+        // Campaign data - map actual columns from TikTok export
+        campaign_name: row['Campaign name'] || '',
+        campaign_id: row['Campaign ID'] || '',
         
-        // Map to existing gmv_data columns
-        video_id: row['Ad ID'] || row['ad_id'] || '', // Use ad_id as video_id
-        video_title: row['Ad name'] || row['ad_name'] || '',
-        tiktok_account: row['Account'] || row['account'] || 'TikTok Ads',
-        creative_type: row['Creative type'] || row['creative_type'] || 'Ad',
-        status: row['Status'] || row['status'] || 'Active',
+        // Use Campaign ID as video_id for compatibility with existing structure
+        video_id: row['Campaign ID'] || '',
+        video_title: row['Campaign name'] || '',
+        tiktok_account: 'TikTok Ads Campaign',
+        creative_type: 'Campaign',
+        status: 'Active',
         
-        // Metrics - map to existing columns
-        orders: parseInt(row['Orders'] || row['orders'] || '0'),
-        gross_revenue: parseFloat(row['GMV'] || row['Revenue'] || row['revenue'] || '0'),
-        ad_impressions: parseInt(row['Impressions'] || row['impressions'] || '0'),
-        ad_clicks: parseInt(row['Clicks'] || row['clicks'] || '0'),
-        ad_click_rate: parseFloat(row['CTR (%)'] || row['ctr'] || '0'),
-        ad_conversion_rate: parseFloat(row['CVR (%)'] || row['conversion_rate'] || '0'),
+        // Financial metrics from actual TikTok data
+        orders: parseInt(row['Orders (SKU)'] || '0'),
+        gross_revenue: parseFloat(row['Gross revenue'] || '0'),
+        cost: parseFloat(row['Cost'] || '0'),
+        net_cost: parseFloat(row['Net Cost'] || '0'),
+        cost_per_order: parseFloat(row['Cost per order'] || '0'),
+        roi: parseFloat(row['ROI'] || '0'),
         
-        // New columns for TikTok Ads
-        impressions: parseInt(row['Impressions'] || row['impressions'] || '0'),
-        clicks: parseInt(row['Clicks'] || row['clicks'] || '0'),
-        ctr: parseFloat(row['CTR (%)'] || row['ctr'] || '0'),
-        conversions: parseInt(row['Conversions'] || row['conversions'] || '0'),
-        conversion_rate: parseFloat(row['CVR (%)'] || row['conversion_rate'] || '0'),
+        // Map to existing columns for compatibility
+        ad_impressions: 0, // Not provided in campaign data
+        ad_clicks: 0, // Not provided in campaign data
+        ad_click_rate: 0, // Not provided in campaign data
+        ad_conversion_rate: row['ROI'] ? parseFloat(row['ROI']) * 100 : 0,
         
-        // Cost and Revenue
-        cost: parseFloat(row['Cost'] || row['cost'] || '0'),
-        cpc: parseFloat(row['CPC'] || row['cpc'] || '0'),
-        cpm: parseFloat(row['CPM'] || row['cpm'] || '0'),
-        revenue: parseFloat(row['GMV'] || row['Revenue'] || row['revenue'] || '0'),
-        roas: parseFloat(row['ROAS'] || row['roas'] || '0'),
+        // Revenue mapping
+        revenue: parseFloat(row['Gross revenue'] || '0'),
+        roas: row['ROI'] ? parseFloat(row['ROI']) : 0,
         
-        // Additional fields
-        units_sold: parseInt(row['Units sold'] || row['units_sold'] || '0'),
+        // Additional TikTok-specific fields
+        units_sold: parseInt(row['Orders (SKU)'] || '0'),
         
         // Metadata
         currency: row['Currency'] || 'USD',
         download_date: date,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        data_date: date, // The date this data represents
-        data_source: 'tiktok_ads', // Identify this as TikTok Ads data
+        data_date: date,
+        data_source: 'tiktok_ads_campaign',
         
         // Store full row as JSON for reference
         raw_data: JSON.stringify(row)
       };
     });
+
+    console.log('Transformed data sample:', transformedData[0]);
 
     // Delete existing data for this date (to avoid duplicates)
     const { error: deleteError } = await supabase
@@ -108,13 +148,15 @@ export async function POST(request: NextRequest) {
         upload_date: new Date().toISOString(),
         data_date: date,
         rows_count: transformedData.length,
-        status: 'success'
+        status: 'success',
+        file_type: fileType || 'csv'
       });
 
     return NextResponse.json({
       success: true,
-      message: `Successfully uploaded ${transformedData.length} rows for ${date}`,
-      rowsInserted: transformedData.length
+      message: `Successfully uploaded ${transformedData.length} rows for ${date} (${fileType || 'CSV'} file)`,
+      rowsInserted: transformedData.length,
+      fileType: fileType || 'csv'
     });
 
   } catch (error) {

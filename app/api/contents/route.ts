@@ -285,11 +285,12 @@ export async function GET(request: NextRequest) {
       if (batch && batch.length > 0) {
         allData = [...allData, ...batch]
         console.log(`📦 Fetched batch ${Math.floor(offset / batchSize) + 1}: ${batch.length} items (Total: ${allData.length})`)
-        offset += batchSize
         
         // 배치 크기보다 적게 반환되면 더 이상 데이터가 없음
         if (batch.length < batchSize) {
           hasMore = false
+        } else {
+          offset += batchSize
         }
       } else {
         hasMore = false
@@ -335,9 +336,14 @@ export async function GET(request: NextRequest) {
     const uniqueContents = Array.from(uniqueVideoMap.values())
     
     console.log(`중복 제거: ${safeContents.length}개 → ${uniqueContents.length}개`)
+    console.log(`유니크 크리에이터: ${new Set(uniqueContents.map((c) => c.creator_name).filter((name) => name && name.trim() !== '')).size}명`)
 
-    // 고유 크리에이터 수 계산
-    const uniqueCreators = new Set(uniqueContents.map((c) => c.creator_name)).size
+    // 고유 크리에이터 수 계산 - null과 빈 문자열 제외
+    const uniqueCreators = new Set(
+      uniqueContents
+        .map((c) => c.creator_name)
+        .filter((name) => name && name.trim() !== '')
+    ).size
     
     // 중복 제거된 데이터로 통계 계산
     const totalShoppableImpressions = uniqueContents.reduce(

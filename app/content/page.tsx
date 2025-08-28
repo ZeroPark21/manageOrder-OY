@@ -46,45 +46,56 @@ export default function ContentDashboard() {
   const fetchSummaryData = async () => {
     setLoading(true)
     try {
-      // content-all-matrix API에서 전체 데이터 가져오기
-      const matrixResponse = await fetch(`/api/content-all-matrix?t=${Date.now()}`)
-      const matrixData = await matrixResponse.json()
+      // 새로운 정확한 stats API 사용
+      const statsResponse = await fetch(`/api/content-stats?startDate=2025-06-01&t=${Date.now()}`)
+      const statsData = await statsResponse.json()
       
-      // 전체 통계 계산
-      let totalCount = 0
-      let totalShoppableImpressions = 0
-      let totalLikeCount = 0
-      const uniqueCreatorSet = new Set()
-      
-      // 월별 데이터에서 집계
-      if (matrixData.monthly && matrixData.monthly.monthlyStats) {
-        Object.values(matrixData.monthly.monthlyStats).forEach((stats: any) => {
-          totalCount += stats.totalCount || 0
-          totalShoppableImpressions += stats.totalShoppableImpressions || 0
-          totalLikeCount += stats.totalLikeCount || 0
+      if (statsData.success) {
+        setSummaryData({
+          data: [],
+          totalContents: statsData.data.totalContents,
+          totalCount: statsData.data.totalContents,
+          uniqueCreators: statsData.data.uniqueCreators,
+          totalShoppableImpressions: statsData.data.totalShoppableImpressions,
+          totalLikeCount: statsData.data.totalLikeCount,
+        })
+        
+        console.log("📊 Content data loaded:", {
+          totalContents: statsData.data.totalContents,
+          uniqueCreators: statsData.data.uniqueCreators,
+          totalShoppableImpressions: statsData.data.totalShoppableImpressions,
+          totalLikeCount: statsData.data.totalLikeCount,
+        })
+      } else {
+        // Fallback to old method if new API fails
+        const matrixResponse = await fetch(`/api/content-all-matrix?t=${Date.now()}`)
+        const matrixData = await matrixResponse.json()
+        
+        let totalCount = 0
+        let totalShoppableImpressions = 0
+        let totalLikeCount = 0
+        
+        if (matrixData.monthly && matrixData.monthly.monthlyStats) {
+          Object.values(matrixData.monthly.monthlyStats).forEach((stats: any) => {
+            totalCount += stats.totalCount || 0
+            totalShoppableImpressions += stats.totalShoppableImpressions || 0
+            totalLikeCount += stats.totalLikeCount || 0
+          })
+        }
+        
+        const creatorResponse = await fetch(`/api/contents?groupBy=creator&startDate=2025-06-01`)
+        const creatorData = await creatorResponse.json()
+        
+        setSummaryData({
+          data: [],
+          totalContents: totalCount,
+          totalCount: totalCount,
+          uniqueCreators: creatorData.uniqueCreators || 0,
+          totalShoppableImpressions: totalShoppableImpressions,
+          totalLikeCount: totalLikeCount,
         })
       }
-      
-      // 크리에이터 수는 기존 API 사용 (unique 계산 필요)
-      const creatorResponse = await fetch(`/api/contents?groupBy=creator&startDate=2025-06-01`)
-      const creatorData = await creatorResponse.json()
-      
-      setSummaryData({
-        data: [],
-        totalContents: totalCount,
-        totalCount: totalCount,
-        uniqueCreators: creatorData.uniqueCreators || 0,
-        totalShoppableImpressions: totalShoppableImpressions,
-        totalLikeCount: totalLikeCount,
-      })
 
-      console.log("📊 Content data loaded:", {
-        totalContents: totalCount,
-        totalCount: totalCount,
-        uniqueCreators: creatorData.uniqueCreators || 0,
-        totalShoppableImpressions: totalShoppableImpressions,
-        totalLikeCount: totalLikeCount,
-      })
       
       // GMV 데이터 가져오기
       try {
