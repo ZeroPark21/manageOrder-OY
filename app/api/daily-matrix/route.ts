@@ -81,15 +81,17 @@ export async function GET(request: NextRequest) {
     const currentYear = now.getFullYear()
     
     // 2025년 6월 이전이면 6월로 설정
-    let defaultStartDate = startDate
+    let defaultStartDate: string
     if (!startDate) {
       if (currentYear === 2025 && currentMonth < 6) {
         defaultStartDate = "2025-06-01"
       } else {
         defaultStartDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
       }
+    } else {
+      defaultStartDate = startDate
     }
-    const defaultEndDate = endDate || now.toISOString().split('T')[0]
+    const defaultEndDate: string = endDate || now.toISOString().split('T')[0]
 
     // 데이터 조회 - 샘플만 조회 (sku_unit_original_price = 0)
     // 날짜에 시간을 추가하여 전체 날짜 범위를 포함하도록 수정

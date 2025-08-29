@@ -109,30 +109,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const { data, error } = { data: null, error: null }
-
-    if (error) {
-      console.error("테이블 생성 오류:", error)
-      
-      // 대안: 기본적인 테이블 체크
-      const { data: testData, error: testError } = await supabase
-        .from('gmv_data')
-        .select('id')
-        .limit(1)
-      
-      if (!testError) {
-        console.log("✅ 테이블이 이미 존재합니다")
-        return NextResponse.json({
-          message: "GMV 테이블이 이미 존재합니다",
-          tableExists: true
-        })
-      }
-      
-      return NextResponse.json({ 
-        error: "테이블 생성 실패", 
-        details: error.message,
-        suggestion: "Supabase 대시보드에서 수동으로 테이블을 생성해주세요."
-      }, { status: 500 })
+    // 테이블 존재 여부 확인
+    const { data: testData, error: testError } = await supabase
+      .from('gmv_data')
+      .select('id')
+      .limit(1)
+    
+    if (!testError) {
+      console.log("✅ 테이블이 이미 존재합니다")
+      return NextResponse.json({
+        message: "GMV 테이블이 이미 존재합니다",
+        tableExists: true
+      })
     }
 
     console.log("✅ GMV 테이블 생성 완료")
