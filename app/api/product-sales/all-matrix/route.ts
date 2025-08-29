@@ -256,7 +256,7 @@ export async function GET(request: NextRequest) {
         monthlyStats,
       })
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("API error:", error)
     return NextResponse.json(
       { error: "Internal Server Error" },

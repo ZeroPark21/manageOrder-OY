@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       note: maxRows < parsedData.length ? `전체 ${parsedData.length}개 중 ${maxRows}개만 처리됨` : undefined
     })
 
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ 
       error: "서버 오류",
       details: error instanceof Error ? error.message : "Unknown error"

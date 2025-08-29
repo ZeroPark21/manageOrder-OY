@@ -54,12 +54,6 @@ export async function GET() {
     }
     
     const data = allContents
-    const error = null
-
-    if (error) {
-      console.error("콘텐츠 조회 에러:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
 
     const contents = data || []
     
