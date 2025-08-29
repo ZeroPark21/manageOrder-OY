@@ -18,15 +18,34 @@ interface Order {
 function parseDeliveredTime(dateStr: string | null): Date | null {
   if (!dateStr) return null
   
-  // Parse MM/DD/YYYY format
-  const parts = dateStr.split(' ')[0].split('/')
-  if (parts.length !== 3) return null
+  // Parse MM/DD/YYYY format with possible time component
+  const datePart = dateStr.split(' ')[0]
+  const parts = datePart.split('/')
   
-  const month = parseInt(parts[0])
-  const day = parseInt(parts[1])
-  const year = parseInt(parts[2])
+  if (parts.length !== 3) {
+    console.warn(`Invalid date format: ${dateStr}`)
+    return null
+  }
   
-  return new Date(year, month - 1, day)
+  const month = parseInt(parts[0], 10)
+  const day = parseInt(parts[1], 10)
+  const year = parseInt(parts[2], 10)
+  
+  if (isNaN(month) || isNaN(day) || isNaN(year)) {
+    console.warn(`Invalid date values: ${dateStr}`)
+    return null
+  }
+  
+  // Create date in local timezone
+  const date = new Date(year, month - 1, day)
+  
+  // Validate the date
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    console.warn(`Date validation failed: ${dateStr}`)
+    return null
+  }
+  
+  return date
 }
 
 export async function GET(request: NextRequest) {
@@ -36,12 +55,12 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerClient()
 
-    // 7월부터 현재까지 모든 판매 데이터 가져오기 (MM/DD/YYYY 형식)
+    // 모든 판매 데이터 가져오기 (delivered_time이 있는 모든 데이터)
+    // 날짜 필터링은 파싱 후 처리 (MM/DD/YYYY 형식이라 문자열 비교 불가)
     const { data: orders, error } = await supabase
       .from("orders")
       .select("*")
       .gt("sku_unit_original_price", 0)
-      .gte("delivered_time", "07/01/2025")
       .not("delivered_time", "is", null)
       .order("delivered_time", { ascending: true })
 
@@ -63,11 +82,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter orders to only include those delivered after July 1, 2025
+    const julyFirst = new Date(2025, 6, 1) // July 1, 2025 (month is 0-indexed)
+    const today = new Date()
+    
     const filteredOrders = orders.filter(order => {
       const date = parseDeliveredTime(order.delivered_time)
       if (!date) return false
-      return date >= new Date(2025, 6, 1) // July 1, 2025
+      
+      // 디버깅을 위해 날짜 범위 확인
+      if (date < julyFirst || date > today) {
+        return false
+      }
+      return true
     })
+    
+    console.log(`[product-sales/all-matrix] Total orders: ${orders.length}, Filtered orders: ${filteredOrders.length}`)
+    console.log(`[product-sales/all-matrix] Date range: ${julyFirst.toISOString().split('T')[0]} to ${today.toISOString().split('T')[0]}`)
 
     if (filteredOrders.length === 0) {
       return NextResponse.json({
@@ -149,8 +179,13 @@ export async function GET(request: NextRequest) {
       filteredOrders.forEach(order => {
         const date = parseDeliveredTime(order.delivered_time)
         if (!date) return
+        
+        // 주의 시작일 (일요일) 계산
         const startOfWeek = new Date(date)
-        startOfWeek.setDate(date.getDate() - date.getDay())
+        const dayOfWeek = date.getDay()
+        startOfWeek.setDate(date.getDate() - dayOfWeek)
+        startOfWeek.setHours(0, 0, 0, 0)
+        
         const weekKey = startOfWeek.toISOString().split("T")[0]
         weeks.add(weekKey)
 
@@ -178,8 +213,11 @@ export async function GET(request: NextRequest) {
         week.uniqueProducts = Object.keys(week.productStats).length
       })
 
+      const sortedWeeks = Array.from(weeks).sort()
+      console.log(`[product-sales/all-matrix] Weekly data: ${sortedWeeks.length} weeks from ${sortedWeeks[0]} to ${sortedWeeks[sortedWeeks.length - 1]}`)
+      
       return NextResponse.json({
-        weeks: Array.from(weeks).sort(),
+        weeks: sortedWeeks,
         products,
         weeklyStats,
       })

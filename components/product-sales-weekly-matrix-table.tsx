@@ -22,6 +22,7 @@ interface WeeklyData {
 export function ProductSalesWeeklyMatrixTable() {
   const [data, setData] = useState<WeeklyData[]>([])
   const [loading, setLoading] = useState(true)
+  const [lastUpdate, setLastUpdate] = useState<string | null>(null)
 
   useEffect(() => {
     fetchData()
@@ -47,6 +48,12 @@ export function ProductSalesWeeklyMatrixTable() {
         })
         
         setData(weeklyData)
+        
+        // 마지막 업데이트 주차 설정
+        if (weeklyData.length > 0) {
+          const lastWeek = weeklyData[weeklyData.length - 1].week
+          setLastUpdate(lastWeek)
+        }
       }
     } catch (error) {
       console.error("데이터 로드 실패:", error)
@@ -91,9 +98,16 @@ export function ProductSalesWeeklyMatrixTable() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-2">
-        <CalendarDays className="h-4 w-4" />
-        <h3 className="text-lg font-semibold">주별 Affiliate 영상 판매 발생</h3>
+      <div className="mb-4">
+        <div className="flex items-center gap-2 mb-2">
+          <CalendarDays className="h-4 w-4" />
+          <h3 className="text-lg font-semibold">주별 Affiliate 영상 판매 발생</h3>
+        </div>
+        {lastUpdate && (
+          <p className="text-sm text-muted-foreground">
+            마지막 데이터: {formatWeek(lastUpdate)} 주차
+          </p>
+        )}
       </div>
       <div className="rounded-md border">
         <Table>
