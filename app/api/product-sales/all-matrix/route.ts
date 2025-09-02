@@ -18,6 +18,12 @@ interface Order {
 function parseDeliveredTime(dateStr: string | null): Date | null {
   if (!dateStr) return null
   
+  // Handle ISO format (2025-07-18T11:56:27.000Z)
+  if (dateStr.includes('T') || dateStr.includes('-')) {
+    const parsed = new Date(dateStr)
+    return isNaN(parsed.getTime()) ? null : parsed
+  }
+  
   // Parse MM/DD/YYYY format with possible time component
   const datePart = dateStr.split(' ')[0]
   const parts = datePart.split('/')
@@ -81,8 +87,8 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Filter orders to only include those delivered after July 1, 2024 (데이터 시작 시점)
-    const julyFirst = new Date(2024, 6, 1) // July 1, 2024 (month is 0-indexed) - 데이터 수집 시작일
+    // Filter orders to only include those delivered after June 1, 2025 (실제 데이터 시작 시점)
+    const juneFirst = new Date(2025, 5, 1) // June 1, 2025 (month is 0-indexed) - 실제 데이터 시작일
     const today = new Date()
     
     const filteredOrders = orders.filter(order => {
@@ -90,14 +96,14 @@ export async function GET(request: NextRequest) {
       if (!date) return false
       
       // 디버깅을 위해 날짜 범위 확인
-      if (date < julyFirst || date > today) {
+      if (date < juneFirst || date > today) {
         return false
       }
       return true
     })
     
     console.log(`[product-sales/all-matrix] Total orders: ${orders.length}, Filtered orders: ${filteredOrders.length}`)
-    console.log(`[product-sales/all-matrix] Date range: ${julyFirst.toISOString().split('T')[0]} to ${today.toISOString().split('T')[0]}`)
+    console.log(`[product-sales/all-matrix] Date range: ${juneFirst.toISOString().split('T')[0]} to ${today.toISOString().split('T')[0]}`)
 
     if (filteredOrders.length === 0) {
       return NextResponse.json({

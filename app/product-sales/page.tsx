@@ -274,7 +274,7 @@ export default function ProductSalesDashboard() {
               <div className="text-2xl font-bold">
                 {loading ? "..." : summaryData?.totalQuantity.toLocaleString() || 0}
               </div>
-              <p className="text-xs text-muted-foreground">7월부터 누적</p>
+              <p className="text-xs text-muted-foreground">6월부터 누적</p>
             </CardContent>
           </Card>
 
@@ -287,7 +287,7 @@ export default function ProductSalesDashboard() {
               <div className="text-2xl font-bold">
                 ${loading ? "..." : summaryData?.totalRevenue.toLocaleString() || 0}
               </div>
-              <p className="text-xs text-muted-foreground">7월부터 누적</p>
+              <p className="text-xs text-muted-foreground">6월부터 누적</p>
             </CardContent>
           </Card>
 
@@ -313,7 +313,7 @@ export default function ProductSalesDashboard() {
               <div className="text-2xl font-bold">
                 {loading ? "..." : summaryData?.totalOrders.toLocaleString() || 0}
               </div>
-              <p className="text-xs text-muted-foreground">7월부터 누적</p>
+              <p className="text-xs text-muted-foreground">6월부터 누적</p>
             </CardContent>
           </Card>
         </div>

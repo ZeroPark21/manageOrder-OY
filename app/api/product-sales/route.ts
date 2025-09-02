@@ -19,13 +19,21 @@ interface Order {
 function parseDeliveredTime(dateStr: string | null): Date | null {
   if (!dateStr) return null
   
-  // Parse MM/DD/YYYY format
+  // Handle ISO format (2025-07-18T11:56:27.000Z)
+  if (dateStr.includes('T') || dateStr.includes('-')) {
+    const parsed = new Date(dateStr)
+    return isNaN(parsed.getTime()) ? null : parsed
+  }
+  
+  // Parse MM/DD/YYYY format (08/17/2025 4:37:26 PM)
   const parts = dateStr.split(' ')[0].split('/')
   if (parts.length !== 3) return null
   
   const month = parseInt(parts[0])
   const day = parseInt(parts[1])
   const year = parseInt(parts[2])
+  
+  if (isNaN(month) || isNaN(day) || isNaN(year)) return null
   
   return new Date(year, month - 1, day)
 }
@@ -191,8 +199,8 @@ export async function GET(request: NextRequest) {
     if (startDate) {
       query = query.gte("delivered_time", startDate)
     } else {
-      // 기본적으로 2024년 7월부터 (MM/DD/YYYY 형식)
-      query = query.gte("delivered_time", "07/01/2024")
+      // 기본적으로 2025년 6월부터 (MM/DD/YYYY 형식) - 실제 데이터 시작점
+      query = query.gte("delivered_time", "06/01/2025")
     }
 
     if (endDate) {
@@ -216,11 +224,11 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Filter orders to only include those delivered after July 1, 2024 (데이터 시작 시점)
+    // Filter orders to only include those delivered after June 1, 2025 (실제 데이터 시작 시점)
     const filteredOrders = orders.filter(order => {
       const date = parseDeliveredTime(order.delivered_time)
       if (!date) return false
-      return date >= new Date(2024, 6, 1) // July 1, 2024 - 데이터 수집 시작일
+      return date >= new Date(2025, 5, 1) // June 1, 2025 - 실제 데이터 시작일
     })
 
     if (filteredOrders.length === 0) {
