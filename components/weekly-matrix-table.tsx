@@ -119,27 +119,27 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
           <div className="border rounded-lg overflow-hidden" style={{ width: "1104px", height: "600px" }}>
             <div className="overflow-auto w-full h-full">
               <table className="border-collapse" style={{ minWidth: "max-content" }}>
-            <thead>
+            <thead className="sticky top-0 z-20">
               <tr className="bg-green-600 text-white">
-                <th className="sticky top-0 left-0 z-30 bg-green-600 border border-green-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ width: "50px" }}>순위</th>
-                <th className="sticky top-0 left-[50px] z-30 bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
+                <th className="sticky left-0 z-30 bg-green-600 border border-green-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ width: "50px" }}>순위</th>
+                <th className="sticky left-[50px] z-30 bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
                   Product Name
                 </th>
-                <th className="sticky top-0 z-20 bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "120px" }}>
+                <th className="bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "120px" }}>
                   Seller SKU
                 </th>
-                <th className="sticky top-0 z-20 bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "100px" }}>
+                <th className="bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "100px" }}>
                   SKU ID
                 </th>
                 {data.weeks.map((week) => (
-                  <th key={week} className="sticky top-0 z-20 bg-green-600 border border-green-500 px-3 py-2 text-center text-sm font-medium" style={{ minWidth: "140px" }}>
+                  <th key={week} className="bg-green-600 border border-green-500 px-3 py-2 text-center text-sm font-medium" style={{ minWidth: "140px" }}>
                     <div className="flex flex-col">
                       <span className="font-bold text-base">{data.formatWeekDisplay[week]}</span>
                       <span className="text-xs opacity-90 font-normal">({data.formatWeekRange[week]})</span>
                     </div>
                   </th>
                 ))}
-                <th className="sticky top-0 z-20 bg-green-700 border border-green-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
+                <th className="bg-green-700 border border-green-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
                   총수량
                 </th>
               </tr>

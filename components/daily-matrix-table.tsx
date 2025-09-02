@@ -270,20 +270,20 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
           <div className="border rounded-lg overflow-hidden" style={{ width: "1104px", height: "600px" }}>
             <div className="overflow-auto w-full h-full">
               <table className="border-collapse" style={{ minWidth: "max-content" }}>
-            <thead>
+            <thead className="sticky top-0 z-20">
               <tr className="bg-blue-600 text-white">
-                <th className="sticky top-0 left-0 z-30 bg-blue-600 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ width: "50px" }}>순위</th>
-                <th className="sticky top-0 left-[50px] z-30 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
+                <th className="sticky left-0 z-30 bg-blue-600 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ width: "50px" }}>순위</th>
+                <th className="sticky left-[50px] z-30 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
                   Product Name
                 </th>
-                <th className="sticky top-0 z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "120px" }}>Seller SKU</th>
-                <th className="sticky top-0 z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "100px" }}>SKU ID</th>
+                <th className="bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "120px" }}>Seller SKU</th>
+                <th className="bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "100px" }}>SKU ID</th>
                 {data.dates.map((date) => (
-                  <th key={date} className="sticky top-0 z-20 bg-blue-600 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
+                  <th key={date} className="bg-blue-600 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
                     {formatDate(date)}
                   </th>
                 ))}
-                <th className="sticky top-0 z-20 bg-blue-700 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
+                <th className="bg-blue-700 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
                   총수량
                 </th>
               </tr>
