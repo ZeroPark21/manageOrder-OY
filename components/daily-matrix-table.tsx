@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
 import { Download, ChevronLeft, ChevronRight } from "lucide-react"
@@ -152,31 +151,90 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
 
   if (loading) {
     return (
-      <Card className="w-full overflow-hidden">
-        <CardHeader>
-          <CardTitle>일별 샘플 발송현황</CardTitle>
-          <CardDescription>상품별 일일 샘플 발송 수량 매트릭스 (SKU Unit Original Price = 0)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div style={{width: "calc(100vw - 16rem)", maxWidth: "calc(100vw - 16rem)", overflow: "hidden"}}>
+        <div className="bg-white rounded-lg border shadow-sm" style={{width: "100%"}}>
+          <div className="p-6">
+            <h3 className="text-lg font-semibold">일별 샘플 발송현황</h3>
+            <p className="text-sm text-muted-foreground">상품별 일일 샘플 발송 수량 매트릭스 (SKU Unit Original Price = 0)</p>
           </div>
-        </CardContent>
-      </Card>
+          <div className="p-6 pt-0">
+            <div className="flex items-center justify-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     )
   }
 
   if (!data || !data.products || data.products.length === 0) {
     return (
-      <Card className="w-full overflow-hidden">
-        <CardHeader>
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>일별 샘플 발송현황</CardTitle>
-                <CardDescription>상품별 일일 샘플 발송 수량 매트릭스 (SKU Unit Original Price = 0)</CardDescription>
+      <div style={{width: "calc(100vw - 16rem)", maxWidth: "calc(100vw - 16rem)", overflow: "hidden"}}>
+        <div className="bg-white rounded-lg border shadow-sm" style={{width: "100%"}}>
+          <div className="p-6">
+            <div className="flex flex-col gap-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold">일별 샘플 발송현황</h3>
+                  <p className="text-sm text-muted-foreground">상품별 일일 샘플 발송 수량 매트릭스 (SKU Unit Original Price = 0)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleYearChange(-1)}
+                    disabled={loading || selectedYear <= 2025}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="font-medium">{selectedYear}년</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleYearChange(1)}
+                    disabled={loading}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Select value={selectedMonth || 'all'} onValueChange={handleMonthChange}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="월 선택" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체 기간</SelectItem>
+                      {renderMonthOptions()}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
+            </div>
+          </div>
+          <div className="p-6 pt-0">
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-lg font-medium mb-2">데이터 없음</p>
+              <p className="text-sm">
+                {selectedMonth && selectedMonth !== 'all' 
+                  ? `${selectedYear}년 ${parseInt(selectedMonth)}월에는 데이터가 없습니다.`
+                  : '상품 발송 데이터를 업로드하여 분석을 시작하세요.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{width: "calc(100vw - 16rem)", maxWidth: "calc(100vw - 16rem)", overflow: "hidden"}}>
+      <div className="bg-white rounded-lg border shadow-sm" style={{width: "100%"}}>
+        <div className="p-6 pb-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-lg font-semibold">일별 샘플 발송현황</h3>
+                <p className="text-sm text-muted-foreground">상품별 일일 샘플 발송 수량 매트릭스 (총 {data.products.length}개 상품)</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <Button
                   variant="outline"
                   size="icon"
@@ -203,87 +261,31 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
                     {renderMonthOptions()}
                   </SelectContent>
                 </Select>
+                <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
+                  <Download className="h-4 w-4 mr-2" />
+                  {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
+                </Button>
               </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <p className="text-lg font-medium mb-2">데이터 없음</p>
-            <p className="text-sm">
-              {selectedMonth && selectedMonth !== 'all' 
-                ? `${selectedYear}년 ${parseInt(selectedMonth)}월에는 데이터가 없습니다.`
-                : '상품 발송 데이터를 업로드하여 분석을 시작하세요.'}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="w-full max-w-full">
-      <CardHeader>
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1">
-              <CardTitle>일별 샘플 발송현황</CardTitle>
-              <CardDescription>상품별 일일 샘플 발송 수량 매트릭스 (총 {data.products.length}개 상품)</CardDescription>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleYearChange(-1)}
-                disabled={loading || selectedYear <= 2025}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="font-medium">{selectedYear}년</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleYearChange(1)}
-                disabled={loading}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Select value={selectedMonth || 'all'} onValueChange={handleMonthChange}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="월 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체 기간</SelectItem>
-                  {renderMonthOptions()}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
-                <Download className="h-4 w-4 mr-2" />
-                {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
-              </Button>
-            </div>
-          </div>
         </div>
-      </CardHeader>
-      <CardContent className="p-4">
-        <div className="relative">
-          <div className="border rounded-lg overflow-hidden" style={{ width: "1104px", height: "600px" }}>
-            <div className="overflow-auto w-full h-full">
-              <table className="border-collapse" style={{ minWidth: "max-content" }}>
-            <thead className="sticky top-0 z-20">
+        <div className="p-6 pt-0">
+          <div className="overflow-auto rounded-lg" style={{maxWidth: "calc(100vw - 18rem)", maxHeight: "800px", border: "3px solid green", position: "relative"}}>
+            <table className="border-collapse" style={{minWidth: "800px"}}>
+            <thead style={{position: "sticky", top: 0, zIndex: 10}}>
               <tr className="bg-blue-600 text-white">
-                <th className="sticky left-0 z-30 bg-blue-600 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ width: "50px" }}>순위</th>
-                <th className="sticky left-[50px] z-30 bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
+                <th className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">순위</th>
+                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium text-white" style={{width: "300px"}}>
                   Product Name
                 </th>
-                <th className="bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "120px" }}>Seller SKU</th>
-                <th className="bg-blue-600 border border-blue-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "100px" }}>SKU ID</th>
+                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium text-white" style={{width: "100px", whiteSpace: "normal"}}>Seller<br/>SKU</th>
+                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium text-white" style={{width: "100px", whiteSpace: "normal"}}>SKU<br/>ID</th>
                 {data.dates.map((date) => (
-                  <th key={date} className="bg-blue-600 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
+                  <th key={date} className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
                     {formatDate(date)}
                   </th>
                 ))}
-                <th className="bg-blue-700 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
+                <th className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
                   총수량
                 </th>
               </tr>
@@ -295,15 +297,15 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
                 const isEvenRow = index % 2 === 0
 
                 return (
-                  <tr key={product} className={isEvenRow ? "bg-gray-50" : "bg-white"}>
-                    <td className={`sticky left-0 z-10 border border-gray-300 px-3 py-2 text-center text-sm font-medium ${isEvenRow ? "bg-gray-50" : "bg-white"}`} style={{ width: "50px" }}>{index + 1}</td>
-                    <td className={`sticky left-[50px] z-10 border border-gray-300 px-3 py-2 text-sm ${isEvenRow ? "bg-gray-50" : "bg-white"}`} title={product}>
-                      <div className="truncate" style={{ maxWidth: "230px" }}>{product}</div>
+                  <tr key={product} className={isEvenRow ? "bg-gray-50" : ""}>
+                    <td className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">{index + 1}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-sm" style={{width: "300px", maxWidth: "300px"}} title={product}>
+                      {product.length > 40 ? `${product.substring(0, 40)}...` : product}
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 text-sm" title={skuInfo.seller_sku}>
-                      <div className="truncate" style={{ maxWidth: "100px" }}>{skuInfo.seller_sku || "-"}</div>
+                    <td className="border border-gray-300 px-3 py-2 text-sm text-center" style={{width: "100px", wordBreak: "break-all", whiteSpace: "normal"}}>
+                      {skuInfo.seller_sku || "-"}
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 text-center text-sm">{skuInfo.sku_id || "-"}</td>
+                    <td className="border border-gray-300 px-3 py-2 text-sm text-center" style={{width: "100px", wordBreak: "break-all", whiteSpace: "normal"}}>{skuInfo.sku_id || "-"}</td>
                     {data.dates.map((date) => {
                       const quantity = productData[date] || 0
                       return (
@@ -325,10 +327,10 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
               })}
               {/* Daily Totals Row */}
               <tr className="bg-gray-800 text-white font-bold">
-                <td className="sticky left-0 z-10 bg-gray-800 border border-gray-600 px-3 py-2 text-center text-sm" style={{ width: "50px" }}></td>
-                <td className="sticky left-[50px] z-10 bg-gray-800 border border-gray-600 px-3 py-2 text-sm whitespace-nowrap">Daily 발송 수량</td>
-                <td className="border border-gray-600 px-3 py-2 text-sm"></td>
-                <td className="border border-gray-600 px-3 py-2 text-sm"></td>
+                <td className="border border-gray-600 px-3 py-2 text-center text-sm"></td>
+                <td className="border border-gray-600 px-3 py-2 text-sm whitespace-nowrap">Daily 발송 수량</td>
+                <td className="border border-gray-600 px-3 py-2 text-sm" style={{width: "100px"}}></td>
+                <td className="border border-gray-600 px-3 py-2 text-sm" style={{width: "100px"}}></td>
                 {data.dates.map((date) => {
                   const dailyTotal = data.products.reduce((sum, product) => {
                     return sum + (data.matrix[product][date] || 0)
@@ -345,11 +347,10 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
               </tr>
             </tbody>
           </table>
-            </div>
-          </div>
+        </div>
 
-          {/* 요약 정보 */}
-          <div className="mt-4 p-4 bg-muted/50 rounded-lg" style={{ maxWidth: "1104px" }}>
+        {/* 요약 정보 */}
+        <div className="m-4 p-4 bg-muted/50 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">총 상품 수:</span>
@@ -377,9 +378,9 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
               </span>
             </div>
           </div>
-          </div>
         </div>
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+    </div>
   )
 }

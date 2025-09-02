@@ -18,6 +18,7 @@ interface ContentMonthlyMatrixData {
     totalLikeCount: number
     uniqueCreators?: number
   } }
+  totalUniqueCreators: number // 전체 기간의 고유 크리에이터 수
 }
 
 interface ContentMonthlyMatrixTableProps {
@@ -39,6 +40,11 @@ export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: 
           'Pragma': 'no-cache'
         }
       })
+      
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`)
+      }
+      
       const data = await response.json()
 
       console.log("Monthly matrix data received:", {
@@ -53,17 +59,24 @@ export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: 
       if (data.monthly && data.monthly.months && data.monthly.months.length > 0) {
         setMatrixData({
           months: data.monthly.months,
-          monthlyStats: data.monthly.monthlyStats
+          monthlyStats: data.monthly.monthlyStats,
+          totalUniqueCreators: data.monthly.totalUniqueCreators || 0
         })
       } else {
         // 데이터가 없을 때도 빈 데이터로 설정
         setMatrixData({
           months: [],
-          monthlyStats: {}
+          monthlyStats: {},
+          totalUniqueCreators: 0
         })
       }
     } catch (error) {
       console.error("콘텐츠 매트릭스 데이터 로딩 실패:", error)
+      setMatrixData({
+        months: [],
+        monthlyStats: {},
+        totalUniqueCreators: 0
+      })
     } finally {
       setLoading(false)
     }
@@ -196,11 +209,7 @@ export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: 
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalCount, 0)}
                 </TableCell>
                 <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
-                  {[...new Set(matrixData.months.flatMap(month => {
-                    const count = matrixData.monthlyStats[month].uniqueCreators || 0
-                    return count > 0 ? [month] : []
-                  }))].length > 0 ? 
-                    matrixData.months.reduce((sum, month) => Math.max(sum, matrixData.monthlyStats[month].uniqueCreators || 0), 0) : 0}
+                  {matrixData.totalUniqueCreators || 0}
                 </TableCell>
                 <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalGmv, 0).toLocaleString()}

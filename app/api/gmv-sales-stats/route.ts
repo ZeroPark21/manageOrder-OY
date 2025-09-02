@@ -12,40 +12,51 @@ export async function GET(request: NextRequest) {
     // 날짜 형식이 MM/DD/YYYY이므로 해당 형식으로 비교
     const startDate = '06/01/2025'
     
-    // 판매, 샘플, 전체 주문을 병렬로 집계
-    const [salesResult, samplesResult, totalResult] = await Promise.all([
-      // 판매 통계 (price > 0)
-      supabase
+    // 판매, 샘플 주문을 페이징으로 모두 가져오기
+    let allSalesOrders: any[] = []
+    let allSampleOrders: any[] = []
+    
+    // 판매 주문 모두 가져오기 (1000개씩 페이징)
+    let salesOffset = 0
+    const salesLimit = 1000
+    while (true) {
+      const { data, error } = await supabase
         .from('orders')
         .select('order_status, order_amount, quantity, cancelled_time')
         .gte('created_time', startDate)
         .gt('sku_unit_original_price', 0)
-        .limit(10000),
+        .range(salesOffset, salesOffset + salesLimit - 1)
       
-      // 샘플 통계 (price = 0)
-      supabase
+      if (error) throw error
+      if (!data || data.length === 0) break
+      
+      allSalesOrders = [...allSalesOrders, ...data]
+      if (data.length < salesLimit) break
+      salesOffset += salesLimit
+    }
+    
+    // 샘플 주문 모두 가져오기 (1000개씩 페이징)
+    let samplesOffset = 0
+    const samplesLimit = 1000
+    while (true) {
+      const { data, error } = await supabase
         .from('orders')
         .select('order_status, quantity, cancelled_time')
         .gte('created_time', startDate)
         .eq('sku_unit_original_price', 0)
-        .limit(10000),
+        .range(samplesOffset, samplesOffset + samplesLimit - 1)
       
-      // 전체 주문 조회
-      supabase
-        .from('orders')
-        .select('id')
-        .gte('created_time', startDate)
-        .limit(10000)
-    ])
+      if (error) throw error
+      if (!data || data.length === 0) break
+      
+      allSampleOrders = [...allSampleOrders, ...data]
+      if (data.length < samplesLimit) break
+      samplesOffset += samplesLimit
+    }
     
-    if (salesResult.error) throw salesResult.error
-    if (samplesResult.error) throw samplesResult.error
-    if (totalResult.error) throw totalResult.error
-    
-    const salesOrders = salesResult.data || []
-    const sampleOrders = samplesResult.data || []
-    const allOrders = totalResult.data || []
-    const totalCount = allOrders.length
+    const salesOrders = allSalesOrders
+    const sampleOrders = allSampleOrders
+    const totalCount = salesOrders.length + sampleOrders.length
     
     // 취소된 주문 빠른 필터링
     const cancelledSales = salesOrders.filter(order => 

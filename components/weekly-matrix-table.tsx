@@ -92,7 +92,7 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
   }
 
   return (
-    <Card className="w-full max-w-full">
+    <Card className="w-full">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="min-w-0 flex-1">
@@ -114,32 +114,30 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4">
-        <div className="relative">
-          <div className="border rounded-lg overflow-hidden" style={{ width: "1104px", height: "600px" }}>
-            <div className="overflow-auto w-full h-full">
-              <table className="border-collapse" style={{ minWidth: "max-content" }}>
+      <CardContent className="p-0">
+        <div className="w-full overflow-x-auto p-4">
+          <table className="border-collapse min-w-full">
             <thead className="sticky top-0 z-20">
               <tr className="bg-green-600 text-white">
-                <th className="sticky left-0 z-30 bg-green-600 border border-green-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ width: "50px" }}>순위</th>
-                <th className="sticky left-[50px] z-30 bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "250px" }}>
+                <th className="sticky left-0 z-30 bg-green-600 border border-green-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap min-w-[50px]">순위</th>
+                <th className="sticky left-[50px] z-30 bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap min-w-[250px]">
                   Product Name
                 </th>
-                <th className="bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "120px" }}>
+                <th className="bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap min-w-[120px]">
                   Seller SKU
                 </th>
-                <th className="bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap" style={{ minWidth: "100px" }}>
+                <th className="bg-green-600 border border-green-500 px-3 py-2 text-left text-sm font-medium whitespace-nowrap min-w-[100px]">
                   SKU ID
                 </th>
                 {data.weeks.map((week) => (
-                  <th key={week} className="bg-green-600 border border-green-500 px-3 py-2 text-center text-sm font-medium" style={{ minWidth: "140px" }}>
+                  <th key={week} className="bg-green-600 border border-green-500 px-3 py-2 text-center text-sm font-medium min-w-[140px]">
                     <div className="flex flex-col">
                       <span className="font-bold text-base">{data.formatWeekDisplay[week]}</span>
                       <span className="text-xs opacity-90 font-normal">({data.formatWeekRange[week]})</span>
                     </div>
                   </th>
                 ))}
-                <th className="bg-green-700 border border-green-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ minWidth: "80px" }}>
+                <th className="bg-green-700 border border-green-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap min-w-[80px]">
                   총수량
                 </th>
               </tr>
@@ -152,9 +150,9 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
 
                 return (
                   <tr key={product} className={isEvenRow ? "bg-gray-50" : "bg-white"}>
-                    <td className={`sticky left-0 z-10 border border-gray-300 px-3 py-2 text-center text-sm font-medium ${isEvenRow ? "bg-gray-50" : "bg-white"}`} style={{ width: "50px" }}>{index + 1}</td>
-                    <td className={`sticky left-[50px] z-10 border border-gray-300 px-3 py-2 text-sm ${isEvenRow ? "bg-gray-50" : "bg-white"}`} title={product}>
-                      <div className="truncate max-w-[280px]">{product}</div>
+                    <td className={`sticky left-0 z-10 border border-gray-300 px-3 py-2 text-center text-sm font-medium min-w-[50px] ${isEvenRow ? "bg-gray-50" : "bg-white"}`}>{index + 1}</td>
+                    <td className={`sticky left-[50px] z-10 border border-gray-300 px-3 py-2 text-sm min-w-[250px] ${isEvenRow ? "bg-gray-50" : "bg-white"}`} title={product}>
+                      <div className="truncate max-w-[230px]">{product}</div>
                     </td>
                     <td className="border border-gray-300 px-3 py-2 text-sm text-center">
                       {skuInfo.seller_sku || "-"}
@@ -181,7 +179,7 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
               })}
               {/* Weekly Totals Row */}
               <tr className="bg-green-800 text-white font-bold">
-                <td className="sticky left-0 z-10 bg-green-800 border border-green-600 px-3 py-2 text-center text-sm" style={{ width: "50px" }}></td>
+                <td className="sticky left-0 z-10 bg-green-800 border border-green-600 px-3 py-2 text-center text-sm min-w-[50px]"></td>
                 <td className="sticky left-[50px] z-10 bg-green-800 border border-green-600 px-3 py-2 text-sm whitespace-nowrap">Weekly 발송 수량</td>
                 <td className="border border-green-600 px-3 py-2 text-sm"></td>
                 <td className="border border-green-600 px-3 py-2 text-sm"></td>
@@ -201,11 +199,10 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
               </tr>
             </tbody>
           </table>
-            </div>
-          </div>
+        </div>
 
-          {/* 요약 정보 */}
-          <div className="mt-4 p-4 bg-muted/50 rounded-lg" style={{ maxWidth: "1104px" }}>
+        {/* 요약 정보 */}
+        <div className="mt-4 mx-4 p-4 bg-muted/50 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">총 상품 수:</span>
@@ -236,7 +233,7 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
         </div>
 
         {/* 주별 범위 설명 */}
-        <div className="mt-2 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400" style={{ maxWidth: "1104px" }}>
+        <div className="mt-2 mx-4 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
           <div className="text-sm text-blue-800">
             <p className="font-semibold mb-2">📅 주별 데이터 집계 기준 (월요일~일요일):</p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
@@ -247,7 +244,6 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
                 </div>
               ))}
             </div>
-          </div>
           </div>
         </div>
       </CardContent>

@@ -326,16 +326,25 @@ export default function Dashboard() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="flex-1 overflow-hidden">
-        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-6">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">샘플 발송 현황</h1>
-            <p className="text-gray-600">샘플 발송현황 분석 (2025년 6월 1일부터, SKU Unit Original Price = 0)</p>
+      <div className="flex flex-1 flex-col gap-4 p-4" style={{maxWidth: '100vw', overflowX: 'hidden', border: '2px solid red'}}>
+        <div className="space-y-8">
+          {/* 페이지 헤더 */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">샘플 발송 현황</h1>
+              <p className="text-muted-foreground">샘플 발송현황 분석 (2025년 6월 1일부터, SKU Unit Original Price = 0)</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={fetchSummaryData}>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                새로고침
+              </Button>
+            </div>
           </div>
 
-          {/* 샘플 발송 현황 */}
+          {/* 요약 카드 */}
           {salesStats && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">총 샘플 발송</CardTitle>
@@ -371,12 +380,12 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* 매트릭스 테이블 탭 */}
-          <Tabs defaultValue="daily" className="space-y-6">
-            <TabsList className="bg-white dark:bg-gray-800 shadow-md">
-              <TabsTrigger value="daily" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">일별 매트릭스</TabsTrigger>
-              <TabsTrigger value="weekly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">주별 매트릭스</TabsTrigger>
-              <TabsTrigger value="monthly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">월별 매트릭스</TabsTrigger>
+          {/* 샘플 매트릭스 테이블 탭 */}
+          <Tabs defaultValue="daily" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="daily">일별 매트릭스</TabsTrigger>
+              <TabsTrigger value="weekly">주별 매트릭스</TabsTrigger>
+              <TabsTrigger value="monthly">월별 매트릭스</TabsTrigger>
             </TabsList>
 
             <TabsContent value="daily" className="space-y-4">

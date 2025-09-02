@@ -19,6 +19,7 @@ interface ContentDailyMatrixData {
     totalLikeCount: number
     uniqueCreators?: number
   } }
+  totalUniqueCreators: number // 전체 기간의 고유 크리에이터 수
 }
 
 interface ContentDailyMatrixTableProps {
@@ -37,6 +38,11 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
     try {
       // Use the new content-all-matrix API
       const response = await fetch(`/api/content-all-matrix?t=${Date.now()}`)
+      
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`)
+      }
+      
       const data = await response.json()
 
       if (data.daily && data.daily.dates) {
@@ -72,17 +78,24 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
 
         setMatrixData({
           dates: filteredDates,
-          dailyStats: filteredStats
+          dailyStats: filteredStats,
+          totalUniqueCreators: data.daily.totalUniqueCreators || 0
         })
       } else {
         // 데이터가 없을 때도 빈 데이터로 설정
         setMatrixData({
           dates: [],
-          dailyStats: {}
+          dailyStats: {},
+          totalUniqueCreators: 0
         })
       }
     } catch (error) {
-      console.error("콘텐츠 매트릭스 데이터 로딩 실패:", error)
+      console.error("컨텐츠 매트릭스 데이터 로딩 실패:", error)
+      setMatrixData({
+        dates: [],
+        dailyStats: {},
+        totalUniqueCreators: 0
+      })
     } finally {
       setLoading(false)
     }
@@ -352,11 +365,7 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalCount, 0)}
                 </TableCell>
                 <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
-                  {[...new Set(matrixData.dates.flatMap(date => {
-                    const count = matrixData.dailyStats[date].uniqueCreators || 0
-                    return count > 0 ? [date] : []
-                  }))].length > 0 ? 
-                    matrixData.dates.reduce((sum, date) => Math.max(sum, matrixData.dailyStats[date].uniqueCreators || 0), 0) : 0}
+                  {matrixData.totalUniqueCreators || 0}
                 </TableCell>
                 <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalGmv, 0).toLocaleString()}

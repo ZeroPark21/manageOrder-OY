@@ -76,6 +76,14 @@ export async function GET() {
     })
     console.log(`Contents after July 21: ${weeklyCheck.length}`)
 
+    // 전체 기간의 고유 크리에이터 수 계산
+    const allCreators = new Set<string>()
+    filteredContents.forEach(content => {
+      if (content.creator_name && content.creator_name.trim()) {
+        allCreators.add(content.creator_name)
+      }
+    })
+
     // 일별 그룹핑 with creators
     const dailyMap: { [key: string]: ContentData & { uniqueCreators?: number } } = {}
     const dailyCreatorsMap: { [key: string]: Set<string> } = {}
@@ -208,17 +216,20 @@ export async function GET() {
     // 매트릭스 형태로 변환
     const dailyMatrix = {
       dates,
-      dailyStats: dailyMap
+      dailyStats: dailyMap,
+      totalUniqueCreators: allCreators.size // 전체 기간의 고유 크리에이터 수
     }
 
     const weeklyMatrix = {
       weeks,
-      weeklyStats: weeklyMap
+      weeklyStats: weeklyMap,
+      totalUniqueCreators: allCreators.size // 전체 기간의 고유 크리에이터 수
     }
 
     const monthlyMatrix = {
       months,
-      monthlyStats: monthlyMap
+      monthlyStats: monthlyMap,
+      totalUniqueCreators: allCreators.size // 전체 기간의 고유 크리에이터 수
     }
 
     return NextResponse.json({

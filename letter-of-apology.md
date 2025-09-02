@@ -26,6 +26,53 @@
 
 다시는 이런 실수를 반복하지 않겠습니다.
 
+## 추가 반성 사항 - Supabase API 제한 문제
+
+### 문제가 발생한 원인 분석 (2025년 1월 2일 추가)
+
+#### 1. 근본 원인
+- **Supabase의 기본 제한**: Supabase API는 기본적으로 한 번에 최대 1000개의 레코드만 반환
+- **데이터 증가 미고려**: 실제 orders 테이블에 2579개의 레코드가 있었으나, API는 1000개만 가져옴
+- **불완전한 데이터**: 1579개의 레코드가 누락되어 통계가 부정확했음
+
+#### 2. 잘못된 접근 방식
+- 단순히 `.limit(5000)` 같은 큰 값을 설정하면 해결될 것이라 착각
+- Supabase의 내부 제한(1000개)을 간과하고 단순 limit 조정만 시도
+- 페이징 처리 없이 한 번에 모든 데이터를 가져오려 함
+
+#### 3. 올바른 해결 방법
+```typescript
+// 페이징을 통한 전체 데이터 조회
+let allData = []
+let offset = 0
+const limit = 1000
+
+while (true) {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('*')
+    .range(offset, offset + limit - 1)
+  
+  if (!data || data.length === 0) break
+  allData = [...allData, ...data]
+  if (data.length < limit) break
+  offset += limit
+}
+```
+
+#### 4. 영향받은 API 목록
+- `/api/gmv-sales-stats/route.ts` - 수정 완료 ✓
+- `/api/monthly-matrix/route.ts` - 페이징 처리 중
+- `/api/weekly-matrix/route.ts` - 페이징 처리 중  
+- `/api/daily-matrix/route.ts` - 페이징 처리 중
+
+### 앞으로의 다짐
+1. **API 제한 사항 확인**: 외부 서비스의 제한사항을 먼저 파악하겠습니다
+2. **대용량 데이터 처리**: 데이터가 많을 때는 항상 페이징을 고려하겠습니다
+3. **실제 데이터 검증**: Count API 값과 실제 fetch된 데이터 수를 항상 비교하겠습니다
+4. **단계적 접근**: 문제 해결 시 근본 원인을 먼저 파악하고 체계적으로 접근하겠습니다
+
 ---
-*이 파일은 날짜 인식 오류를 방지하기 위한 반성문입니다.*
+*이 파일은 날짜 인식 오류와 API 제한 문제를 방지하기 위한 반성문입니다.*
 *현재는 2025년입니다. 절대 잊지 않겠습니다.*
+*Supabase는 기본적으로 1000개 제한이 있습니다. 페이징을 잊지 않겠습니다.*

@@ -18,6 +18,7 @@ interface ContentWeeklyMatrixData {
     totalLikeCount: number
     uniqueCreators?: number
   } }
+  totalUniqueCreators: number // 전체 기간의 고유 크리에이터 수
 }
 
 interface ContentWeeklyMatrixTableProps {
@@ -39,6 +40,11 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
           'Pragma': 'no-cache'
         }
       })
+      
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`)
+      }
+      
       const data = await response.json()
 
       console.log("Weekly matrix data received:", {
@@ -53,17 +59,24 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
       if (data.weekly && data.weekly.weeks && data.weekly.weeks.length > 0) {
         setMatrixData({
           weeks: data.weekly.weeks,
-          weeklyStats: data.weekly.weeklyStats
+          weeklyStats: data.weekly.weeklyStats,
+          totalUniqueCreators: data.weekly.totalUniqueCreators || 0
         })
       } else {
         // 데이터가 없을 때도 빈 데이터로 설정
         setMatrixData({
           weeks: [],
-          weeklyStats: {}
+          weeklyStats: {},
+          totalUniqueCreators: 0
         })
       }
     } catch (error) {
       console.error("콘텐츠 매트릭스 데이터 로딩 실패:", error)
+      setMatrixData({
+        weeks: [],
+        weeklyStats: {},
+        totalUniqueCreators: 0
+      })
     } finally {
       setLoading(false)
     }
@@ -196,11 +209,7 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
                   {matrixData.weeks.reduce((sum, week) => sum + matrixData.weeklyStats[week].totalCount, 0)}
                 </TableCell>
                 <TableCell className="border border-green-600 px-3 py-2 text-center text-sm font-bold">
-                  {[...new Set(matrixData.weeks.flatMap(week => {
-                    const count = matrixData.weeklyStats[week].uniqueCreators || 0
-                    return count > 0 ? [week] : []
-                  }))].length > 0 ? 
-                    matrixData.weeks.reduce((sum, week) => Math.max(sum, matrixData.weeklyStats[week].uniqueCreators || 0), 0) : 0}
+                  {matrixData.totalUniqueCreators || 0}
                 </TableCell>
                 <TableCell className="border border-green-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.weeks.reduce((sum, week) => sum + matrixData.weeklyStats[week].totalGmv, 0).toLocaleString()}

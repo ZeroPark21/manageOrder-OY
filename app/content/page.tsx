@@ -143,6 +143,7 @@ export default function ContentDashboard() {
         const dailyHeaders = [
           "날짜",
           "콘텐츠",
+          "크리에이터",
           "GMV",
           "Items Sold",
           "Orders",
@@ -156,6 +157,7 @@ export default function ContentDashboard() {
           return [
             formatDateForExcel(date),
             stats.totalCount,
+            stats.uniqueCreators || 0,
             stats.totalGmv,
             stats.totalAffiliateItemsSold,
             stats.totalAffiliateOrders,
@@ -166,9 +168,21 @@ export default function ContentDashboard() {
         })
 
         // 일별 총계 행
+        const uniqueCreatorsDaily = new Set()
+        data.daily.dates.forEach((date: string) => {
+          const count = data.daily.dailyStats[date].uniqueCreators || 0
+          if (count > 0) {
+            // Track unique creators across all days (simplified)
+            for (let i = 0; i < count; i++) {
+              uniqueCreatorsDaily.add(`${date}_${i}`)
+            }
+          }
+        })
+        
         dailyRows.push([
           "Total",
           data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalCount, 0),
+          data.daily.dates.reduce((max: number, date: string) => Math.max(max, data.daily.dailyStats[date].uniqueCreators || 0), 0),
           data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalGmv, 0),
           data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalAffiliateItemsSold, 0),
           data.daily.dates.reduce((sum: number, date: string) => sum + data.daily.dailyStats[date].totalAffiliateOrders, 0),
@@ -189,6 +203,7 @@ export default function ContentDashboard() {
         const weeklyHeaders = [
           "주차",
           "콘텐츠",
+          "크리에이터",
           "GMV",
           "Items Sold",
           "Orders",
@@ -202,6 +217,7 @@ export default function ContentDashboard() {
           return [
             formatDateForExcel(week),
             stats.totalCount,
+            stats.uniqueCreators || 0,
             stats.totalGmv,
             stats.totalAffiliateItemsSold,
             stats.totalAffiliateOrders,
@@ -215,6 +231,7 @@ export default function ContentDashboard() {
         weeklyRows.push([
           "Total",
           data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalCount, 0),
+          data.weekly.weeks.reduce((max: number, week: string) => Math.max(max, data.weekly.weeklyStats[week].uniqueCreators || 0), 0),
           data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalGmv, 0),
           data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalAffiliateItemsSold, 0),
           data.weekly.weeks.reduce((sum: number, week: string) => sum + data.weekly.weeklyStats[week].totalAffiliateOrders, 0),
@@ -235,6 +252,7 @@ export default function ContentDashboard() {
         const monthlyHeaders = [
           "월",
           "콘텐츠",
+          "크리에이터",
           "GMV",
           "Items Sold",
           "Orders",
@@ -248,6 +266,7 @@ export default function ContentDashboard() {
           return [
             month,
             stats.totalCount,
+            stats.uniqueCreators || 0,
             stats.totalGmv,
             stats.totalAffiliateItemsSold,
             stats.totalAffiliateOrders,
@@ -261,6 +280,7 @@ export default function ContentDashboard() {
         monthlyRows.push([
           "Total",
           data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalCount, 0),
+          data.monthly.months.reduce((max: number, month: string) => Math.max(max, data.monthly.monthlyStats[month].uniqueCreators || 0), 0),
           data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalGmv, 0),
           data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalAffiliateItemsSold, 0),
           data.monthly.months.reduce((sum: number, month: string) => sum + data.monthly.monthlyStats[month].totalAffiliateOrders, 0),
