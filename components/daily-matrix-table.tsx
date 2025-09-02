@@ -222,54 +222,55 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
   }
 
   return (
-    <Card className="w-full overflow-hidden">
-      <CardHeader>
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>일별 샘플 발송현황</CardTitle>
-              <CardDescription>상품별 일일 샘플 발송 수량 매트릭스 (총 {data.products.length}개 상품)</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleYearChange(-1)}
-                disabled={loading || selectedYear <= 2025}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="font-medium">{selectedYear}년</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleYearChange(1)}
-                disabled={loading}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Select value={selectedMonth || 'all'} onValueChange={handleMonthChange}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="월 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체 기간</SelectItem>
-                  {renderMonthOptions()}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
-                <Download className="h-4 w-4 mr-2" />
-                {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
-              </Button>
+    <div className="w-full overflow-hidden">
+      <Card className="w-full">
+        <CardHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>일별 샘플 발송현황</CardTitle>
+                <CardDescription>상품별 일일 샘플 발송 수량 매트릭스 (총 {data.products.length}개 상품)</CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleYearChange(-1)}
+                  disabled={loading || selectedYear <= 2025}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="font-medium">{selectedYear}년</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => handleYearChange(1)}
+                  disabled={loading}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Select value={selectedMonth || 'all'} onValueChange={handleMonthChange}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="월 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 기간</SelectItem>
+                    {renderMonthOptions()}
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
+                  <Download className="h-4 w-4 mr-2" />
+                  {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="p-4 overflow-x-auto">
-          <div className="border rounded-lg overflow-hidden">
-            <div className="overflow-x-auto overflow-y-auto max-h-[600px] relative">
-              <table className="border-collapse relative" style={{ minWidth: "max-content" }}>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="w-full overflow-x-auto">
+            <div className="border rounded-lg overflow-hidden">
+              <div className="overflow-auto max-h-[600px] relative">
+                <table className="border-collapse relative" style={{ minWidth: "max-content" }}>
             <thead>
               <tr className="bg-blue-600 text-white">
                 <th className="sticky top-0 left-0 z-30 bg-blue-600 border border-blue-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ width: "50px" }}>순위</th>
@@ -345,11 +346,11 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
               </tr>
             </tbody>
           </table>
+              </div>
             </div>
-          </div>
 
-          {/* 요약 정보 */}
-          <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+            {/* 요약 정보 */}
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">총 상품 수:</span>
@@ -377,9 +378,10 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
               </span>
             </div>
           </div>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
