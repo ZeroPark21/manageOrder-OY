@@ -81,8 +81,8 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Filter orders to only include those delivered after July 1, 2025
-    const julyFirst = new Date(2024, 6, 1) // July 1, 2024 (month is 0-indexed)
+    // Filter orders to only include those delivered after July 1, 2024 (데이터 시작 시점)
+    const julyFirst = new Date(2024, 6, 1) // July 1, 2024 (month is 0-indexed) - 데이터 수집 시작일
     const today = new Date()
     
     const filteredOrders = orders.filter(order => {

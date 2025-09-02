@@ -216,11 +216,11 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Filter orders to only include those delivered after July 1, 2024
+    // Filter orders to only include those delivered after July 1, 2024 (데이터 시작 시점)
     const filteredOrders = orders.filter(order => {
       const date = parseDeliveredTime(order.delivered_time)
       if (!date) return false
-      return date >= new Date(2024, 6, 1) // July 1, 2024
+      return date >= new Date(2024, 6, 1) // July 1, 2024 - 데이터 수집 시작일
     })
 
     if (filteredOrders.length === 0) {
