@@ -11,7 +11,7 @@ export async function GET() {
     const weeklyStats = weeklyData.weeklyStats || {}
     
     // 각 주의 데이터 확인
-    const weekDetails = weeks.map(week => ({
+    const weekDetails = weeks.map((week: string) => ({
       week,
       stats: weeklyStats[week] || null,
       hasData: !!weeklyStats[week]
@@ -22,7 +22,7 @@ export async function GET() {
       weeks,
       weekDetails,
       last3Weeks: weekDetails.slice(-3),
-      hasAugustData: weeks.some(w => w.startsWith("2025-08"))
+      hasAugustData: weeks.some((w: string) => w.startsWith("2025-08"))
     })
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 })

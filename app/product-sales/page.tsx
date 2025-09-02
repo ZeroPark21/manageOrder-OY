@@ -88,7 +88,7 @@ export default function ProductSalesDashboard() {
         monthlyRes.json()
       ])
 
-      const sheets: MultiSheetExcelData[] = []
+      const sheets: MultiSheetExcelData['sheets'] = []
 
       // 일별 시트 생성
       if (dailyData?.dates && dailyData.dates.length > 0) {
@@ -222,7 +222,7 @@ export default function ProductSalesDashboard() {
       const now = new Date()
       const fileName = `Affiliate영상_판매발생_${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}.xlsx`
 
-      await downloadMultiSheetExcel(sheets, fileName)
+      await downloadMultiSheetExcel({ sheets, filename: fileName })
     } catch (error) {
       console.error("Excel 다운로드 실패:", error)
       alert("Excel 다운로드에 실패했습니다.")

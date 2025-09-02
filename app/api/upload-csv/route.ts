@@ -255,8 +255,8 @@ export async function POST(request: NextRequest) {
         console.log(`📊 Batch ${batchNumber}: Found ${existingOrders?.length || 0} existing orders out of ${batch.length} total`)
         
         // 업데이트할 주문과 새로 추가할 주문 분리
-        const ordersToUpdate = []
-        const ordersToInsert = []
+        const ordersToUpdate: any[] = []
+        const ordersToInsert: any[] = []
         
         batch.forEach(order => {
           const orderIdStr = String(order.order_id)
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
         
         console.log(`📦 Batch ${batchNumber}: ${ordersToUpdate.length} to update, ${ordersToInsert.length} to insert`)
         
-        let upsertData = []
+        let upsertData: any[] = []
         
         // 업데이트 실행
         if (ordersToUpdate.length > 0) {

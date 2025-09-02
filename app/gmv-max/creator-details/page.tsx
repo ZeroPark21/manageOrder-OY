@@ -118,7 +118,7 @@ export default function CreatorDetailsPage() {
         
         // 캠페인 목록 추출 (campaign_name 기준)
         const allVideos = creators.flatMap((creator: CreatorData) => creator.videos || [])
-        const uniqueCampaigns = [...new Set(allVideos.map((video: VideoData) => video.campaign_name).filter(Boolean))]
+        const uniqueCampaigns = [...new Set(allVideos.map((video: VideoData) => video.campaign_name).filter(Boolean))] as string[]
         setCampaigns(uniqueCampaigns)
         
         // GMV 기준 내림차순 정렬

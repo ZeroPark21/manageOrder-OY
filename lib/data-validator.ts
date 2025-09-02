@@ -104,8 +104,8 @@ export function validateContentsData(data: any[]): ValidationResult {
       totalRecords: data.length,
       uniqueCreators: uniqueCreatorCount,
       dateRange: {
-        start: minDate ? minDate.toISOString().split('T')[0] : null,
-        end: maxDate ? maxDate.toISOString().split('T')[0] : null
+        start: minDate ? (minDate as Date).toISOString().split('T')[0] : null,
+        end: maxDate ? (maxDate as Date).toISOString().split('T')[0] : null
       }
     }
   }

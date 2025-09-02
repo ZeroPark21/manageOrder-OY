@@ -19,7 +19,7 @@ export async function GET() {
       apiResponse: {
         totalMonths: months.length,
         months,
-        monthlyBreakdown: months.map(month => ({
+        monthlyBreakdown: months.map((month: string) => ({
           month,
           count: monthlyStats[month]?.totalCount || 0
         })),

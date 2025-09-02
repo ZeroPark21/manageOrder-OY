@@ -44,7 +44,7 @@ export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: 
         totalMonths: data.monthly?.months?.length,
         months: data.monthly?.months,
         totalContents: data.monthly?.months?.reduce(
-          (sum, month) => sum + (data.monthly?.monthlyStats?.[month]?.totalCount || 0), 
+          (sum: number, month: string) => sum + (data.monthly?.monthlyStats?.[month]?.totalCount || 0), 
           0
         )
       })

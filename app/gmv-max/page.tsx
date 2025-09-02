@@ -306,7 +306,7 @@ export default function GmvMaxPage() {
         
         {/* 판매 통계 */}
         <div className="mb-4">
-          <h4 className="text-sm font-medium text-muted-foreground mb-3">판매 건 (SKU Unit Original Price > 0)</h4>
+          <h4 className="text-sm font-medium text-muted-foreground mb-3">판매 건 (SKU Unit Original Price &gt; 0)</h4>
           <div className="grid gap-4 md:grid-cols-3">
             {/* 실제 판매 통계 */}
             <Card className="p-6 border-green-200 bg-green-50/50">

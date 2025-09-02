@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     const supabase = createServerClient()
 
     // 샘플 데이터 조회 (sku_unit_original_price = 0) - 배치 방식
-    let allData = []
+    let allData: any[] = []
     let offset = 0
     const batchSize = 1000
     let hasMore = true
@@ -129,19 +129,6 @@ export async function GET(request: NextRequest) {
     }
     
     const data = allData
-    const dbError = null
-
-    if (dbError) {
-      if ((dbError as any).code === "42P01") {
-        return NextResponse.json({
-          products: [],
-          months: [],
-          matrix: {},
-        })
-      }
-      console.error("Supabase error:", dbError)
-      return NextResponse.json({ error: dbError.message }, { status: 500 })
-    }
 
     const allOrders = (data || []) as OrderData[]
     

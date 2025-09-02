@@ -44,7 +44,7 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
         totalWeeks: data.weekly?.weeks?.length,
         weeks: data.weekly?.weeks,
         totalContents: data.weekly?.weeks?.reduce(
-          (sum, week) => sum + (data.weekly?.weeklyStats?.[week]?.totalCount || 0), 
+          (sum: number, week: string) => sum + (data.weekly?.weeklyStats?.[week]?.totalCount || 0), 
           0
         )
       })

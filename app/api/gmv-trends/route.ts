@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 전체 통계 계산
-    const totalStats = data?.reduce((acc, row) => ({
+    const totalStats = data?.reduce((acc: any, row: any) => ({
       totalGMV: acc.totalGMV + (row.total_gmv || 0),
       totalOrders: acc.totalOrders + (row.total_orders || 0),
       totalAdSpend: acc.totalAdSpend + (row.total_ad_spend || 0),
@@ -81,6 +81,9 @@ export async function GET(request: NextRequest) {
       totalAdSpend: 0,
       totalImpressions: 0,
       totalClicks: 0,
+      avgROI: 0,
+      avgCTR: 0,
+      avgCVR: 0,
     }) || {}
 
     // 평균 계산
