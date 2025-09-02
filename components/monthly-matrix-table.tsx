@@ -108,10 +108,10 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 max-w-full">
-        <div className="relative w-full max-w-full">
-          <div className="overflow-x-auto overflow-y-hidden border rounded-lg" style={{ maxWidth: "calc(100vw - 2rem)" }}>
-            <div className="overflow-y-auto max-h-[600px]">
+      <CardContent className="p-4">
+        <div className="relative">
+          <div className="border rounded-lg overflow-hidden" style={{ width: "1104px", height: "600px" }}>
+            <div className="overflow-auto w-full h-full">
               <table className="border-collapse" style={{ minWidth: "max-content" }}>
             <thead>
               <tr className="bg-purple-600 text-white">
@@ -196,7 +196,7 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
           </div>
 
           {/* 요약 정보 */}
-          <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg" style={{ maxWidth: "1104px" }}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">총 상품 수:</span>
