@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter orders to only include those delivered after July 1, 2025
-    const julyFirst = new Date(2025, 6, 1) // July 1, 2025 (month is 0-indexed)
+    const julyFirst = new Date(2024, 6, 1) // July 1, 2024 (month is 0-indexed)
     const today = new Date()
     
     const filteredOrders = orders.filter(order => {

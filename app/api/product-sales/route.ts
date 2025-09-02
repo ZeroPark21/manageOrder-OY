@@ -191,8 +191,8 @@ export async function GET(request: NextRequest) {
     if (startDate) {
       query = query.gte("delivered_time", startDate)
     } else {
-      // 기본적으로 2025년 7월부터 (MM/DD/YYYY 형식)
-      query = query.gte("delivered_time", "07/01/2025")
+      // 기본적으로 2024년 7월부터 (MM/DD/YYYY 형식)
+      query = query.gte("delivered_time", "07/01/2024")
     }
 
     if (endDate) {
@@ -216,11 +216,11 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Filter orders to only include those delivered after July 1, 2025
+    // Filter orders to only include those delivered after July 1, 2024
     const filteredOrders = orders.filter(order => {
       const date = parseDeliveredTime(order.delivered_time)
       if (!date) return false
-      return date >= new Date(2025, 6, 1) // July 1, 2025
+      return date >= new Date(2024, 6, 1) // July 1, 2024
     })
 
     if (filteredOrders.length === 0) {
