@@ -227,21 +227,28 @@ export async function POST(request: NextRequest) {
     let totalSaved = 0
     let errors: string[] = []
     
-    // 모든 video_link를 먼저 수집
-    const videoLinks = finalContents.map(c => c.video_link)
+    // 중복 체크를 위한 키 생성 함수
+    const createUniqueKey = (content: ContentData) => {
+      return `${content.content_title}|${content.video_link}|${content.creator_name}`
+    }
     
-    // 기존 데이터 한번에 조회 (전체 필드 포함) - 최신 데이터만 가져오기
+    // 모든 고유 키 수집
+    const uniqueKeys = finalContents.map(c => createUniqueKey(c))
+    
+    // 기존 데이터 조회 - content_title, video_link, creator_name이 일치하는 데이터 찾기
     const { data: existingData } = await supabase
       .from("contents")
       .select("*")
-      .in("video_link", videoLinks)
-      .order("created_at", { ascending: false })
+      .in("video_link", finalContents.map(c => c.video_link))
     
-    // video_link별로 최신 데이터만 매핑
+    // 고유 키별로 최신 데이터만 매핑
     const existingMap = new Map()
     existingData?.forEach((d: any) => {
-      if (!existingMap.has(d.video_link)) {
-        existingMap.set(d.video_link, d)
+      const key = `${d.content_title}|${d.video_link}|${d.creator_name}`
+      // 이미 존재하는 키인 경우, created_at이 더 최근인 것으로 교체
+      const existing = existingMap.get(key)
+      if (!existing || new Date(d.created_at) > new Date(existing.created_at)) {
+        existingMap.set(key, d)
       }
     })
     
@@ -251,12 +258,12 @@ export async function POST(request: NextRequest) {
     const skipped: string[] = []
     
     for (const content of finalContents) {
-      const existing = existingMap.get(content.video_link)
+      const uniqueKey = createUniqueKey(content)
+      const existing = existingMap.get(uniqueKey)
+      
       if (existing) {
         // 데이터 비교 (created_at, updated_at, id 제외)
         const isDifferent = 
-          existing.content_title !== content.content_title ||
-          existing.creator_name !== content.creator_name ||
           existing.publish_date !== content.publish_date ||
           existing.gmv !== content.gmv ||
           existing.affiliate_items_sold !== content.affiliate_items_sold ||
@@ -275,11 +282,13 @@ export async function POST(request: NextRequest) {
         
         if (isDifferent) {
           toUpdate.push({ id: existing.id, data: content })
+          console.log(`🔄 업데이트 예정: ${content.content_title} by ${content.creator_name}`)
         } else {
-          skipped.push(content.video_link)
+          skipped.push(uniqueKey)
         }
       } else {
         toInsert.push(content)
+        console.log(`✨ 새로 추가 예정: ${content.content_title} by ${content.creator_name}`)
       }
     }
     
