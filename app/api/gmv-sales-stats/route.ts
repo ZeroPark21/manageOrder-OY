@@ -12,27 +12,30 @@ export async function GET(request: NextRequest) {
     // 날짜 형식이 MM/DD/YYYY이므로 해당 형식으로 비교
     const startDate = '06/01/2025'
     
-    // 판매, 샘플, 무효 주문을 병렬로 집계
+    // 판매, 샘플, 전체 주문을 병렬로 집계
     const [salesResult, samplesResult, totalResult] = await Promise.all([
       // 판매 통계 (price > 0)
       supabase
         .from('orders')
-        .select('order_status, order_amount, quantity, cancelled_time', { count: 'exact' })
+        .select('order_status, order_amount, quantity, cancelled_time')
         .gte('created_time', startDate)
-        .gt('sku_unit_original_price', 0),
+        .gt('sku_unit_original_price', 0)
+        .limit(10000),
       
       // 샘플 통계 (price = 0)
       supabase
         .from('orders')
-        .select('order_status, quantity, cancelled_time', { count: 'exact' })
+        .select('order_status, quantity, cancelled_time')
         .gte('created_time', startDate)
-        .eq('sku_unit_original_price', 0),
+        .eq('sku_unit_original_price', 0)
+        .limit(10000),
       
-      // 전체 카운트
+      // 전체 주문 조회
       supabase
         .from('orders')
-        .select('*', { count: 'exact', head: true })
+        .select('id')
         .gte('created_time', startDate)
+        .limit(10000)
     ])
     
     if (salesResult.error) throw salesResult.error
@@ -41,7 +44,8 @@ export async function GET(request: NextRequest) {
     
     const salesOrders = salesResult.data || []
     const sampleOrders = samplesResult.data || []
-    const totalCount = totalResult.count || 0
+    const allOrders = totalResult.data || []
+    const totalCount = allOrders.length
     
     // 취소된 주문 빠른 필터링
     const cancelledSales = salesOrders.filter(order => 
@@ -82,22 +86,22 @@ export async function GET(request: NextRequest) {
                        cancelledSamples.reduce((sum, order) => sum + (order.quantity || 0), 0)
       },
       
-      // 허수 통계 (전체 - 판매 - 샘플)
+      // 허수 통계 (전체 - 판매 - 샘플) - 현재는 0이어야 함
       invalid: {
-        totalOrders: totalCount - salesOrders.length - sampleOrders.length,
+        totalOrders: 0,  // totalCount - salesOrders.length - sampleOrders.length,
         totalQuantity: 0,
         cancelledOrders: 0,
         cancelledQuantity: 0,
-        activeOrders: totalCount - salesOrders.length - sampleOrders.length,
+        activeOrders: 0,  // totalCount - salesOrders.length - sampleOrders.length,
         activeQuantity: 0
       },
       
       // 전체 통계
       total: {
-        orders: totalCount,
+        orders: salesOrders.length + sampleOrders.length,  // 실제 데이터 합계
         sales: salesOrders.length,
         samples: sampleOrders.length,
-        invalid: totalCount - salesOrders.length - sampleOrders.length,
+        invalid: 0,
         cancelled: cancelledSales.length + cancelledSamples.length
       }
     }

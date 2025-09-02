@@ -17,6 +17,7 @@ interface ContentDailyMatrixData {
     totalShoppableImpressions: number
     totalCommentCount: number
     totalLikeCount: number
+    uniqueCreators?: number
   } }
 }
 
@@ -34,45 +35,44 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
   const fetchMatrixData = async (year?: number, month?: string) => {
     setLoading(true)
     try {
-      let url = "/api/contents?groupBy=daily"
-      if (year && month) {
-        const startDate = `${year}-${month}-01`
-        const lastDay = new Date(year, parseInt(month), 0).getDate()
-        const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
-        url += `&startDate=${startDate}&endDate=${endDate}`
-      }
-      const response = await fetch(url)
+      // Use the new content-all-matrix API
+      const response = await fetch(`/api/content-all-matrix?t=${Date.now()}`)
       const data = await response.json()
 
-      if (data.data && data.data.length > 0) {
-        // 날짜별 총계 데이터 구성
-        const dailyStats: { [date: string]: { 
-          totalCount: number
-          totalGmv: number
-          totalAffiliateItemsSold: number
-          totalAffiliateOrders: number
-          totalShoppableImpressions: number
-          totalCommentCount: number
-          totalLikeCount: number
-        } } = {}
+      if (data.daily && data.daily.dates) {
+        let filteredDates = data.daily.dates
+        let filteredStats: { [date: string]: any } = {}
 
-        data.data.forEach((item: any) => {
-          dailyStats[item.date] = {
-            totalCount: item.totalCount || 0,
-            totalGmv: item.totalGmv || 0,
-            totalAffiliateItemsSold: item.totalAffiliateItemsSold || 0,
-            totalAffiliateOrders: item.totalAffiliateOrders || 0,
-            totalShoppableImpressions: item.totalShoppableImpressions || 0,
-            totalCommentCount: item.totalCommentCount || 0,
-            totalLikeCount: item.totalLikeCount || 0
-          }
-        })
-
-        const dates = Object.keys(dailyStats).sort()
+        // Apply year and month filtering if specified
+        if (year && month) {
+          const startDate = `${year}-${month}-01`
+          const lastDay = new Date(year, parseInt(month), 0).getDate()
+          const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
+          
+          filteredDates = data.daily.dates.filter((date: string) => {
+            return date >= startDate && date <= endDate
+          })
+          
+          filteredDates.forEach((date: string) => {
+            filteredStats[date] = data.daily.dailyStats[date]
+          })
+        } else if (year && !month) {
+          // Filter by year only
+          filteredDates = data.daily.dates.filter((date: string) => {
+            return date.startsWith(`${year}-`)
+          })
+          
+          filteredDates.forEach((date: string) => {
+            filteredStats[date] = data.daily.dailyStats[date]
+          })
+        } else {
+          // No filtering, use all data
+          filteredStats = data.daily.dailyStats
+        }
 
         setMatrixData({
-          dates,
-          dailyStats
+          dates: filteredDates,
+          dailyStats: filteredStats
         })
       } else {
         // 데이터가 없을 때도 빈 데이터로 설정
@@ -289,6 +289,9 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
                   콘텐츠
                 </TableHead>
                 <TableHead className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  크리에이터
+                </TableHead>
+                <TableHead className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
                   GMV
                 </TableHead>
                 <TableHead className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
@@ -319,6 +322,9 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
                     <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">
                       {matrixData.dailyStats[date].totalCount}
                     </TableCell>
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">
+                      {matrixData.dailyStats[date].uniqueCreators || 0}
+                    </TableCell>
                     <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.dailyStats[date].totalGmv.toLocaleString()}
                     </TableCell>
@@ -344,6 +350,13 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
                 <TableCell className="border border-blue-600 px-3 py-2 text-sm">Total</TableCell>
                 <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalCount, 0)}
+                </TableCell>
+                <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
+                  {[...new Set(matrixData.dates.flatMap(date => {
+                    const count = matrixData.dailyStats[date].uniqueCreators || 0
+                    return count > 0 ? [date] : []
+                  }))].length > 0 ? 
+                    matrixData.dates.reduce((sum, date) => Math.max(sum, matrixData.dailyStats[date].uniqueCreators || 0), 0) : 0}
                 </TableCell>
                 <TableCell className="border border-blue-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.dates.reduce((sum, date) => sum + matrixData.dailyStats[date].totalGmv, 0).toLocaleString()}

@@ -16,6 +16,7 @@ interface ContentMonthlyMatrixData {
     totalShoppableImpressions: number
     totalCommentCount: number
     totalLikeCount: number
+    uniqueCreators?: number
   } }
 }
 
@@ -132,6 +133,9 @@ export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: 
                   콘텐츠
                 </TableHead>
                 <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  크리에이터
+                </TableHead>
+                <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
                   GMV
                 </TableHead>
                 <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
@@ -162,6 +166,9 @@ export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: 
                     <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">
                       {matrixData.monthlyStats[month].totalCount}
                     </TableCell>
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">
+                      {matrixData.monthlyStats[month].uniqueCreators || 0}
+                    </TableCell>
                     <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.monthlyStats[month].totalGmv.toLocaleString()}
                     </TableCell>
@@ -187,6 +194,13 @@ export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: 
                 <TableCell className="border border-purple-600 px-3 py-2 text-sm">Total</TableCell>
                 <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalCount, 0)}
+                </TableCell>
+                <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
+                  {[...new Set(matrixData.months.flatMap(month => {
+                    const count = matrixData.monthlyStats[month].uniqueCreators || 0
+                    return count > 0 ? [month] : []
+                  }))].length > 0 ? 
+                    matrixData.months.reduce((sum, month) => Math.max(sum, matrixData.monthlyStats[month].uniqueCreators || 0), 0) : 0}
                 </TableCell>
                 <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.months.reduce((sum, month) => sum + matrixData.monthlyStats[month].totalGmv, 0).toLocaleString()}

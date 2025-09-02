@@ -13,6 +13,7 @@ interface ContentData {
   totalShoppableImpressions: number
   totalCommentCount: number
   totalLikeCount: number
+  uniqueCreators?: number
 }
 
 export async function GET() {
@@ -29,6 +30,7 @@ export async function GET() {
         .from("contents")
         .select(`
           publish_date,
+          creator_name,
           gmv,
           affiliate_items_sold,
           affiliate_orders,
@@ -74,8 +76,10 @@ export async function GET() {
     })
     console.log(`Contents after July 21: ${weeklyCheck.length}`)
 
-    // 일별 그룹핑
-    const dailyMap: { [key: string]: ContentData } = {}
+    // 일별 그룹핑 with creators
+    const dailyMap: { [key: string]: ContentData & { uniqueCreators?: number } } = {}
+    const dailyCreatorsMap: { [key: string]: Set<string> } = {}
+    
     filteredContents.forEach((content) => {
       const date = new Date(content.publish_date).toISOString().split("T")[0]
       if (!dailyMap[date]) {
@@ -88,7 +92,9 @@ export async function GET() {
           totalShoppableImpressions: 0,
           totalCommentCount: 0,
           totalLikeCount: 0,
+          uniqueCreators: 0,
         }
+        dailyCreatorsMap[date] = new Set()
       }
       dailyMap[date].totalCount += 1
       dailyMap[date].totalGmv += content.gmv || 0
@@ -97,10 +103,22 @@ export async function GET() {
       dailyMap[date].totalShoppableImpressions += content.shoppable_impressions || 0
       dailyMap[date].totalCommentCount += content.comment_count || 0
       dailyMap[date].totalLikeCount += content.like_count || 0
+      
+      // 크리에이터 추가 (null이나 빈 문자열이 아닌 경우만)
+      if (content.creator_name && content.creator_name.trim()) {
+        dailyCreatorsMap[date].add(content.creator_name)
+      }
+    })
+    
+    // 일별 unique creators 수 설정
+    Object.keys(dailyMap).forEach(date => {
+      dailyMap[date].uniqueCreators = dailyCreatorsMap[date].size
     })
 
-    // 주별 그룹핑
-    const weeklyMap: { [key: string]: ContentData } = {}
+    // 주별 그룹핑 with creators
+    const weeklyMap: { [key: string]: ContentData & { uniqueCreators?: number } } = {}
+    const weeklyCreatorsMap: { [key: string]: Set<string> } = {}
+    
     filteredContents.forEach((content) => {
       const date = new Date(content.publish_date)
       const startOfWeek = new Date(date)
@@ -117,7 +135,9 @@ export async function GET() {
           totalShoppableImpressions: 0,
           totalCommentCount: 0,
           totalLikeCount: 0,
+          uniqueCreators: 0,
         }
+        weeklyCreatorsMap[weekKey] = new Set()
       }
       weeklyMap[weekKey].totalCount += 1
       weeklyMap[weekKey].totalGmv += content.gmv || 0
@@ -126,10 +146,22 @@ export async function GET() {
       weeklyMap[weekKey].totalShoppableImpressions += content.shoppable_impressions || 0
       weeklyMap[weekKey].totalCommentCount += content.comment_count || 0
       weeklyMap[weekKey].totalLikeCount += content.like_count || 0
+      
+      // 크리에이터 추가 (null이나 빈 문자열이 아닌 경우만)
+      if (content.creator_name && content.creator_name.trim()) {
+        weeklyCreatorsMap[weekKey].add(content.creator_name)
+      }
+    })
+    
+    // 주별 unique creators 수 설정
+    Object.keys(weeklyMap).forEach(week => {
+      weeklyMap[week].uniqueCreators = weeklyCreatorsMap[week].size
     })
 
-    // 월별 그룹핑
-    const monthlyMap: { [key: string]: ContentData } = {}
+    // 월별 그룹핑 with creators
+    const monthlyMap: { [key: string]: ContentData & { uniqueCreators?: number } } = {}
+    const monthlyCreatorsMap: { [key: string]: Set<string> } = {}
+    
     filteredContents.forEach((content) => {
       const date = new Date(content.publish_date)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
@@ -144,7 +176,9 @@ export async function GET() {
           totalShoppableImpressions: 0,
           totalCommentCount: 0,
           totalLikeCount: 0,
+          uniqueCreators: 0,
         }
+        monthlyCreatorsMap[monthKey] = new Set()
       }
       monthlyMap[monthKey].totalCount += 1
       monthlyMap[monthKey].totalGmv += content.gmv || 0
@@ -153,6 +187,16 @@ export async function GET() {
       monthlyMap[monthKey].totalShoppableImpressions += content.shoppable_impressions || 0
       monthlyMap[monthKey].totalCommentCount += content.comment_count || 0
       monthlyMap[monthKey].totalLikeCount += content.like_count || 0
+      
+      // 크리에이터 추가 (null이나 빈 문자열이 아닌 경우만)
+      if (content.creator_name && content.creator_name.trim()) {
+        monthlyCreatorsMap[monthKey].add(content.creator_name)
+      }
+    })
+    
+    // 월별 unique creators 수 설정
+    Object.keys(monthlyMap).forEach(month => {
+      monthlyMap[month].uniqueCreators = monthlyCreatorsMap[month].size
     })
 
     // 정렬된 날짜 배열 생성

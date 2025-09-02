@@ -16,6 +16,7 @@ interface ContentWeeklyMatrixData {
     totalShoppableImpressions: number
     totalCommentCount: number
     totalLikeCount: number
+    uniqueCreators?: number
   } }
 }
 
@@ -132,6 +133,9 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
                   콘텐츠
                 </TableHead>
                 <TableHead className="border border-green-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  크리에이터
+                </TableHead>
+                <TableHead className="border border-green-500 px-3 py-2 text-center text-sm font-medium text-white">
                   GMV
                 </TableHead>
                 <TableHead className="border border-green-500 px-3 py-2 text-center text-sm font-medium text-white">
@@ -162,6 +166,9 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
                     <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">
                       {matrixData.weeklyStats[week].totalCount}
                     </TableCell>
+                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">
+                      {matrixData.weeklyStats[week].uniqueCreators || 0}
+                    </TableCell>
                     <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm">
                       {matrixData.weeklyStats[week].totalGmv.toLocaleString()}
                     </TableCell>
@@ -187,6 +194,13 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
                 <TableCell className="border border-green-600 px-3 py-2 text-sm">Total</TableCell>
                 <TableCell className="border border-green-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.weeks.reduce((sum, week) => sum + matrixData.weeklyStats[week].totalCount, 0)}
+                </TableCell>
+                <TableCell className="border border-green-600 px-3 py-2 text-center text-sm font-bold">
+                  {[...new Set(matrixData.weeks.flatMap(week => {
+                    const count = matrixData.weeklyStats[week].uniqueCreators || 0
+                    return count > 0 ? [week] : []
+                  }))].length > 0 ? 
+                    matrixData.weeks.reduce((sum, week) => Math.max(sum, matrixData.weeklyStats[week].uniqueCreators || 0), 0) : 0}
                 </TableCell>
                 <TableCell className="border border-green-600 px-3 py-2 text-center text-sm font-bold">
                   {matrixData.weeks.reduce((sum, week) => sum + matrixData.weeklyStats[week].totalGmv, 0).toLocaleString()}
