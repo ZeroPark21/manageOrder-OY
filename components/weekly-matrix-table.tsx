@@ -92,34 +92,33 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
   }
 
   return (
-    <div className="w-full overflow-hidden">
-      <Card className="w-full">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>주별 샘플 발송현황</CardTitle>
-              <CardDescription>
-                상품별 주간 샘플 발송 수량 매트릭스 (총 {data.products.length}개 상품, {data.weeks.length}주 데이터)
-              </CardDescription>
-            </div>
-            {/* 헤더 부분의 버튼 수정 */}
-            <div className="space-x-2">
-              <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
-                <Download className="h-4 w-4 mr-2" />
-                {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
-              </Button>
-              <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                새로고침
-              </Button>
-            </div>
+    <Card className="w-full max-w-full">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1">
+            <CardTitle>주별 샘플 발송현황</CardTitle>
+            <CardDescription>
+              상품별 주간 샘플 발송 수량 매트릭스 (총 {data.products.length}개 상품, {data.weeks.length}주 데이터)
+            </CardDescription>
           </div>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="w-full overflow-x-auto">
-            <div className="border rounded-lg overflow-hidden">
-              <div className="overflow-auto max-h-[600px] relative">
-                <table className="border-collapse relative" style={{ minWidth: "max-content" }}>
+          {/* 헤더 부분의 버튼 수정 */}
+          <div className="space-x-2 flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
+              <Download className="h-4 w-4 mr-2" />
+              {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              새로고침
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-4 max-w-full">
+        <div className="relative w-full max-w-full">
+          <div className="overflow-x-auto overflow-y-hidden border rounded-lg" style={{ maxWidth: "calc(100vw - 2rem)" }}>
+            <div className="overflow-y-auto max-h-[600px]">
+              <table className="border-collapse" style={{ minWidth: "max-content" }}>
             <thead>
               <tr className="bg-green-600 text-white">
                 <th className="sticky top-0 left-0 z-30 bg-green-600 border border-green-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ width: "50px" }}>순위</th>
@@ -202,11 +201,11 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
               </tr>
             </tbody>
           </table>
-              </div>
             </div>
+          </div>
 
-            {/* 요약 정보 */}
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+          {/* 요약 정보 */}
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">총 상품 수:</span>
@@ -249,10 +248,9 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
               ))}
             </div>
           </div>
-            </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
