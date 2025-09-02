@@ -60,7 +60,7 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
 
   if (loading) {
     return (
-      <Card>
+      <Card className="w-full overflow-hidden">
         <CardHeader>
           <CardTitle>주별 샘플 발송현황</CardTitle>
           <CardDescription>상품별 주간 샘플 발송 수량 매트릭스 (월요일 기준, SKU Unit Original Price = 0)</CardDescription>
@@ -76,7 +76,7 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
 
   if (!data || !data.products || data.products.length === 0) {
     return (
-      <Card>
+      <Card className="w-full overflow-hidden">
         <CardHeader>
           <CardTitle>주별 샘플 발송현황</CardTitle>
           <CardDescription>상품별 주간 샘플 발송 수량 매트릭스 (월요일 기준, SKU Unit Original Price = 0)</CardDescription>
@@ -92,7 +92,7 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
   }
 
   return (
-    <Card>
+    <Card className="w-full overflow-hidden">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -114,10 +114,11 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4">
-        <div className="overflow-hidden border rounded-lg">
-          <div className="overflow-x-auto overflow-y-auto max-h-[600px] relative">
-            <table className="border-collapse relative" style={{ minWidth: "max-content" }}>
+      <CardContent className="p-0">
+        <div className="p-4 overflow-x-auto">
+          <div className="border rounded-lg overflow-hidden">
+            <div className="overflow-x-auto overflow-y-auto max-h-[600px] relative">
+              <table className="border-collapse relative" style={{ minWidth: "max-content" }}>
             <thead>
               <tr className="bg-green-600 text-white">
                 <th className="sticky top-0 left-0 z-30 bg-green-600 border border-green-500 px-3 py-2 text-center text-sm font-medium whitespace-nowrap" style={{ width: "50px" }}>순위</th>
@@ -200,11 +201,11 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
               </tr>
             </tbody>
           </table>
+            </div>
           </div>
-        </div>
 
-        {/* 요약 정보 */}
-        <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+          {/* 요약 정보 */}
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <span className="text-muted-foreground">총 상품 수:</span>
@@ -246,6 +247,7 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
                 </div>
               ))}
             </div>
+          </div>
           </div>
         </div>
       </CardContent>

@@ -56,48 +56,48 @@ export async function GET(request: NextRequest) {
       order.cancelled_time !== null
     )
     
-    // 통계 계산
+    // 통계 계산 - 실제 데이터 길이 사용 (count API가 부정확함)
     const stats = {
       // 실제 판매 통계
       sales: {
-        totalOrders: salesResult.count || 0,
+        totalOrders: salesOrders.length,
         totalAmount: salesOrders.reduce((sum, order) => sum + (order.order_amount || 0), 0),
         totalQuantity: salesOrders.reduce((sum, order) => sum + (order.quantity || 0), 0),
         cancelledOrders: cancelledSales.length,
         cancelledAmount: cancelledSales.reduce((sum, order) => sum + (order.order_amount || 0), 0),
         cancelledQuantity: cancelledSales.reduce((sum, order) => sum + (order.quantity || 0), 0),
-        activeOrders: (salesResult.count || 0) - cancelledSales.length,
+        activeOrders: salesOrders.length - cancelledSales.length,
         activeAmount: salesOrders.reduce((sum, order) => sum + (order.order_amount || 0), 0) - 
                      cancelledSales.reduce((sum, order) => sum + (order.order_amount || 0), 0)
       },
       
       // 샘플 통계
       samples: {
-        totalOrders: samplesResult.count || 0,
+        totalOrders: sampleOrders.length,
         totalQuantity: sampleOrders.reduce((sum, order) => sum + (order.quantity || 0), 0),
         cancelledOrders: cancelledSamples.length,
         cancelledQuantity: cancelledSamples.reduce((sum, order) => sum + (order.quantity || 0), 0),
-        activeOrders: (samplesResult.count || 0) - cancelledSamples.length,
+        activeOrders: sampleOrders.length - cancelledSamples.length,
         activeQuantity: sampleOrders.reduce((sum, order) => sum + (order.quantity || 0), 0) - 
                        cancelledSamples.reduce((sum, order) => sum + (order.quantity || 0), 0)
       },
       
       // 허수 통계 (전체 - 판매 - 샘플)
       invalid: {
-        totalOrders: totalCount - (salesResult.count || 0) - (samplesResult.count || 0),
+        totalOrders: totalCount - salesOrders.length - sampleOrders.length,
         totalQuantity: 0,
         cancelledOrders: 0,
         cancelledQuantity: 0,
-        activeOrders: totalCount - (salesResult.count || 0) - (samplesResult.count || 0),
+        activeOrders: totalCount - salesOrders.length - sampleOrders.length,
         activeQuantity: 0
       },
       
       // 전체 통계
       total: {
         orders: totalCount,
-        sales: salesResult.count || 0,
-        samples: samplesResult.count || 0,
-        invalid: totalCount - (salesResult.count || 0) - (samplesResult.count || 0),
+        sales: salesOrders.length,
+        samples: sampleOrders.length,
+        invalid: totalCount - salesOrders.length - sampleOrders.length,
         cancelled: cancelledSales.length + cancelledSamples.length
       }
     }

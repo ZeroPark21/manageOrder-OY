@@ -326,11 +326,12 @@ export default function Dashboard() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">샘플 발송 현황</h1>
-          <p className="text-gray-600">샘플 발송현황 분석 (2025년 6월 1일부터, SKU Unit Original Price = 0)</p>
-        </div>
+      <div className="flex-1 overflow-hidden">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 pt-6">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">샘플 발송 현황</h1>
+            <p className="text-gray-600">샘플 발송현황 분석 (2025년 6월 1일부터, SKU Unit Original Price = 0)</p>
+          </div>
 
           {/* 샘플 발송 현황 */}
           {salesStats && (
@@ -370,26 +371,27 @@ export default function Dashboard() {
             </div>
           )}
 
-        {/* 매트릭스 테이블 탭 */}
-        <Tabs defaultValue="daily" className="space-y-6">
-          <TabsList className="bg-white dark:bg-gray-800 shadow-md">
-            <TabsTrigger value="daily" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">일별 매트릭스</TabsTrigger>
-            <TabsTrigger value="weekly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">주별 매트릭스</TabsTrigger>
-            <TabsTrigger value="monthly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">월별 매트릭스</TabsTrigger>
-          </TabsList>
+          {/* 매트릭스 테이블 탭 */}
+          <Tabs defaultValue="daily" className="space-y-6">
+            <TabsList className="bg-white dark:bg-gray-800 shadow-md">
+              <TabsTrigger value="daily" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">일별 매트릭스</TabsTrigger>
+              <TabsTrigger value="weekly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">주별 매트릭스</TabsTrigger>
+              <TabsTrigger value="monthly" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">월별 매트릭스</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="daily" className="space-y-4 overflow-hidden">
-            <DailyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-          </TabsContent>
+            <TabsContent value="daily" className="space-y-4">
+              <DailyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+            </TabsContent>
 
-          <TabsContent value="weekly" className="space-y-4 overflow-hidden">
-            <WeeklyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-          </TabsContent>
+            <TabsContent value="weekly" className="space-y-4">
+              <WeeklyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+            </TabsContent>
 
-          <TabsContent value="monthly" className="space-y-4 overflow-hidden">
-            <MonthlyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="monthly" className="space-y-4">
+              <MonthlyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </>
   )
