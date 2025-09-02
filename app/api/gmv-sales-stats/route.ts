@@ -9,7 +9,8 @@ export async function GET(request: NextRequest) {
     const supabase = createServerClient()
     
     // 집계 쿼리로 최적화 - 전체 데이터를 메모리에 로드하지 않음
-    const startDate = '2025-06-01'
+    // 날짜 형식이 MM/DD/YYYY이므로 해당 형식으로 비교
+    const startDate = '06/01/2025'
     
     // 판매, 샘플, 무효 주문을 병렬로 집계
     const [salesResult, samplesResult, totalResult] = await Promise.all([

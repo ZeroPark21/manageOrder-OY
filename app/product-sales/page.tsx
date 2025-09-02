@@ -48,19 +48,23 @@ export default function ProductSalesDashboard() {
       const response = await fetch(`/api/product-sales?groupBy=daily`)
       if (!response.ok) throw new Error("Failed to fetch data")
       const data = await response.json()
+      console.log("Daily data:", data)
 
       // 전체 요약 데이터 가져오기
       const totalResponse = await fetch(`/api/product-sales?groupBy=all`)
       if (!totalResponse.ok) throw new Error("Failed to fetch total data")
       const totalData = await totalResponse.json()
+      console.log("Total data:", totalData)
 
-      setSummaryData({
+      const summaryDataToSet = {
         data: data.data,
         totalQuantity: totalData.totalQuantity || 0,
         totalRevenue: totalData.totalRevenue || 0,
         uniqueProducts: totalData.uniqueProducts || 0,
         totalOrders: totalData.totalOrders || 0,
-      })
+      }
+      console.log("Setting summary data:", summaryDataToSet)
+      setSummaryData(summaryDataToSet)
     } catch (error) {
       console.error("데이터 로드 실패:", error)
     } finally {
@@ -69,8 +73,13 @@ export default function ProductSalesDashboard() {
   }
 
   useEffect(() => {
+    console.log("ProductSalesDashboard mounted, fetching data...")
     fetchSummaryData()
   }, [])
+
+  useEffect(() => {
+    console.log("summaryData updated:", summaryData)
+  }, [summaryData])
 
   const handleDownloadExcel = async () => {
     setDownloadLoading(true)
@@ -272,7 +281,11 @@ export default function ProductSalesDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {loading ? "..." : summaryData?.totalQuantity.toLocaleString() || 0}
+                {loading ? (
+                  <span>로딩중...</span>
+                ) : (
+                  <span>{(summaryData?.totalQuantity ?? 0).toLocaleString()}개</span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground">6월부터 누적</p>
             </CardContent>
@@ -285,7 +298,7 @@ export default function ProductSalesDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${loading ? "..." : summaryData?.totalRevenue.toLocaleString() || 0}
+                ${loading ? "..." : (summaryData?.totalRevenue ?? 0).toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground">6월부터 누적</p>
             </CardContent>
@@ -298,7 +311,7 @@ export default function ProductSalesDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {loading ? "..." : summaryData?.uniqueProducts || 0}
+                {loading ? "..." : summaryData?.uniqueProducts ?? 0}개
               </div>
               <p className="text-xs text-muted-foreground">판매된 제품 종류</p>
             </CardContent>
@@ -311,7 +324,7 @@ export default function ProductSalesDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {loading ? "..." : summaryData?.totalOrders.toLocaleString() || 0}
+                {loading ? "..." : (summaryData?.totalOrders ?? 0).toLocaleString()}개
               </div>
               <p className="text-xs text-muted-foreground">6월부터 누적</p>
             </CardContent>
