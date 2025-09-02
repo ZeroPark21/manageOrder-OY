@@ -11,7 +11,7 @@ interface OrderData {
   seller_sku: string
   sku_id: number
   quantity: number
-  created_time: string
+  delivered_time: string
 }
 
 // 날짜 파싱 함수: 다양한 형식 처리
@@ -105,40 +105,59 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
 
-    // 샘플 데이터 조회 (sku_unit_original_price = 0)
-    const { data, error: dbError } = await supabase
-      .from("orders")
-      .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
-      .eq("sku_unit_original_price", 0)  // 샘플만 필터링
-      .order("created_time", { ascending: true })
-
-    if (dbError) {
-      if ((dbError as any).code === "42P01") {
-        return NextResponse.json({
-          products: [],
-          weeks: [],
-          matrix: {},
-        })
+    // 샘플 데이터를 여러 배치로 나누어 조회 (Supabase는 한 번에 1000개 제한이 있음)
+    let allOrders: OrderData[] = []
+    let offset = 0
+    const batchSize = 1000
+    let hasMore = true
+    
+    while (hasMore && offset < 10000) {  // 최대 10000개까지
+      const { data, error: dbError } = await supabase
+        .from("orders")
+        .select("id, product_name, seller_sku, sku_id, quantity, delivered_time, sku_unit_original_price")
+        .eq("sku_unit_original_price", 0)  // 샘플만 필터링
+        .not("delivered_time", "is", null)  // delivered_time이 있는 데이터만
+        .order("delivered_time", { ascending: true })  // 날짜 순서대로
+        .range(offset, offset + batchSize - 1)
+      
+      if (dbError) {
+        if ((dbError as any).code === "42P01") {
+          return NextResponse.json({
+            products: [],
+            weeks: [],
+            matrix: {},
+          })
+        }
+        console.error("Supabase error:", dbError)
+        return NextResponse.json({ error: dbError.message }, { status: 500 })
       }
-      console.error("Supabase error:", dbError)
-      return NextResponse.json({ error: dbError.message }, { status: 500 })
+      
+      if (data && data.length > 0) {
+        allOrders = [...allOrders, ...(data as OrderData[])]
+        offset += batchSize
+        hasMore = data.length === batchSize
+      } else {
+        hasMore = false
+      }
     }
 
-    const allOrders = (data || []) as OrderData[]
+    // allOrders는 이미 위에서 배치로 가져왔음
     
     console.log(`[weekly-matrix] Total samples from DB: ${allOrders.length}`)
     if (allOrders.length > 0) {
-      console.log(`[weekly-matrix] Sample created_time formats:`, allOrders.slice(0, 3).map(o => o.created_time))
+      console.log(`[weekly-matrix] Sample delivered_time formats:`, allOrders.slice(0, 3).map(o => o.delivered_time))
     }
     
     // 6월 1일 이후 데이터만 필터링
     const startDate = new Date(2025, 5, 1) // 2025년 6월 1일
+    const currentDate = new Date() // 현재 날짜
     const orders = allOrders.filter(order => {
-      const orderDate = parseDate(order.created_time)
-      return orderDate && orderDate >= startDate
+      const orderDate = parseDate(order.delivered_time)
+      return orderDate && orderDate >= startDate && orderDate <= currentDate
     })
     
-    console.log(`[weekly-matrix] Filtered to ${orders.length} orders from June 1st`)
+    console.log(`[weekly-matrix] Filtered to ${orders.length} orders from June 1st to current date`)
+    console.log(`[weekly-matrix] Current date: ${currentDate.toISOString()}`)
 
     if (orders.length === 0) {
       return NextResponse.json({
@@ -160,12 +179,12 @@ export async function GET(request: NextRequest) {
     let failedCount = 0
     
     orders.forEach((order) => {
-      if (!order.created_time || !order.product_name) return
+      if (!order.delivered_time || !order.product_name) return
 
-      const date = parseDate(order.created_time)
+      const date = parseDate(order.delivered_time)
       if (!date) {
         failedCount++
-        console.log(`[weekly-matrix] Failed to parse date: ${order.created_time}`)
+        console.log(`[weekly-matrix] Failed to parse date: ${order.delivered_time}`)
         return
       }
       
@@ -201,9 +220,21 @@ export async function GET(request: NextRequest) {
     console.log(`[weekly-matrix] Parsed ${parsedCount} orders, failed ${failedCount}`)
     console.log("[weekly-matrix] Weekly data summary:", {
       totalWeeks: sortedWeeks.length,
+      firstWeek: sortedWeeks[0],
+      lastWeek: sortedWeeks[sortedWeeks.length - 1],
       weekKeys: sortedWeeks,
       weekRanges: sortedWeeks.map((week) => `${formatWeekDisplay(week)} (${formatWeekRange(week)})`),
     })
+    
+    // 최신 주의 데이터 확인
+    if (sortedWeeks.length > 0) {
+      const latestWeek = sortedWeeks[sortedWeeks.length - 1]
+      const latestWeekData = weekProductMap[latestWeek]
+      console.log(`[weekly-matrix] Latest week (${formatWeekDisplay(latestWeek)}) data:`, {
+        productCount: Object.keys(latestWeekData || {}).length,
+        totalQuantity: Object.values(latestWeekData || {}).reduce((sum: number, qty: any) => sum + qty, 0)
+      })
+    }
 
     // 각 상품별 총 수량 계산 및 정렬
     const productTotals = products.map((product) => {

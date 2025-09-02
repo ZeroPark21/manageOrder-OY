@@ -230,13 +230,20 @@ export async function POST(request: NextRequest) {
     // 모든 video_link를 먼저 수집
     const videoLinks = finalContents.map(c => c.video_link)
     
-    // 기존 데이터 한번에 조회 (전체 필드 포함)
+    // 기존 데이터 한번에 조회 (전체 필드 포함) - 최신 데이터만 가져오기
     const { data: existingData } = await supabase
       .from("contents")
       .select("*")
       .in("video_link", videoLinks)
+      .order("created_at", { ascending: false })
     
-    const existingMap = new Map(existingData?.map(d => [d.video_link, d]) || [])
+    // video_link별로 최신 데이터만 매핑
+    const existingMap = new Map()
+    existingData?.forEach((d: any) => {
+      if (!existingMap.has(d.video_link)) {
+        existingMap.set(d.video_link, d)
+      }
+    })
     
     // 업데이트할 데이터와 삽입할 데이터 분리
     const toUpdate: Array<{id: number, data: ContentData}> = []

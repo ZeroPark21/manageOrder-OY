@@ -66,25 +66,16 @@ export async function GET(request: NextRequest) {
     
     console.log(`🔍 Fetched ${allCreatorNames.length} creator records, ${uniqueCreators} unique creators`)
     
-    // 집계 데이터 가져오기 (pagination)
-    let allStatsData: any[] = []
-    let statsOffset = 0
-    let hasMoreStats = true
-    let totalCount = 0
+    // 모든 콘텐츠 데이터 가져오기 (video_link 기준 중복 제거를 위해)
+    let allContentsData: any[] = []
+    let contentsOffset = 0
+    let hasMoreContents = true
     
-    // 먼저 전체 카운트 가져오기
-    const { count } = await supabase
-      .from("contents")
-      .select("*", { count: 'exact', head: true })
-      .gte("publish_date", startDate)
-      .lte("publish_date", endDate)
-    
-    totalCount = count || 0
-    
-    while (hasMoreStats) {
-      const { data: statsBatch, error: statsBatchError } = await supabase
+    while (hasMoreContents) {
+      const { data: contentsBatch, error: contentsBatchError } = await supabase
         .from("contents")
         .select(`
+          video_link,
           shoppable_impressions,
           like_count,
           comment_count,
@@ -92,49 +83,52 @@ export async function GET(request: NextRequest) {
         `)
         .gte("publish_date", startDate)
         .lte("publish_date", endDate)
-        .range(statsOffset, statsOffset + batchSize - 1)
+        .range(contentsOffset, contentsOffset + batchSize - 1)
       
-      if (statsBatchError) {
-        console.error(`Error fetching stats batch at offset ${statsOffset}:`, statsBatchError)
-        if (statsOffset === 0) throw statsBatchError
+      if (contentsBatchError) {
+        console.error(`Error fetching contents batch at offset ${contentsOffset}:`, contentsBatchError)
+        if (contentsOffset === 0) throw contentsBatchError
         break
       }
       
-      if (statsBatch && statsBatch.length > 0) {
-        allStatsData = [...allStatsData, ...statsBatch]
-        if (statsBatch.length < batchSize) {
-          hasMoreStats = false
+      if (contentsBatch && contentsBatch.length > 0) {
+        allContentsData = [...allContentsData, ...contentsBatch]
+        if (contentsBatch.length < batchSize) {
+          hasMoreContents = false
         } else {
-          statsOffset += batchSize
+          contentsOffset += batchSize
         }
       } else {
-        hasMoreStats = false
+        hasMoreContents = false
       }
     }
     
-    const statsData = allStatsData
-    const statsError = null
+    // video_link 기준으로 중복 제거
+    const uniqueContentsMap = new Map<string, any>()
+    allContentsData.forEach(content => {
+      if (content.video_link && !uniqueContentsMap.has(content.video_link)) {
+        uniqueContentsMap.set(content.video_link, content)
+      }
+    })
+    const uniqueContents = Array.from(uniqueContentsMap.values())
     
-    if (statsError) {
-      console.error("Error fetching stats:", statsError)
-      throw statsError
-    }
+    console.log(`🔄 중복 제거: ${allContentsData.length}개 → ${uniqueContents.length}개`)
     
-    // 통계 집계
+    // 통계 집계 (중복 제거된 데이터 기준)
     const stats: ContentStats = {
-      totalContents: totalCount,
+      totalContents: uniqueContents.length, // video_link 기준 중복 제거된 수
       uniqueCreators: uniqueCreators,
-      totalShoppableImpressions: statsData?.reduce((sum, row) => sum + (row.shoppable_impressions || 0), 0) || 0,
-      totalLikeCount: statsData?.reduce((sum, row) => sum + (Number(row.like_count) || 0), 0) || 0,
-      totalCommentCount: statsData?.reduce((sum, row) => sum + (Number(row.comment_count) || 0), 0) || 0,
-      totalGmv: statsData?.reduce((sum, row) => sum + (row.gmv || 0), 0) || 0,
+      totalShoppableImpressions: uniqueContents.reduce((sum, row) => sum + (row.shoppable_impressions || 0), 0),
+      totalLikeCount: uniqueContents.reduce((sum, row) => sum + (Number(row.like_count) || 0), 0),
+      totalCommentCount: uniqueContents.reduce((sum, row) => sum + (Number(row.comment_count) || 0), 0),
+      totalGmv: uniqueContents.reduce((sum, row) => sum + (Number(row.gmv) || 0), 0),
       dateRange: {
         start: startDate,
         end: endDate
       }
     }
     
-    console.log(`📊 Content Stats API - Unique Creators: ${uniqueCreators}, Total Contents: ${count}`)
+    console.log(`📊 Content Stats API - Unique Creators: ${uniqueCreators}, Total Contents: ${uniqueContents.length} (중복 제거 후)`)
     
     const response = NextResponse.json({
       success: true,
