@@ -326,7 +326,7 @@ export default function Dashboard() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="flex flex-1 flex-col gap-4 p-4" style={{maxWidth: '100vw', overflowX: 'hidden', border: '2px solid red'}}>
+      <div className="flex flex-1 flex-col gap-4 p-4" style={{width: '100%', overflow: 'visible', border: '2px solid red'}}>
         <div className="space-y-8">
           {/* 페이지 헤더 */}
           <div className="flex justify-between items-center">

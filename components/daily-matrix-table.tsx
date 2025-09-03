@@ -151,7 +151,7 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
 
   if (loading) {
     return (
-      <div style={{width: "calc(100vw - 16rem)", maxWidth: "calc(100vw - 16rem)", overflow: "hidden"}}>
+      <div style={{width: "100%", overflow: "hidden"}}>
         <div className="bg-white rounded-lg border shadow-sm" style={{width: "100%"}}>
           <div className="p-6">
             <h3 className="text-lg font-semibold">일별 샘플 발송현황</h3>
@@ -169,7 +169,7 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
 
   if (!data || !data.products || data.products.length === 0) {
     return (
-      <div style={{width: "calc(100vw - 16rem)", maxWidth: "calc(100vw - 16rem)", overflow: "hidden"}}>
+      <div style={{width: "100%", overflow: "hidden"}}>
         <div className="bg-white rounded-lg border shadow-sm" style={{width: "100%"}}>
           <div className="p-6">
             <div className="flex flex-col gap-4">
@@ -225,8 +225,8 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
   }
 
   return (
-    <div style={{width: "calc(100vw - 16rem)", maxWidth: "calc(100vw - 16rem)", overflow: "hidden"}}>
-      <div className="bg-white rounded-lg border shadow-sm" style={{width: "100%"}}>
+    <div className="w-full overflow-hidden">
+      <div className="bg-white rounded-lg border shadow-sm w-full">
         <div className="p-6 pb-4">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
@@ -270,22 +270,22 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
           </div>
         </div>
         <div className="p-6 pt-0">
-          <div className="overflow-auto rounded-lg" style={{maxWidth: "calc(100vw - 18rem)", maxHeight: "800px", border: "3px solid green", position: "relative"}}>
-            <table className="border-collapse" style={{minWidth: "800px"}}>
+          <div className="w-full overflow-x-auto rounded-lg" style={{maxWidth: "100%", maxHeight: "800px", border: "3px solid red", position: "relative"}}>
+            <table className="border-collapse" style={{minWidth: "900px", tableLayout: "fixed"}}>
             <thead style={{position: "sticky", top: 0, zIndex: 10}}>
               <tr className="bg-blue-600 text-white">
-                <th className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">순위</th>
-                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium text-white" style={{width: "300px"}}>
+                <th className="border border-blue-500 px-1 py-1 text-xs font-medium text-white" style={{width: "40px"}}>순위</th>
+                <th className="border border-blue-500 px-1 py-1 text-left text-xs font-medium text-white" style={{width: "200px"}}>
                   Product Name
                 </th>
-                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium text-white" style={{width: "100px", whiteSpace: "normal"}}>Seller<br/>SKU</th>
-                <th className="border border-blue-500 px-3 py-2 text-left text-sm font-medium text-white" style={{width: "100px", whiteSpace: "normal"}}>SKU<br/>ID</th>
+                <th className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "50px", whiteSpace: "normal"}}>Seller<br/>SKU</th>
+                <th className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "50px", whiteSpace: "normal"}}>SKU<br/>ID</th>
                 {data.dates.map((date) => (
-                  <th key={date} className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  <th key={date} className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "45px"}}>
                     {formatDate(date)}
                   </th>
                 ))}
-                <th className="border border-blue-500 px-3 py-2 text-center text-sm font-medium text-white">
+                <th className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "60px"}}>
                   총수량
                 </th>
               </tr>
@@ -298,28 +298,29 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
 
                 return (
                   <tr key={product} className={isEvenRow ? "bg-gray-50" : ""}>
-                    <td className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">{index + 1}</td>
-                    <td className="border border-gray-300 px-3 py-2 text-sm" style={{width: "300px", maxWidth: "300px"}} title={product}>
+                    <td className="border border-gray-300 px-1 py-1 text-center text-xs" style={{width: "40px"}}>{index + 1}</td>
+                    <td className="border border-gray-300 px-1 py-1 text-xs" style={{width: "200px", maxWidth: "200px"}} title={product}>
                       {product.length > 40 ? `${product.substring(0, 40)}...` : product}
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 text-sm text-center" style={{width: "100px", wordBreak: "break-all", whiteSpace: "normal"}}>
+                    <td className="border border-gray-300 px-1 py-1 text-xs text-center" style={{width: "50px", wordBreak: "break-all", whiteSpace: "normal"}}>
                       {skuInfo.seller_sku || "-"}
                     </td>
-                    <td className="border border-gray-300 px-3 py-2 text-sm text-center" style={{width: "100px", wordBreak: "break-all", whiteSpace: "normal"}}>{skuInfo.sku_id || "-"}</td>
+                    <td className="border border-gray-300 px-1 py-1 text-xs text-center" style={{width: "50px", wordBreak: "break-all", whiteSpace: "normal"}}>{skuInfo.sku_id || "-"}</td>
                     {data.dates.map((date) => {
                       const quantity = productData[date] || 0
                       return (
                         <td
                           key={date}
-                          className={`border border-gray-300 px-3 py-2 text-center text-sm ${
+                          className={`border border-gray-300 px-1 py-1 text-center text-xs ${
                             quantity > 0 ? "font-semibold" : "text-gray-400"
                           }`}
+                          style={{width: "45px"}}
                         >
                           {quantity || 0}
                         </td>
                       )
                     })}
-                    <td className="border border-gray-300 px-3 py-2 text-center text-sm font-bold bg-blue-50">
+                    <td className="border border-gray-300 px-1 py-1 text-center text-xs font-bold bg-blue-50" style={{width: "60px"}}>
                       {productData.total}
                     </td>
                   </tr>
@@ -327,21 +328,21 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
               })}
               {/* Daily Totals Row */}
               <tr className="bg-gray-800 text-white font-bold">
-                <td className="border border-gray-600 px-3 py-2 text-center text-sm"></td>
-                <td className="border border-gray-600 px-3 py-2 text-sm whitespace-nowrap">Daily 발송 수량</td>
-                <td className="border border-gray-600 px-3 py-2 text-sm" style={{width: "100px"}}></td>
-                <td className="border border-gray-600 px-3 py-2 text-sm" style={{width: "100px"}}></td>
+                <td className="border border-gray-600 px-1 py-1 text-center text-xs" style={{width: "40px"}}></td>
+                <td className="border border-gray-600 px-1 py-1 text-xs whitespace-nowrap" style={{width: "200px"}}>Daily 발송 수량</td>
+                <td className="border border-gray-600 px-1 py-1 text-xs" style={{width: "50px"}}></td>
+                <td className="border border-gray-600 px-1 py-1 text-xs" style={{width: "50px"}}></td>
                 {data.dates.map((date) => {
                   const dailyTotal = data.products.reduce((sum, product) => {
                     return sum + (data.matrix[product][date] || 0)
                   }, 0)
                   return (
-                    <td key={date} className="border border-gray-600 px-3 py-2 text-center text-sm font-bold">
+                    <td key={date} className="border border-gray-600 px-1 py-1 text-center text-xs font-bold" style={{width: "45px"}}>
                       {dailyTotal}
                     </td>
                   )
                 })}
-                <td className="border border-gray-600 px-3 py-2 text-center text-sm font-bold bg-gray-900">
+                <td className="border border-gray-600 px-1 py-1 text-center text-xs font-bold bg-gray-900" style={{width: "60px"}}>
                   {data.products.reduce((sum, product) => sum + data.matrix[product].total, 0)}
                 </td>
               </tr>

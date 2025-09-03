@@ -292,9 +292,9 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
           </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
+      <CardContent className="p-4">
+        <div className="w-full overflow-x-auto" style={{ maxWidth: '100%' }}>
+          <Table className="min-w-[800px]">
             <TableHeader>
               <TableRow className="bg-blue-600 text-white">
                 <TableHead className="border border-blue-500 px-3 py-2 text-left text-sm font-medium w-[120px] text-white">날짜</TableHead>
