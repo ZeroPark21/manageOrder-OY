@@ -270,7 +270,7 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
           </div>
         </div>
         <div className="p-6 pt-0">
-          <div className="w-full overflow-x-auto rounded-lg" style={{maxWidth: "100%", maxHeight: "800px", border: "3px solid red", position: "relative"}}>
+          <div className="w-full overflow-x-auto rounded-lg" style={{maxWidth: "100%", maxHeight: "800px", position: "relative"}}>
             <table className="border-collapse" style={{minWidth: "900px", tableLayout: "fixed"}}>
             <thead style={{position: "sticky", top: 0, zIndex: 10}}>
               <tr className="bg-blue-600 text-white">

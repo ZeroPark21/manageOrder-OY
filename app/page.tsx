@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DailyMatrixTable } from "@/components/daily-matrix-table"
 import { WeeklyMatrixTable } from "@/components/weekly-matrix-table"
 import { MonthlyMatrixTable } from "@/components/monthly-matrix-table"
-import { Upload, BarChart3, Package, Wallet, TrendingUp, ShoppingCart, Ban } from "lucide-react"
+import { Upload, BarChart3, Package } from "lucide-react"
 import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel } from "@/lib/excel-utils"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -35,58 +35,16 @@ interface DashboardData {
   uniqueProducts: number
 }
 
-interface SalesStats {
-  sales: {
-    totalOrders: number
-    totalAmount: number
-    totalQuantity: number
-    cancelledOrders: number
-    cancelledAmount: number
-    cancelledQuantity: number
-    activeOrders: number
-    activeAmount: number
-  }
-  samples: {
-    totalOrders: number
-    totalQuantity: number
-    cancelledOrders: number
-    cancelledQuantity: number
-    activeOrders: number
-    activeQuantity: number
-  }
-  invalid: {
-    totalOrders: number
-    totalQuantity: number
-    cancelledOrders: number
-    cancelledQuantity: number
-    activeOrders: number
-    activeQuantity: number
-  }
-  total: {
-    orders: number
-    sales: number
-    samples: number
-    invalid: number
-    cancelled: number
-  }
-}
 
 export default function Dashboard() {
-  const [salesStats, setSalesStats] = useState<SalesStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloadLoading, setDownloadLoading] = useState(false)
 
   const fetchSummaryData = async () => {
     setLoading(true)
     try {
-      const salesResponse = await fetch(`/api/gmv-sales-stats?t=${Date.now()}`)
-      const salesData = await salesResponse.json()
-      
-      setSalesStats(salesData.data || null)
-
-      console.log("📊 Dashboard data loaded:", {
-        salesStats: salesData.data
-      })
+      // GMV 관련 API 제거 - 필요시 다른 데이터 로딩 로직 추가
+      console.log("📊 Dashboard data loaded")
     } catch (error: any) {
       console.error("데이터 로딩 실패:", error.message ?? error)
     } finally {
@@ -343,42 +301,6 @@ export default function Dashboard() {
           </div>
 
           {/* 요약 카드 */}
-          {salesStats && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">총 샘플 발송</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{salesStats.samples.totalQuantity.toLocaleString()}개</div>
-                  <p className="text-xs text-muted-foreground">주문 {salesStats.samples.totalOrders.toLocaleString()}건</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">취소된 샘플</CardTitle>
-                  <Ban className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">{salesStats.samples.cancelledQuantity.toLocaleString()}개</div>
-                  <p className="text-xs text-muted-foreground">취소 {salesStats.samples.cancelledOrders.toLocaleString()}건</p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">실제 발송된 샘플</CardTitle>
-                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{salesStats.samples.activeQuantity.toLocaleString()}개</div>
-                  <p className="text-xs text-muted-foreground">발송 {salesStats.samples.activeOrders.toLocaleString()}건</p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
           {/* 샘플 매트릭스 테이블 탭 */}
           <Tabs defaultValue="daily" className="space-y-4">

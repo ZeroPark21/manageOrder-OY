@@ -23,7 +23,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <SidebarProvider>
           <AppSidebar />
-          <SidebarInset>{children}</SidebarInset>
+          <SidebarInset className="border-0 outline-0">{children}</SidebarInset>
         </SidebarProvider>
       </body>
     </html>

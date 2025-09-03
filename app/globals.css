@@ -177,4 +177,16 @@
   ::selection {
     @apply bg-primary/20 text-primary;
   }
+  
+  /* Remove any debug borders */
+  main[data-sidebar-inset],
+  [data-sidebar="inset"],
+  main,
+  .flex-1,
+  body > div,
+  #__next {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
 }
