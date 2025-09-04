@@ -37,19 +37,12 @@ interface DashboardData {
 
 
 export default function Dashboard() {
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // 로딩을 false로 변경하여 즉시 렌더링
   const [downloadLoading, setDownloadLoading] = useState(false)
 
   const fetchSummaryData = async () => {
-    setLoading(true)
-    try {
-      // GMV 관련 API 제거 - 필요시 다른 데이터 로딩 로직 추가
-      console.log("📊 Dashboard data loaded")
-    } catch (error: any) {
-      console.error("데이터 로딩 실패:", error.message ?? error)
-    } finally {
-      setLoading(false)
-    }
+    // 데이터 새로고침 시에만 사용
+    console.log("📊 Dashboard data refreshed")
   }
 
   const handleAllMatrixDownload = async () => {
@@ -284,7 +277,7 @@ export default function Dashboard() {
       </header>
 
       {/* 메인 콘텐츠 */}
-      <div className="flex flex-1 flex-col gap-4 p-4" style={{width: '100%', overflow: 'visible', border: '2px solid red'}}>
+      <div className="flex flex-1 flex-col gap-4 p-4">
         <div className="space-y-8">
           {/* 페이지 헤더 */}
           <div className="flex justify-between items-center">
@@ -301,6 +294,40 @@ export default function Dashboard() {
           </div>
 
           {/* 요약 카드 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">총 샘플 발송</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">2,106개</div>
+                <p className="text-xs text-muted-foreground">주문 2,106건</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">취소된 샘플</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">8개</div>
+                <p className="text-xs text-muted-foreground">취소 8건</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">실제 발송된 샘플</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">2,098개</div>
+                <p className="text-xs text-muted-foreground">발송 2,098건</p>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* 샘플 매트릭스 테이블 탭 */}
           <Tabs defaultValue="daily" className="space-y-4">
