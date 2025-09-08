@@ -196,13 +196,13 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerClient()
     
-    // 기본값: 2025년 6월 1일부터 2025년 12월 31일까지
-    let defaultStartDate = "2025-06-01"
+    // 기본값: 2025년 5월 1일부터 2025년 12월 31일까지 (모든 데이터 포함)
+    let defaultStartDate = "2025-05-01"
     let defaultEndDate = "2025-12-31"
     
     if (groupBy === "daily" && !startDate) {
       // daily의 경우에도 전체 기간 표시
-      defaultStartDate = "2025-06-01"
+      defaultStartDate = "2025-05-01"
     }
 
     // contents 테이블에서 데이터 조회
@@ -278,76 +278,78 @@ export async function GET(request: NextRequest) {
         if (offset === 0) {
           // 첫 번째 배치에서 에러가 발생하면 전체 에러로 처리
           dbError = batchError
+          break
         }
+        // 이후 배치에서 에러가 발생하면 지금까지 가져온 데이터로 진행
+        hasMore = false
         break
       }
       
-      if (batch && batch.length > 0) {
-        allData = [...allData, ...batch]
-        console.log(`📦 Fetched batch ${Math.floor(offset / batchSize) + 1}: ${batch.length} items (Total: ${allData.length})`)
-        
-        // 배치 크기보다 적게 반환되면 더 이상 데이터가 없음
-        if (batch.length < batchSize) {
-          hasMore = false
-        } else {
-          offset += batchSize
-        }
-      } else {
+      if (!batch || batch.length === 0) {
         hasMore = false
+        break
+      }
+      
+      allData = [...allData, ...batch]
+      
+      // 배치 크기보다 적게 반환되면 더 이상 데이터가 없음
+      if (batch.length < batchSize) {
+        hasMore = false
+      } else {
+        offset += batchSize
       }
     }
     
-    const data = allData.length > 0 ? allData : null
-    
-    // 디버깅을 위한 로그 추가
-    console.log(`📊 Total contents fetched: ${data ? data.length : 0}`)
-
-    if (dbError) {
-      // 테이블이 없으면 빈 데이터로 응답
-      if ((dbError as any).code === "42P01") {
-        console.warn("contents 테이블이 없어 빈 결과를 반환합니다.")
-        return NextResponse.json({
-          data: [],
-          totalContents: 0,
-          totalCount: 0,
-          uniqueCreators: 0,
-        })
-      }
-
-      console.error("Supabase error:", dbError)
-      return NextResponse.json({ error: dbError.message }, { status: 500 })
+    if (dbError && allData.length === 0) {
+      console.error("Error fetching contents:", dbError)
+      return NextResponse.json({ error: "Database error" }, { status: 500 })
     }
+    
+    console.log(`Fetched ${allData.length} records from database`)
 
-    const contents = (data || []) as ContentSimple[]
-
-    const safeContents = contents.map((c) => ({
-      ...c,
-      like_count: Number(c.like_count) || 0,
-      comment_count: Number(c.comment_count) || 0,
+    // 타입 변환
+    const contents: ContentSimple[] = allData.map((item) => ({
+      id: item.id,
+      content_title: item.content_title,
+      video_link: item.video_link,
+      publish_date: item.publish_date,
+      creator_name: item.creator_name,
+      gmv: item.gmv || 0,
+      affiliate_items_sold: item.affiliate_items_sold || 0,
+      affiliate_gmv: item.affiliate_gmv || 0,
+      shoppable_avg_order_value: item.shoppable_avg_order_value || 0,
+      est_commission: item.est_commission || 0,
+      est_flat_fee: item.est_flat_fee,
+      affiliate_orders: item.affiliate_orders || 0,
+      shoppable_impressions: item.shoppable_impressions || 0,
+      affiliate_ctr: item.affiliate_ctr || 0,
+      shoppable_gpm: item.shoppable_gpm || 0,
+      affiliate_items_refunded: item.affiliate_items_refunded || 0,
+      affiliate_refunded_gmv: item.affiliate_refunded_gmv || 0,
+      comment_count: item.comment_count || 0,
+      like_count: item.like_count || 0,
     }))
 
-    // video_link 기반으로 중복 제거 (전체 URL 기준)
-    const uniqueVideoMap = new Map<string, ContentSimple>()
-    safeContents.forEach(content => {
-      if (content.video_link && !uniqueVideoMap.has(content.video_link)) {
-        uniqueVideoMap.set(content.video_link, content)
+    // video_link 기준으로 중복 제거
+    const uniqueContentsMap = new Map<string, ContentSimple>()
+    contents.forEach((content) => {
+      if (content.video_link && !uniqueContentsMap.has(content.video_link)) {
+        uniqueContentsMap.set(content.video_link, content)
+      } else if (!content.video_link) {
+        // video_link가 없는 경우도 포함 (ID 기준)
+        uniqueContentsMap.set(`no_link_${content.id}`, content)
       }
     })
-    const uniqueContents = Array.from(uniqueVideoMap.values())
     
-    console.log(`중복 제거: ${safeContents.length}개 → ${uniqueContents.length}개`)
-    console.log(`유니크 크리에이터: ${new Set(uniqueContents.map((c) => c.creator_name).filter((name) => name && name.trim() !== '')).size}명`)
+    const uniqueContents = Array.from(uniqueContentsMap.values())
+    console.log(`After removing duplicates: ${uniqueContents.length} unique contents`)
 
-    // 고유 크리에이터 수 계산 - null과 빈 문자열 제외
-    const uniqueCreators = new Set(
-      uniqueContents
-        .map((c) => c.creator_name)
-        .filter((name) => name && name.trim() !== '')
-    ).size
-    
-    // 중복 제거된 데이터로 통계 계산
+    // 고유 크리에이터 수 계산
+    const uniqueCreators = new Set(uniqueContents.map((content) => content.creator_name)).size
+
+    // 총 노출 수 계산
     const totalShoppableImpressions = uniqueContents.reduce(
-      (sum, content) => sum + (content.shoppable_impressions || 0), 
+      (sum, content) => sum + (content.shoppable_impressions || 0),
       0
     )
     
