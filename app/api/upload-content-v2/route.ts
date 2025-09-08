@@ -139,13 +139,6 @@ export async function POST(request: NextRequest) {
     if (data.length > 0) {
       console.log("첫 번째 데이터:", data[0])
       console.log("컬럼명들:", Object.keys(data[0]))
-      // GMV 관련 필드 확인
-      const gmvFields = Object.keys(data[0]).filter(key => 
-        key.toLowerCase().includes('gmv') || 
-        key.toLowerCase().includes('revenue') || 
-        key.toLowerCase().includes('sales')
-      )
-      console.log("GMV 관련 필드들:", gmvFields)
     }
 
     // 데이터 변환
@@ -171,7 +164,10 @@ export async function POST(request: NextRequest) {
       // 첫 몇 개 로그로 확인
       const shouldLog = contents.length < 3
       if (shouldLog) {
-        console.log(`Row ${contents.length} GMV raw value:`, gmvValue, '-> parsed:', parseNumber(gmvValue, true))
+        console.log(`Row ${contents.length} - Creator: ${creatorName}`)
+        console.log(`  GMV: ${gmvValue} -> ${parseNumber(gmvValue, false)}`)
+        console.log(`  Likes: ${row['Shoppable video likes']} -> ${parseNumber(row['Shoppable video likes'] || 0)}`)
+        console.log(`  Comments: ${row['Shoppable video comments']} -> ${parseNumber(row['Shoppable video comments'] || 0)}`)
       }
       
       contents.push({
@@ -179,20 +175,20 @@ export async function POST(request: NextRequest) {
         video_link: videoLink.substring(0, 255),
         publish_date: parseDate(publishDate || new Date().toISOString()),
         creator_name: (creatorName || '알 수 없음').substring(0, 100),
-        gmv: parseNumber(gmvValue, shouldLog),
-        affiliate_items_sold: Math.round(parseNumber(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'])),
-        affiliate_gmv: parseNumber(row['Affiliate shoppable video GMV'] || row['affiliate_gmv']),
-        shoppable_avg_order_value: parseNumber(row['Shoppable video avg. order value'] || row['shoppable_avg_order_value']),
-        est_commission: parseNumber(row['Est. commission'] || row['est_commission']),
+        gmv: parseNumber(gmvValue),
+        affiliate_items_sold: Math.round(parseNumber(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'] || 0)),
+        affiliate_gmv: parseNumber(row['Affiliate shoppable video GMV'] || row['affiliate_gmv'] || 0),
+        shoppable_avg_order_value: parseNumber(row['Shoppable video avg. order value'] || row['shoppable_avg_order_value'] || 0),
+        est_commission: parseNumber(row['Est. commission'] || row['est_commission'] || 0),
         est_flat_fee: (row['Est. flat fee'] || row['est_flat_fee'] || '--').toString().substring(0, 50),
-        affiliate_orders: Math.round(parseNumber(row['Affiliate orders'] || row['affiliate_orders'])),
-        shoppable_impressions: Math.round(parseNumber(row['Shoppable video impressions'] || row['shoppable_impressions'])),
-        affiliate_ctr: parseNumber(row['Affiliate CTR'] || row['affiliate_ctr']),
-        shoppable_gpm: parseNumber(row['Shoppable video GPM'] || row['shoppable_gpm']),
-        affiliate_items_refunded: Math.round(parseNumber(row['Affiliate items refunded'] || row['affiliate_items_refunded'])),
-        affiliate_refunded_gmv: parseNumber(row['Affiliate refunded GMV'] || row['affiliate_refunded_gmv']),
-        comment_count: Math.round(parseNumber(row['Shoppable video comments'] || row['comment_count'])),
-        like_count: Math.round(parseNumber(row['Shoppable video likes'] || row['like_count']))
+        affiliate_orders: Math.round(parseNumber(row['Affiliate orders'] || row['affiliate_orders'] || 0)),
+        shoppable_impressions: Math.round(parseNumber(row['Shoppable video impressions'] || row['shoppable_impressions'] || 0)),
+        affiliate_ctr: parseNumber(row['Affiliate CTR'] || row['affiliate_ctr'] || 0),
+        shoppable_gpm: parseNumber(row['Shoppable video GPM'] || row['shoppable_gpm'] || 0),
+        affiliate_items_refunded: Math.round(parseNumber(row['Affiliate items refunded'] || row['affiliate_items_refunded'] || 0)),
+        affiliate_refunded_gmv: parseNumber(row['Affiliate refunded GMV'] || row['affiliate_refunded_gmv'] || 0),
+        comment_count: Math.round(parseNumber(row['Shoppable video comments'] || row['comment_count'] || 0)),
+        like_count: Math.round(parseNumber(row['Shoppable video likes'] || row['like_count'] || 0))
       })
     }
 
@@ -203,10 +199,18 @@ export async function POST(request: NextRequest) {
     let duplicatesRemoved = 0
     
     for (const content of contents) {
-      if (content.video_link && !uniqueContentsMap.has(content.video_link)) {
-        uniqueContentsMap.set(content.video_link, content)
-      } else if (content.video_link) {
-        duplicatesRemoved++
+      if (content.video_link) {
+        if (!uniqueContentsMap.has(content.video_link)) {
+          uniqueContentsMap.set(content.video_link, content)
+        } else {
+          // 중복인 경우, 더 최신 데이터로 업데이트 (GMV가 더 큰 것을 선택)
+          const existing = uniqueContentsMap.get(content.video_link)!
+          if (content.gmv > existing.gmv || content.like_count > existing.like_count) {
+            uniqueContentsMap.set(content.video_link, content)
+            console.log(`🔄 중복 데이터 업데이트: ${content.creator_name} - ${content.content_title.substring(0, 30)}`)
+          }
+          duplicatesRemoved++
+        }
       }
     }
     
@@ -225,91 +229,115 @@ export async function POST(request: NextRequest) {
     // 배치로 나누어 처리
     const BATCH_SIZE = 20 // 배치 크기 줄임
     let totalSaved = 0
+    let totalUpdated = 0
+    let totalInserted = 0
     let errors: string[] = []
     
-    // 중복 체크를 위한 키 생성 함수
-    const createUniqueKey = (content: ContentData) => {
-      return `${content.content_title}|${content.video_link}|${content.creator_name}`
-    }
-    
-    // 모든 고유 키 수집
-    const uniqueKeys = finalContents.map(c => createUniqueKey(c))
-    
-    // 기존 데이터 조회 - content_title, video_link, creator_name이 일치하는 데이터 찾기
+    // 기존 데이터 조회 - video_link 기준
     const { data: existingData } = await supabase
       .from("contents")
       .select("*")
-      .in("video_link", finalContents.map(c => c.video_link))
+      .in("video_link", finalContents.map(c => c.video_link).filter(link => link))
     
-    // 고유 키별로 최신 데이터만 매핑
-    const existingMap = new Map()
+    // video_link를 키로 하는 맵 생성
+    const existingMap = new Map<string, any>()
     existingData?.forEach((d: any) => {
-      const key = `${d.content_title}|${d.video_link}|${d.creator_name}`
-      // 이미 존재하는 키인 경우, created_at이 더 최근인 것으로 교체
-      const existing = existingMap.get(key)
-      if (!existing || new Date(d.created_at) > new Date(existing.created_at)) {
-        existingMap.set(key, d)
-      }
+      existingMap.set(d.video_link, d)
     })
+    
+    console.log(`📊 기존 데이터: ${existingMap.size}개 발견`)
     
     // 업데이트할 데이터와 삽입할 데이터 분리
     const toUpdate: Array<{id: number, data: ContentData}> = []
     const toInsert: ContentData[] = []
-    const skipped: string[] = []
+    let skippedCount = 0
     
     for (const content of finalContents) {
-      const uniqueKey = createUniqueKey(content)
-      const existing = existingMap.get(uniqueKey)
+      if (!content.video_link) {
+        toInsert.push(content)
+        continue
+      }
+      
+      const existing = existingMap.get(content.video_link)
       
       if (existing) {
-        // 데이터 비교 (created_at, updated_at, id 제외)
-        const isDifferent = 
+        // 기존 데이터가 있는 경우 - 모든 필드를 업데이트
+        // 데이터가 실제로 변경되었는지 확인
+        const hasChanges = 
+          existing.content_title !== content.content_title ||
+          existing.creator_name !== content.creator_name ||
           existing.publish_date !== content.publish_date ||
-          existing.gmv !== content.gmv ||
+          Math.abs(existing.gmv - content.gmv) > 0.01 ||
           existing.affiliate_items_sold !== content.affiliate_items_sold ||
-          existing.affiliate_gmv !== content.affiliate_gmv ||
-          existing.shoppable_avg_order_value !== content.shoppable_avg_order_value ||
-          existing.est_commission !== content.est_commission ||
+          Math.abs(existing.affiliate_gmv - content.affiliate_gmv) > 0.01 ||
+          Math.abs(existing.shoppable_avg_order_value - content.shoppable_avg_order_value) > 0.01 ||
+          Math.abs(existing.est_commission - content.est_commission) > 0.01 ||
           existing.est_flat_fee !== content.est_flat_fee ||
           existing.affiliate_orders !== content.affiliate_orders ||
           existing.shoppable_impressions !== content.shoppable_impressions ||
-          existing.affiliate_ctr !== content.affiliate_ctr ||
-          existing.shoppable_gpm !== content.shoppable_gpm ||
+          Math.abs(existing.affiliate_ctr - content.affiliate_ctr) > 0.01 ||
+          Math.abs(existing.shoppable_gpm - content.shoppable_gpm) > 0.01 ||
           existing.affiliate_items_refunded !== content.affiliate_items_refunded ||
-          existing.affiliate_refunded_gmv !== content.affiliate_refunded_gmv ||
+          Math.abs(existing.affiliate_refunded_gmv - content.affiliate_refunded_gmv) > 0.01 ||
           existing.comment_count !== content.comment_count ||
           existing.like_count !== content.like_count
         
-        if (isDifferent) {
+        if (hasChanges) {
           toUpdate.push({ id: existing.id, data: content })
-          console.log(`🔄 업데이트 예정: ${content.content_title} by ${content.creator_name}`)
+          console.log(`🔄 업데이트 예정: ${content.creator_name} - ${content.content_title.substring(0, 30)}`)
+          console.log(`   기존: Likes=${existing.like_count}, Comments=${existing.comment_count}`)
+          console.log(`   신규: Likes=${content.like_count}, Comments=${content.comment_count}`)
         } else {
-          skipped.push(uniqueKey)
+          skippedCount++
         }
       } else {
+        // 새로운 데이터
         toInsert.push(content)
-        console.log(`✨ 새로 추가 예정: ${content.content_title} by ${content.creator_name}`)
+        console.log(`✨ 새로 추가 예정: ${content.creator_name} - ${content.content_title.substring(0, 30)}`)
       }
     }
     
-    console.log(`📊 업데이트: ${toUpdate.length}개, 새로 추가: ${toInsert.length}개, 건너뜀: ${skipped.length}개`)
+    console.log(`📊 처리 계획: 업데이트=${toUpdate.length}, 신규=${toInsert.length}, 건너뜀=${skippedCount}`)
     
-    // 업데이트 처리
+    // 업데이트 처리 - 모든 필드를 업데이트
     for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
       const batch = toUpdate.slice(i, i + BATCH_SIZE)
       
       for (const { id, data } of batch) {
         const { error } = await supabase
           .from("contents")
-          .update(data)
+          .update({
+            content_title: data.content_title,
+            publish_date: data.publish_date,
+            creator_name: data.creator_name,
+            gmv: data.gmv,
+            affiliate_items_sold: data.affiliate_items_sold,
+            affiliate_gmv: data.affiliate_gmv,
+            shoppable_avg_order_value: data.shoppable_avg_order_value,
+            est_commission: data.est_commission,
+            est_flat_fee: data.est_flat_fee,
+            affiliate_orders: data.affiliate_orders,
+            shoppable_impressions: data.shoppable_impressions,
+            affiliate_ctr: data.affiliate_ctr,
+            shoppable_gpm: data.shoppable_gpm,
+            affiliate_items_refunded: data.affiliate_items_refunded,
+            affiliate_refunded_gmv: data.affiliate_refunded_gmv,
+            comment_count: data.comment_count,
+            like_count: data.like_count,
+            updated_at: new Date().toISOString()
+          })
           .eq("id", id)
         
         if (error) {
-          errors.push(`업데이트 실패: ${data.content_title}`)
+          console.error(`❌ 업데이트 실패 (ID: ${id}):`, error)
+          errors.push(`업데이트 실패: ${data.content_title.substring(0, 50)}`)
         } else {
+          totalUpdated++
           totalSaved++
         }
       }
+      
+      console.log(`📊 업데이트 진행: ${Math.min(i + BATCH_SIZE, toUpdate.length)}/${toUpdate.length}`)
     }
     
     // 삽입 처리
@@ -322,23 +350,53 @@ export async function POST(request: NextRequest) {
         .select()
       
       if (error) {
+        console.error(`❌ 배치 삽입 실패:`, error)
         errors.push(`배치 삽입 실패: ${error.message}`)
       } else {
-        totalSaved += data?.length || 0
+        const insertedCount = data?.length || 0
+        totalInserted += insertedCount
+        totalSaved += insertedCount
+      }
+      
+      console.log(`📊 삽입 진행: ${Math.min(i + BATCH_SIZE, toInsert.length)}/${toInsert.length}`)
+    }
+    
+    // 데이터 검증
+    console.log("\n🔍 데이터 검증 시작...")
+    const sampleCreators = ['annekoii', 'frodo.gaggins', 'imperfectlyanjie']
+    
+    for (const creator of sampleCreators) {
+      const { data: verifyData, count } = await supabase
+        .from("contents")
+        .select("like_count, comment_count, gmv, est_commission", { count: 'exact' })
+        .ilike("creator_name", `%${creator}%`)
+      
+      if (verifyData) {
+        const totalLikes = verifyData.reduce((sum, r) => sum + (r.like_count || 0), 0)
+        const totalComments = verifyData.reduce((sum, r) => sum + (r.comment_count || 0), 0)
+        const totalGmv = verifyData.reduce((sum, r) => sum + (r.gmv || 0), 0)
+        
+        console.log(`✅ ${creator}: ${count}개 레코드`)
+        console.log(`   Likes: ${totalLikes}, Comments: ${totalComments}, GMV: $${totalGmv.toFixed(2)}`)
       }
     }
 
+    const successMessage = errors.length > 0 
+      ? `업로드 완료 (일부 오류 발생)`
+      : "콘텐츠 데이터가 성공적으로 업로드되었습니다."
+    
+    console.log(`\n✅ ${successMessage}`)
+    console.log(`📊 최종 결과: 처리=${finalContents.length}, 저장=${totalSaved}, 업데이트=${totalUpdated}, 신규=${totalInserted}, 건너뜀=${skippedCount}`)
+
     return NextResponse.json({
-      message: errors.length > 0 
-        ? `업로드 완료 (일부 오류 발생)`
-        : "콘텐츠 데이터가 성공적으로 업로드되었습니다.",
+      message: successMessage,
       processedCount: finalContents.length,
       originalCount: contents.length,
       duplicatesRemoved: duplicatesRemoved,
       uploadedCount: totalSaved,
-      updatedCount: toUpdate.length,
-      insertedCount: toInsert.length,
-      skippedCount: skipped.length,
+      updatedCount: totalUpdated,
+      insertedCount: totalInserted,
+      skippedCount: skippedCount,
       errors: errors.length > 0 ? errors : undefined
     })
 
