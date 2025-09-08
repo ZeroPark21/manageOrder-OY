@@ -189,3 +189,4 @@ CREATE INDEX idx_contents_publish_date ON contents(publish_date);
 **문서 버전**: 1.0  
 **최종 업데이트**: 2025-09-02  
 **다음 검토일**: 2025-10-02
+
