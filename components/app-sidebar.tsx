@@ -20,7 +20,8 @@ import {
   Video, 
   Upload, 
   BarChart3, 
-  FileSearch, 
+  FileSearch,
+  TrendingUp,
   type LucideIcon
 } from "lucide-react"
 
@@ -41,6 +42,12 @@ const allMenuItems: MenuItem[] = [
     url: "/",
     icon: Package,
     description: "TikTok 샘플 발송 데이터 분석",
+  },
+  {
+    title: "매출 데이터 분석",
+    url: "/sales-analysis",
+    icon: TrendingUp,
+    description: "실제 매출이 발생한 주문 분석",
   },
   {
     title: "콘텐츠 발행 현황",

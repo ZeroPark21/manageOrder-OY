@@ -4,9 +4,9 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DailyMatrixTable } from "@/components/daily-matrix-table"
-import { WeeklyMatrixTable } from "@/components/weekly-matrix-table"
-import { MonthlyMatrixTable } from "@/components/monthly-matrix-table"
+import { DailyMatrixTable } from "@/components/matrix/daily-matrix-table"
+import { WeeklyMatrixTable } from "@/components/matrix/weekly-matrix-table"
+import { MonthlyMatrixTable } from "@/components/matrix/monthly-matrix-table"
 import { Upload, BarChart3, Package } from "lucide-react"
 import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel } from "@/lib/excel-utils"
 import { SidebarTrigger } from "@/components/ui/sidebar"
@@ -37,12 +37,61 @@ interface DashboardData {
 
 
 export default function Dashboard() {
-  const [loading, setLoading] = useState(false) // 로딩을 false로 변경하여 즉시 렌더링
+  const [loading, setLoading] = useState(true)
   const [downloadLoading, setDownloadLoading] = useState(false)
+  const [summaryData, setSummaryData] = useState<{
+    totalCount: number;
+    cancelledCount: number;
+    shippedCount: number;
+  } | null>(null)
 
   const fetchSummaryData = async () => {
-    // 데이터 새로고침 시에만 사용
-    console.log("📊 Dashboard data refreshed")
+    try {
+      setLoading(true)
+      console.log("🔄 Fetching summary data from API...")
+      
+      const response = await fetch("/api/sample-summary")
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status}`)
+      }
+      
+      const data = await response.json()
+      
+      if (data.error) {
+        throw new Error(`API 오류: ${data.error}`)
+      }
+      
+      // 실제 API 응답에서 데이터 설정
+      setSummaryData({
+        totalCount: data.totalCount,
+        cancelledCount: data.cancelledCount,
+        shippedCount: data.shippedCount
+      })
+      
+      console.log("✅ Summary data loaded from real API:", {
+        totalCount: data.totalCount,
+        cancelledCount: data.cancelledCount,
+        shippedCount: data.shippedCount,
+        stats: data.stats
+      })
+      
+      // 디버그 정보 출력
+      if (data.samples) {
+        console.log("📊 Sample cancelled orders:", data.samples.cancelled)
+        console.log("📊 Sample shipped orders:", data.samples.shipped)
+      }
+      
+    } catch (error) {
+      console.error("❌ Failed to fetch summary data:", error)
+      // 에러 발생 시 기본값 설정
+      setSummaryData({
+        totalCount: 0,
+        cancelledCount: 0,
+        shippedCount: 0
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleAllMatrixDownload = async () => {
@@ -251,7 +300,7 @@ export default function Dashboard() {
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-primary/20"></div>
             <div className="animate-spin rounded-full h-16 w-16 border-4 border-t-primary absolute top-0 left-0"></div>
           </div>
-          <p className="mt-4 text-lg font-medium text-muted-foreground animate-pulse">데이터를 불러오는 중...</p>
+          <p className="mt-4 text-lg font-medium text-muted-foreground animate-pulse">실제 데이터를 불러오는 중...</p>
         </div>
       </div>
     )
@@ -283,7 +332,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold">샘플 발송 현황</h1>
-              <p className="text-muted-foreground">샘플 발송현황 분석 (2025년 6월 1일부터, SKU Unit Original Price = 0)</p>
+              <p className="text-muted-foreground">샘플 발송현황 분석 (실제 데이터 기반, SKU Unit Original Price = 0)</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={fetchSummaryData}>
@@ -301,8 +350,8 @@ export default function Dashboard() {
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">2,106개</div>
-                <p className="text-xs text-muted-foreground">주문 2,106건</p>
+                <div className="text-2xl font-bold">{summaryData?.totalCount?.toLocaleString() || 0}개</div>
+                <p className="text-xs text-muted-foreground">주문 {summaryData?.totalCount?.toLocaleString() || 0}건</p>
               </CardContent>
             </Card>
             
@@ -312,8 +361,8 @@ export default function Dashboard() {
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">8개</div>
-                <p className="text-xs text-muted-foreground">취소 8건</p>
+                <div className="text-2xl font-bold text-red-600">{summaryData?.cancelledCount?.toLocaleString() || 0}개</div>
+                <p className="text-xs text-muted-foreground">취소 {summaryData?.cancelledCount?.toLocaleString() || 0}건</p>
               </CardContent>
             </Card>
             
@@ -323,8 +372,8 @@ export default function Dashboard() {
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">2,098개</div>
-                <p className="text-xs text-muted-foreground">발송 2,098건</p>
+                <div className="text-2xl font-bold text-green-600">{summaryData?.shippedCount?.toLocaleString() || 0}개</div>
+                <p className="text-xs text-muted-foreground">발송 {summaryData?.shippedCount?.toLocaleString() || 0}건</p>
               </CardContent>
             </Card>
           </div>

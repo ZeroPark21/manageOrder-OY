@@ -15,9 +15,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import { ContentDailyMatrixTable } from "@/components/content-daily-matrix-table"
-import { ContentWeeklyMatrixTable } from "@/components/content-weekly-matrix-table"
-import { ContentMonthlyMatrixTable } from "@/components/content-monthly-matrix-table"
+import { ContentDailyMatrixTable } from "@/components/matrix/content-daily-matrix-table"
+import { ContentWeeklyMatrixTable } from "@/components/matrix/content-weekly-matrix-table"
+import { ContentMonthlyMatrixTable } from "@/components/matrix/content-monthly-matrix-table"
 import Link from "next/link"
 import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel } from "@/lib/excel-utils"
 
