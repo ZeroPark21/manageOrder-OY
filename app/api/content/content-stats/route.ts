@@ -20,8 +20,8 @@ interface ContentStats {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const startDate = searchParams.get("startDate") || "2025-06-01"
-    const endDate = searchParams.get("endDate") || new Date().toISOString().split('T')[0]
+    const startDate = searchParams.get("startDate")
+    const endDate = searchParams.get("endDate")
     
     const supabase = createServerClient()
     
@@ -32,13 +32,16 @@ export async function GET(request: NextRequest) {
     let hasMore = true
     
     while (hasMore) {
-      const { data: batch, error: batchError } = await supabase
+      let query = supabase
         .from("contents")
         .select("creator_name")
-        .gte("publish_date", startDate)
-        .lte("publish_date", endDate)
         .not("creator_name", "is", null)
         .neq("creator_name", "")
+        
+      if (startDate) query = query.gte("publish_date", startDate)
+      if (endDate) query = query.lte("publish_date", endDate)
+      
+      const { data: batch, error: batchError } = await query
         .range(offset, offset + batchSize - 1)
       
       if (batchError) {
@@ -72,7 +75,7 @@ export async function GET(request: NextRequest) {
     let hasMoreContents = true
     
     while (hasMoreContents) {
-      const { data: contentsBatch, error: contentsBatchError } = await supabase
+      let contentsQuery = supabase
         .from("contents")
         .select(`
           video_link,
@@ -81,8 +84,11 @@ export async function GET(request: NextRequest) {
           comment_count,
           gmv
         `)
-        .gte("publish_date", startDate)
-        .lte("publish_date", endDate)
+        
+      if (startDate) contentsQuery = contentsQuery.gte("publish_date", startDate)
+      if (endDate) contentsQuery = contentsQuery.lte("publish_date", endDate)
+      
+      const { data: contentsBatch, error: contentsBatchError } = await contentsQuery
         .range(contentsOffset, contentsOffset + batchSize - 1)
       
       if (contentsBatchError) {

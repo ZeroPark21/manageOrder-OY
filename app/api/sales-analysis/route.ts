@@ -107,29 +107,76 @@ function formatWeekDisplay(weekKey: string): string {
   return `${startMonth}/${startDay}-${endMonth}/${endDay}`
 }
 
+// 날짜 파싱 함수: 다양한 형식 처리
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null
+  
+  try {
+    // MM/DD/YYYY HH:MM:SS AM/PM 형식 (가장 먼저 체크)
+    if (dateStr.includes('/')) {
+      // "07/31/2025 10:14:33 AM" -> Date 객체로 변환
+      const parts = dateStr.split(' ')
+      const datePart = parts[0] // "07/31/2025"
+      const timePart = parts[1] || "00:00:00" // "10:14:33"
+      const ampm = parts[2] || "" // "AM" or "PM"
+      
+      const [month, day, year] = datePart.split('/')
+      
+      // 시간이 있는 경우
+      if (timePart !== "00:00:00") {
+        const [hours, minutes, seconds] = timePart.split(':')
+        let hour = parseInt(hours)
+        if (ampm === 'PM' && hour !== 12) hour += 12
+        if (ampm === 'AM' && hour === 12) hour = 0
+        
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes) || 0, parseInt(seconds) || 0)
+      } else {
+        // 시간이 없는 경우
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+      }
+    }
+    
+    // ISO 형식 (2025-07-30T23:29:27.000Z) 또는 YYYY-MM-DD
+    if (dateStr.includes('T')) {
+      return new Date(dateStr)
+    }
+    
+    // YYYY-MM-DD 형식
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return new Date(dateStr + 'T00:00:00')
+    }
+    
+    // 기타 형식 시도
+    const date = new Date(dateStr)
+    if (!isNaN(date.getTime())) {
+      return date
+    }
+    
+    return null
+  } catch (e) {
+    console.error('Date parsing error:', dateStr, e)
+    return null
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
+    
+    // URL 파라미터에서 날짜 범위 가져오기
+    const { searchParams } = new URL(request.url)
+    const startDate = searchParams.get('startDate')
+    const endDate = searchParams.get('endDate')
+    
+    console.log(`🔍 Fetching sales data with filters: startDate=${startDate}, endDate=${endDate}`)
 
-    // orders 테이블에서 매출 데이터만 조회 (SKU Unit Original Price > 0)
+    // 모든 매출 데이터를 한번에 가져오기
     const { data, error: dbError } = await supabase
       .from("orders")
-      .select(
-        `
-        id,
-        product_name,
-        quantity,
-        created_time,
-        order_amount,
-        sku_unit_original_price,
-        seller_sku,
-        sku_id
-      `,
-      )
-      .gt("sku_unit_original_price", 0)  // 매출이 발생한 주문만 필터링
-      .gte("created_time", "2025-06-01")
+      .select("id, product_name, seller_sku, sku_id, quantity, created_time, order_amount, sku_unit_original_price")
+      .gt("order_amount", 0)  // 매출 데이터만 필터링
       .order("created_time", { ascending: true })
-
+    
     if (dbError) {
       // 테이블이 없으면 빈 데이터로 응답
       if ((dbError as any).code === "42P01") {
@@ -150,9 +197,7 @@ export async function GET(request: NextRequest) {
             weeks: [],
             products: [],
             matrix: {},
-            productSkuMap: {},
-            formatWeekDisplay: {},
-            formatWeekRange: {}
+            productSkuMap: {}
           },
           monthly: {
             months: [],
@@ -162,12 +207,65 @@ export async function GET(request: NextRequest) {
           }
         })
       }
-
       console.error("Supabase error:", dbError)
       return NextResponse.json({ error: dbError.message }, { status: 500 })
     }
 
-    const orders = (data || []) as SalesOrder[]
+    const allOrders = (data || []) as SalesOrder[]
+    
+    console.log(`[sales-analysis] Total orders from DB: ${allOrders.length}`)
+    if (allOrders.length > 0) {
+      console.log(`[sales-analysis] Sample created_time formats:`, allOrders.slice(0, 3).map(o => o.created_time))
+    }
+    
+    // 날짜 필터링 적용 (startDate와 endDate가 제공된 경우)
+    let orders = allOrders
+    if (startDate && endDate) {
+      const filterStartDate = new Date(startDate)
+      const filterEndDate = new Date(endDate)
+      filterEndDate.setHours(23, 59, 59, 999)
+      
+      console.log(`[sales-analysis] Filter range: ${startDate} to ${endDate}`)
+      
+      orders = allOrders.filter(order => {
+        const orderDate = parseDate(order.created_time)
+        if (!orderDate) {
+          console.log(`[sales-analysis] Failed to parse date: ${order.created_time}`)
+          return false
+        }
+        return orderDate >= filterStartDate && orderDate <= filterEndDate
+      })
+      
+      console.log(`[sales-analysis] Filtered ${orders.length} orders from ${allOrders.length} total`)
+    }
+
+    if (orders.length === 0) {
+      return NextResponse.json({
+        summary: {
+          totalRevenue: 0,
+          totalQuantity: 0,
+          activeProducts: 0
+        },
+        daily: {
+          dates: [],
+          products: [],
+          matrix: {},
+          productSkuMap: {}
+        },
+        weekly: {
+          weeks: [],
+          products: [],
+          matrix: {},
+          productSkuMap: {}
+        },
+        monthly: {
+          months: [],
+          products: [],
+          matrix: {},
+          productSkuMap: {}
+        }
+      })
+    }
 
     // 데이터 검증 및 정제
     const safeOrders = orders.map((o) => ({
@@ -183,24 +281,11 @@ export async function GET(request: NextRequest) {
     const totalRevenue = safeOrders.reduce((sum, o) => sum + o.order_amount, 0)
     const activeProducts = new Set(safeOrders.map((o) => o.product_name)).size
 
-    // 일별 매트릭스
+    console.log(`📊 Summary: ${totalQuantity} items, $${totalRevenue}, ${activeProducts} products`)
+
+    // 일별, 주별, 월별 매트릭스 생성
     const dailyMatrix = createMatrix(safeOrders, getDayKey, (key) => key)
-    
-    // 주별 매트릭스
-    const weeklyMatrix = createMatrix(safeOrders, getWeekKey, (key) => key)
-    const formatWeekDisplay: { [key: string]: string } = {}
-    const formatWeekRange: { [key: string]: string } = {}
-    
-    weeklyMatrix.timeKeys.forEach(weekKey => {
-      const date = new Date(weekKey)
-      const endDate = new Date(date)
-      endDate.setDate(date.getDate() + 6)
-      
-      formatWeekDisplay[weekKey] = `${date.getMonth() + 1}/${date.getDate()}-${endDate.getMonth() + 1}/${endDate.getDate()}`
-      formatWeekRange[weekKey] = `${date.toLocaleDateString('ko-KR')} - ${endDate.toLocaleDateString('ko-KR')}`
-    })
-    
-    // 월별 매트릭스
+    const weeklyMatrix = createMatrix(safeOrders, getWeekKey, formatWeekDisplay)
     const monthlyMatrix = createMatrix(safeOrders, getMonthKey, (key) => key)
 
     return NextResponse.json({
@@ -219,9 +304,7 @@ export async function GET(request: NextRequest) {
         weeks: weeklyMatrix.timeKeys,
         products: weeklyMatrix.products,
         matrix: weeklyMatrix.matrix,
-        productSkuMap: weeklyMatrix.productSkuMap,
-        formatWeekDisplay,
-        formatWeekRange
+        productSkuMap: weeklyMatrix.productSkuMap
       },
       monthly: {
         months: monthlyMatrix.timeKeys,

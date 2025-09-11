@@ -80,23 +80,18 @@ export async function GET(request: NextRequest) {
     const currentMonth = now.getMonth() + 1
     const currentYear = now.getFullYear()
     
-    // 2025년 6월 이전이면 6월로 설정
-    let defaultStartDate: string
-    if (!startDate) {
-      if (currentYear === 2025 && currentMonth < 6) {
-        defaultStartDate = "2025-06-01"
-      } else {
-        defaultStartDate = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
-      }
-    } else {
-      defaultStartDate = startDate
+    // 기본 날짜 범위 설정 (현재 월 전체)
+    const defaultStartDate = startDate || `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
+    const defaultEndDate = endDate || new Date(currentYear, currentMonth, 0).toISOString().split('T')[0]
+    
+    // startDate와 endDate가 제공된 경우만 날짜 필터링 적용
+    let startDateTime: string | null = null
+    let endDateTime: string | null = null
+    
+    if (startDate && endDate) {
+      startDateTime = `${startDate}T00:00:00`
+      endDateTime = `${endDate}T23:59:59`
     }
-    const defaultEndDate: string = endDate || now.toISOString().split('T')[0]
-
-    // 데이터 조회 - 샘플만 조회 (sku_unit_original_price = 0)
-    // 날짜에 시간을 추가하여 전체 날짜 범위를 포함하도록 수정
-    const startDateTime = `${defaultStartDate}T00:00:00`
-    const endDateTime = `${defaultEndDate}T23:59:59`
     
     // 모든 샘플 데이터를 배치로 가져오기
     let allOrders: OrderData[] = []

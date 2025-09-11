@@ -38,7 +38,7 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
   const fetchData = async (year?: number, month?: string) => {
     setLoading(true)
     try {
-      let url = "/api/daily-matrix"
+      let url = "/api/matrix/daily-matrix"
       if (year && month) {
         const startDate = `${year}-${month}-01`
         const lastDay = new Date(year, parseInt(month), 0).getDate()
