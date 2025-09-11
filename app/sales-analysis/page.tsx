@@ -571,7 +571,7 @@ export default function SalesAnalysis() {
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
-              <BreadcrumbPage>매출 데이터 분석</BreadcrumbPage>
+              <BreadcrumbPage>SKU별 판매량</BreadcrumbPage>
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
