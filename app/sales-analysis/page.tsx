@@ -405,17 +405,21 @@ export default function SalesAnalysis() {
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState<string>('')
 
-  const fetchData = async (year?: number, month?: string) => {
+  const fetchData = async (year?: number, month?: string, forceAll?: boolean) => {
     try {
       setLoading(true)
       console.log("🔄 Fetching sales analysis data from API...")
       
       let url = "/api/sales-analysis"
-      if (year && month) {
+      // forceAll이 true이거나 year와 month가 모두 없으면 전체 데이터
+      if (!forceAll && year && month) {
         const startDate = `${year}-${month}-01`
         const lastDay = new Date(year, parseInt(month), 0).getDate()
         const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
         url += `?startDate=${startDate}&endDate=${endDate}`
+        console.log(`📅 Fetching filtered data for ${year}-${month}`)
+      } else {
+        console.log("📅 Fetching all data (no filter)")
       }
       
       const response = await fetch(url)
@@ -431,14 +435,14 @@ export default function SalesAnalysis() {
       
       setData(salesData)
       
-      // 필터가 적용되지 않은 경우 (전체 데이터), 가장 최근 날짜가 있는 월을 찾아서 설정
-      if (!year && !month && salesData.daily.dates.length > 0) {
+      // 초기 로드 시에만 최신 월 자동 설정 (forceAll이 false이고 파라미터가 없을 때)
+      if (!forceAll && !year && !month && salesData.daily.dates.length > 0) {
         const latestDate = salesData.daily.dates[salesData.daily.dates.length - 1]
         const latestDateObj = new Date(latestDate)
         const latestYear = latestDateObj.getFullYear()
         const latestMonth = String(latestDateObj.getMonth() + 1).padStart(2, '0')
         
-        console.log(`📅 Latest data found for: ${latestYear}-${latestMonth}`)
+        console.log(`📅 Initial load - setting to latest data: ${latestYear}-${latestMonth}`)
         
         // 가장 최근 월의 데이터로 다시 로드
         setSelectedYear(latestYear)
@@ -503,7 +507,7 @@ export default function SalesAnalysis() {
     // 2025년 이전은 선택 불가
     if (newYear < 2025) return
     setSelectedYear(newYear)
-    if (selectedMonth && selectedMonth !== 'all') {
+    if (selectedMonth && selectedMonth !== '') {
       // 2025년으로 변경 시 6월 이전 선택되어 있으면 6월로 변경
       if (newYear === 2025 && parseInt(selectedMonth) < 6) {
         setSelectedMonth('06')
@@ -513,14 +517,16 @@ export default function SalesAnalysis() {
       }
     } else {
       // 전체 기간 선택 시
-      fetchData()
+      console.log("🌍 Year changed with 전체 기간 selected - loading all data")
+      fetchData(undefined, undefined, true)
     }
   }
 
   const handleMonthChange = (value: string) => {
     if (value === 'all') {
       setSelectedMonth('')
-      fetchData()
+      console.log("🌍 User selected 전체 기간 - loading all data")
+      fetchData(undefined, undefined, true)  // forceAll = true로 전체 데이터 로드
     } else {
       // 2025년의 경우 6월 이전은 선택 불가
       if (selectedYear === 2025 && parseInt(value) < 6) {
@@ -581,7 +587,15 @@ export default function SalesAnalysis() {
               <p className="text-muted-foreground">실제 매출이 발생한 주문 분석 (SKU Unit Original Price &gt; 0)</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => fetchData()}>
+              <Button variant="outline" onClick={() => {
+                if (!selectedMonth || selectedMonth === '') {
+                  console.log("🔄 Refresh with 전체 기간")
+                  fetchData(undefined, undefined, true)
+                } else {
+                  console.log(`🔄 Refresh with filter: ${selectedYear}-${selectedMonth}`)
+                  fetchData(selectedYear, selectedMonth)
+                }
+              }}>
                 <BarChart3 className="h-4 w-4 mr-2" />
                 새로고침
               </Button>
