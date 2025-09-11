@@ -47,7 +47,7 @@ export default function ContentDashboard() {
     setLoading(true)
     try {
       // 새로운 정확한 stats API 사용
-      const statsResponse = await fetch(`/api/content-stats?startDate=2025-06-01&t=${Date.now()}`)
+      const statsResponse = await fetch(`/api/content/content-stats?startDate=2025-06-01&t=${Date.now()}`)
       const statsData = await statsResponse.json()
       
       if (statsData.success) {
@@ -68,7 +68,7 @@ export default function ContentDashboard() {
         })
       } else {
         // Fallback to old method if new API fails
-        const matrixResponse = await fetch(`/api/content-all-matrix?t=${Date.now()}`)
+        const matrixResponse = await fetch(`/api/content/content-all-matrix?t=${Date.now()}`)
         const matrixData = await matrixResponse.json()
         
         let totalCount = 0
@@ -83,7 +83,7 @@ export default function ContentDashboard() {
           })
         }
         
-        const creatorResponse = await fetch(`/api/contents?groupBy=creator&startDate=2025-06-01`)
+        const creatorResponse = await fetch(`/api/content/contents?groupBy=creator&startDate=2025-06-01`)
         const creatorData = await creatorResponse.json()
         
         setSummaryData({
@@ -98,7 +98,7 @@ export default function ContentDashboard() {
 
       
       // GMV 데이터 가져오기 - 콘텐츠 분석 페이지와 동일한 API 사용
-      const contentsResponse = await fetch('/api/contents?groupBy=creator')
+      const contentsResponse = await fetch('/api/content/contents?groupBy=creator')
       if (contentsResponse.ok) {
         const contentsResult = await contentsResponse.json()
         console.log("📊 Total GMV loaded:", contentsResult.totalGmv)
@@ -117,7 +117,7 @@ export default function ContentDashboard() {
     setDownloadLoading(true)
     try {
       console.log("📥 Fetching content matrix data...")
-      const response = await fetch("/api/content-all-matrix")
+      const response = await fetch("/api/content/content-all-matrix")
 
       if (!response.ok) {
         throw new Error(`API 요청 실패: ${response.status}`)

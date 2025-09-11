@@ -270,16 +270,16 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
           </div>
         </div>
         <div className="p-6 pt-0">
-          <div className="w-full overflow-x-auto rounded-lg" style={{maxWidth: "100%", maxHeight: "800px", position: "relative"}}>
-            <table className="border-collapse" style={{minWidth: "900px", tableLayout: "fixed"}}>
-            <thead style={{position: "sticky", top: 0, zIndex: 10}}>
+          <div className="w-full rounded-lg border relative" style={{maxWidth: "100%", maxHeight: "600px", overflow: "auto"}}>
+            <table className="border-collapse" style={{minWidth: "1200px", width: "100%"}}>
+            <thead style={{position: "sticky", top: 0, zIndex: 10, backgroundColor: "#2563eb"}}>
               <tr className="bg-blue-600 text-white">
                 <th className="border border-blue-500 px-1 py-1 text-xs font-medium text-white" style={{width: "40px"}}>순위</th>
                 <th className="border border-blue-500 px-1 py-1 text-left text-xs font-medium text-white" style={{width: "200px"}}>
                   Product Name
                 </th>
-                <th className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "50px", whiteSpace: "normal"}}>Seller<br/>SKU</th>
-                <th className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "50px", whiteSpace: "normal"}}>SKU<br/>ID</th>
+                <th className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "50px"}}>Seller SKU</th>
+                <th className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "50px"}}>SKU ID</th>
                 {data.dates.map((date) => (
                   <th key={date} className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "45px"}}>
                     {formatDate(date)}

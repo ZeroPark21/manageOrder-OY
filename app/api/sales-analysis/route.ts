@@ -85,8 +85,14 @@ function getDayKey(date: Date): string {
 }
 
 function getWeekKey(date: Date): string {
+  // 월요일을 주의 시작으로 설정 (샘플 발송과 동일)
   const startOfWeek = new Date(date)
-  startOfWeek.setDate(date.getDate() - date.getDay()) // 일요일로 설정
+  const dayOfWeek = date.getDay() // 0=일요일, 1=월요일, ..., 6=토요일
+  const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek // 일요일이면 -6, 아니면 1-dayOfWeek
+  startOfWeek.setDate(date.getDate() + daysToMonday)
+
+  // 시간을 00:00:00으로 설정하여 정확한 날짜만 반환
+  startOfWeek.setHours(0, 0, 0, 0)
   return startOfWeek.toISOString().split("T")[0]
 }
 
@@ -95,16 +101,26 @@ function getMonthKey(date: Date): string {
 }
 
 function formatWeekDisplay(weekKey: string): string {
-  const date = new Date(weekKey)
-  const endDate = new Date(date)
-  endDate.setDate(date.getDate() + 6)
-  
-  const startMonth = date.getMonth() + 1
-  const startDay = date.getDate()
-  const endMonth = endDate.getMonth() + 1
-  const endDay = endDate.getDate()
-  
-  return `${startMonth}/${startDay}-${endMonth}/${endDay}`
+  const startDate = new Date(weekKey) // 월요일
+  const year = startDate.getFullYear().toString().slice(-2) // 25
+  const month = String(startDate.getMonth() + 1).padStart(2, "0") // 07
+  const day = String(startDate.getDate()).padStart(2, "0") // 14
+
+  return `${year}.${month}.${day}`
+}
+
+function formatWeekRange(weekKey: string): string {
+  const startDate = new Date(weekKey) // 월요일
+  const endDate = new Date(startDate)
+  endDate.setDate(startDate.getDate() + 6) // 일요일
+
+  const formatDate = (date: Date) => {
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${month}/${day}`
+  }
+
+  return `${formatDate(startDate)}-${formatDate(endDate)}`
 }
 
 // 날짜 파싱 함수: 다양한 형식 처리

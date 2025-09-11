@@ -38,7 +38,7 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
   const fetchData = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/weekly-matrix")
+      const response = await fetch("/api/matrix/weekly-matrix")
       if (!response.ok) {
         throw new Error(`API 요청 실패: ${response.status}`)
       }
@@ -115,9 +115,9 @@ export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMa
           </div>
         </div>
         <div className="p-6 pt-0">
-          <div className="w-full overflow-x-auto rounded-lg" style={{maxWidth: "100%", maxHeight: "800px", position: "relative"}}>
-            <table className="border-collapse" style={{minWidth: "900px", tableLayout: "fixed"}}>
-            <thead style={{position: "sticky", top: 0, zIndex: 10}}>
+          <div className="w-full rounded-lg border relative" style={{maxWidth: "100%", maxHeight: "600px", overflow: "auto"}}>
+            <table className="border-collapse" style={{minWidth: "1200px", width: "100%"}}>
+            <thead style={{position: "sticky", top: 0, zIndex: 10, backgroundColor: "#16a34a"}}>
               <tr className="bg-green-600 text-white">
                 <th className="border border-green-500 px-1 py-1 text-xs font-medium text-white" style={{width: "40px"}}>순위</th>
                 <th className="border border-green-500 px-1 py-1 text-left text-xs font-medium text-white" style={{width: "200px"}}>

@@ -33,7 +33,7 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
   const fetchMatrixData = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/content-all-matrix?t=${Date.now()}`, {
+      const response = await fetch(`/api/content/content-all-matrix?t=${Date.now()}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',

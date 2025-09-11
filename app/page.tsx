@@ -335,7 +335,7 @@ export default function Dashboard() {
               <p className="text-muted-foreground">샘플 발송현황 분석 (실제 데이터 기반, SKU Unit Original Price = 0)</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={fetchSummaryData}>
+              <Button variant="outline" onClick={fetchSummaryData} className="hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700 transition-all duration-300">
                 <BarChart3 className="h-4 w-4 mr-2" />
                 새로고침
               </Button>
@@ -344,35 +344,35 @@ export default function Dashboard() {
 
           {/* 요약 카드 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
+            <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">총 샘플 발송</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <Package className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{summaryData?.totalCount?.toLocaleString() || 0}개</div>
+                <div className="text-2xl font-bold hover:text-blue-600 transition-colors duration-300">{summaryData?.totalCount?.toLocaleString() || 0}개</div>
                 <p className="text-xs text-muted-foreground">주문 {summaryData?.totalCount?.toLocaleString() || 0}건</p>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">취소된 샘플</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <Package className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-600">{summaryData?.cancelledCount?.toLocaleString() || 0}개</div>
+                <div className="text-2xl font-bold text-red-600 hover:text-red-700 transition-colors duration-300">{summaryData?.cancelledCount?.toLocaleString() || 0}개</div>
                 <p className="text-xs text-muted-foreground">취소 {summaryData?.cancelledCount?.toLocaleString() || 0}건</p>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">실제 발송된 샘플</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <Package className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{summaryData?.shippedCount?.toLocaleString() || 0}개</div>
+                <div className="text-2xl font-bold text-green-600 hover:text-green-700 transition-colors duration-300">{summaryData?.shippedCount?.toLocaleString() || 0}개</div>
                 <p className="text-xs text-muted-foreground">발송 {summaryData?.shippedCount?.toLocaleString() || 0}건</p>
               </CardContent>
             </Card>
@@ -380,10 +380,10 @@ export default function Dashboard() {
 
           {/* 샘플 매트릭스 테이블 탭 */}
           <Tabs defaultValue="daily" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="daily">일별 매트릭스</TabsTrigger>
-              <TabsTrigger value="weekly">주별 매트릭스</TabsTrigger>
-              <TabsTrigger value="monthly">월별 매트릭스</TabsTrigger>
+            <TabsList className="hover:bg-gray-100 transition-colors duration-300">
+              <TabsTrigger value="daily" className="hover:bg-blue-50 hover:text-blue-700 transition-all duration-300">일별 매트릭스</TabsTrigger>
+              <TabsTrigger value="weekly" className="hover:bg-blue-50 hover:text-blue-700 transition-all duration-300">주별 매트릭스</TabsTrigger>
+              <TabsTrigger value="monthly" className="hover:bg-blue-50 hover:text-blue-700 transition-all duration-300">월별 매트릭스</TabsTrigger>
             </TabsList>
 
             <TabsContent value="daily" className="space-y-4">

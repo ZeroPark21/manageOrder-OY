@@ -86,7 +86,7 @@ export default function ContentAnalysisPage() {
         setError(null)
         
         // Supabase contents 테이블에서 실제 데이터 로드
-        const response = await fetch('/api/contents?groupBy=creator')
+        const response = await fetch('/api/content/contents?groupBy=creator')
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -370,11 +370,11 @@ export default function ContentAnalysisPage() {
       <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
-            <Button variant="outline" onClick={() => setSelectedCreator(null)}>
+            <Button variant="outline" onClick={() => setSelectedCreator(null)} className="hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700 transition-all duration-300">
               <ArrowLeft className="w-4 h-4 mr-2" />
               크리에이터 목록으로 돌아가기
             </Button>
-            <Button onClick={exportCreatorVideos} variant="outline" size="sm">
+            <Button onClick={exportCreatorVideos} variant="outline" size="sm" className="hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700 transition-all duration-300">
               <TrendingUp className="w-4 h-4 mr-2" />
               영상 데이터 Excel 추출
             </Button>
@@ -385,49 +385,49 @@ export default function ContentAnalysisPage() {
 
         {/* 크리에이터 요약 통계 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card>
+          <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">총 GMV</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(creatorInfo?.totalGmv || 0)}</div>
+              <div className="text-2xl font-bold hover:text-green-600 transition-colors duration-300">{formatCurrency(creatorInfo?.totalGmv || 0)}</div>
               <p className="text-xs text-muted-foreground">
                 영상 {creatorInfo?.videoCount || 0}개 총합
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">총 수수료</CardTitle>
-              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <Wallet className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(creatorInfo?.totalCommission || 0)}</div>
+              <div className="text-2xl font-bold hover:text-blue-600 transition-colors duration-300">{formatCurrency(creatorInfo?.totalCommission || 0)}</div>
               <p className="text-xs text-muted-foreground">
                 예상 수익
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">총 주문</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              <ShoppingCart className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatNumber(creatorInfo?.totalOrders || 0)}</div>
+              <div className="text-2xl font-bold hover:text-purple-600 transition-colors duration-300">{formatNumber(creatorInfo?.totalOrders || 0)}</div>
               <p className="text-xs text-muted-foreground">
                 판매 {formatNumber(creatorInfo?.videos.reduce((sum, v) => sum + v.affiliateItemsSold, 0) || 0)}개
               </p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">평균 CTR</CardTitle>
-              <MousePointer className="h-4 w-4 text-muted-foreground" />
+              <MousePointer className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{creatorInfo?.avgCtr.toFixed(2) || 0}%</div>
+              <div className="text-2xl font-bold hover:text-orange-600 transition-colors duration-300">{creatorInfo?.avgCtr.toFixed(2) || 0}%</div>
               <p className="text-xs text-muted-foreground">
                 노출 대비 클릭률
               </p>
@@ -547,53 +547,53 @@ export default function ContentAnalysisPage() {
 
       {/* 전체 통계 */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <Card>
+        <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">총 영상 수</CardTitle>
-            <Video className="h-4 w-4 text-muted-foreground" />
+            <Video className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalStats.totalVideos}</div>
+            <div className="text-2xl font-bold hover:text-blue-600 transition-colors duration-300">{totalStats.totalVideos}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">총 GMV</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(totalStats.totalGmv)}</div>
+            <div className="text-2xl font-bold text-green-600 hover:text-green-700 transition-colors duration-300">{formatCurrency(totalStats.totalGmv)}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">총 수수료</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{formatCurrency(totalStats.totalCommission)}</div>
+            <div className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors duration-300">{formatCurrency(totalStats.totalCommission)}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">총 주문</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <ShoppingCart className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(totalStats.totalOrders)}</div>
+            <div className="text-2xl font-bold hover:text-purple-600 transition-colors duration-300">{formatNumber(totalStats.totalOrders)}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">크리에이터 수</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalStats.totalCreators}</div>
+            <div className="text-2xl font-bold hover:text-orange-600 transition-colors duration-300">{totalStats.totalCreators}</div>
           </CardContent>
         </Card>
       </div>
@@ -609,7 +609,7 @@ export default function ContentAnalysisPage() {
                   크리에이터를 클릭하면 해당 크리에이터의 영상을 GMV 순으로 볼 수 있습니다.
                 </CardDescription>
               </div>
-              <Button onClick={exportCreatorData} variant="outline" size="sm">
+              <Button onClick={exportCreatorData} variant="outline" size="sm" className="hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700 transition-all duration-300">
                 <TrendingUp className="w-4 h-4 mr-2" />
                 Excel 추출
               </Button>

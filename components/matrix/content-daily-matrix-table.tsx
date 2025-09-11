@@ -37,7 +37,7 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
     setLoading(true)
     try {
       // Use the new content-all-matrix API
-      const response = await fetch(`/api/content-all-matrix?t=${Date.now()}`)
+      const response = await fetch(`/api/content/content-all-matrix?t=${Date.now()}`)
       
       if (!response.ok) {
         throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`)

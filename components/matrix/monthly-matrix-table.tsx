@@ -4,7 +4,6 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, Download } from "lucide-react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 interface MonthlyMatrixData {
   products: string[]
@@ -36,7 +35,7 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
   const fetchData = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/monthly-matrix")
+      const response = await fetch("/api/matrix/monthly-matrix")
       if (!response.ok) {
         throw new Error(`API 요청 실패: ${response.status}`)
       }
@@ -110,86 +109,87 @@ export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: Monthly
         </div>
       </CardHeader>
       <CardContent>
-        <div className="overflow-auto border rounded-lg" style={{maxWidth: '100%', maxHeight: '600px'}}>
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-purple-600 text-white">
-                <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">순위</TableHead>
-                <TableHead className="border border-purple-500 px-3 py-2 text-left text-sm font-medium text-white">
+        <div className="w-full rounded-lg border relative" style={{maxWidth: "100%", maxHeight: "600px", overflow: "auto"}}>
+          <table className="border-collapse" style={{minWidth: "1200px", width: "100%"}}>
+            <thead style={{position: "sticky", top: 0, zIndex: 10, backgroundColor: "#9333ea"}}>
+              <tr className="bg-purple-600 text-white">
+                <th className="border border-purple-500 px-2 py-2 text-center text-xs font-medium text-white" style={{width: "60px"}}>순위</th>
+                <th className="border border-purple-500 px-2 py-2 text-left text-xs font-medium text-white" style={{width: "200px"}}>
                   Product Name
-                </TableHead>
-                <TableHead className="border border-purple-500 px-3 py-2 text-left text-sm font-medium text-white">
+                </th>
+                <th className="border border-purple-500 px-2 py-2 text-center text-xs font-medium text-white" style={{width: "80px"}}>
                   Seller SKU
-                </TableHead>
-                <TableHead className="border border-purple-500 px-3 py-2 text-left text-sm font-medium text-white">
+                </th>
+                <th className="border border-purple-500 px-2 py-2 text-center text-xs font-medium text-white" style={{width: "80px"}}>
                   SKU ID
-                </TableHead>
+                </th>
                 {data.months.map((month) => (
-                  <TableHead key={month} className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
+                  <th key={month} className="border border-purple-500 px-2 py-2 text-center text-xs font-medium text-white" style={{width: "80px"}}>
                     {month}
-                  </TableHead>
+                  </th>
                 ))}
-                <TableHead className="border border-purple-500 px-3 py-2 text-center text-sm font-medium text-white">
+                <th className="border border-purple-500 px-2 py-2 text-center text-xs font-medium text-white" style={{width: "80px"}}>
                   총수량
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
               {data.products.map((product, index) => {
                 const productData = data.matrix[product]
                 const skuInfo = data.productSkuMap[product] || { seller_sku: "", sku_id: 0 }
                 const isEvenRow = index % 2 === 0
 
                 return (
-                  <TableRow key={product} className={isEvenRow ? "bg-gray-50" : ""}>
-                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm font-medium">{index + 1}</TableCell>
-                    <TableCell className="border border-gray-300 px-3 py-2 text-sm" title={product}>
-                      {product}
-                    </TableCell>
-                    <TableCell className="border border-gray-300 px-3 py-2 text-sm text-center">
+                  <tr key={product} className={isEvenRow ? "bg-gray-50" : ""}>
+                    <td className="border border-gray-300 px-2 py-1 text-center text-xs font-medium" style={{width: "60px"}}>{index + 1}</td>
+                    <td className="border border-gray-300 px-2 py-1 text-xs" style={{width: "200px", maxWidth: "200px"}} title={product}>
+                      {product.length > 40 ? `${product.substring(0, 40)}...` : product}
+                    </td>
+                    <td className="border border-gray-300 px-2 py-1 text-xs text-center" style={{width: "80px"}}>
                       {skuInfo.seller_sku || "-"}
-                    </TableCell>
-                    <TableCell className="border border-gray-300 px-3 py-2 text-sm text-center">{skuInfo.sku_id || "-"}</TableCell>
+                    </td>
+                    <td className="border border-gray-300 px-2 py-1 text-xs text-center" style={{width: "80px"}}>{skuInfo.sku_id || "-"}</td>
                     {data.months.map((month) => {
                       const quantity = productData[month] || 0
                       return (
-                        <TableCell
+                        <td
                           key={month}
-                          className={`border border-gray-300 px-3 py-2 text-center text-sm ${
+                          className={`border border-gray-300 px-2 py-1 text-center text-xs ${
                             quantity > 0 ? "font-semibold" : "text-gray-400"
                           }`}
+                          style={{width: "80px"}}
                         >
                           {quantity || 0}
-                        </TableCell>
+                        </td>
                       )
                     })}
-                    <TableCell className="border border-gray-300 px-3 py-2 text-center text-sm font-bold bg-purple-50">
+                    <td className="border border-gray-300 px-2 py-1 text-center text-xs font-bold bg-purple-50" style={{width: "80px"}}>
                       {productData.total}
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 )
               })}
-              <TableRow className="bg-purple-800 text-white font-bold">
-                <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm"></TableCell>
-                <TableCell className="border border-purple-600 px-3 py-2 text-sm whitespace-nowrap">Monthly 발송 수량</TableCell>
-                <TableCell className="border border-purple-600 px-3 py-2 text-sm"></TableCell>
-                <TableCell className="border border-purple-600 px-3 py-2 text-sm"></TableCell>
+              <tr className="bg-purple-800 text-white font-bold">
+                <td className="border border-purple-600 px-2 py-1 text-center text-xs" style={{width: "60px"}}></td>
+                <td className="border border-purple-600 px-2 py-1 text-xs whitespace-nowrap" style={{width: "200px"}}>Monthly 발송 수량</td>
+                <td className="border border-purple-600 px-2 py-1 text-xs" style={{width: "80px"}}></td>
+                <td className="border border-purple-600 px-2 py-1 text-xs" style={{width: "80px"}}></td>
                 {data.months.map((month) => {
                   const monthlyTotal = data.products.reduce((sum, product) => {
                     return sum + (data.matrix[product][month] || 0)
                   }, 0)
                   return (
-                    <TableCell key={month} className="border border-purple-600 px-3 py-2 text-center text-sm font-bold">
+                    <td key={month} className="border border-purple-600 px-2 py-1 text-center text-xs font-bold" style={{width: "80px"}}>
                       {monthlyTotal}
-                    </TableCell>
+                    </td>
                   )
                 })}
-                <TableCell className="border border-purple-600 px-3 py-2 text-center text-sm font-bold bg-purple-900">
+                <td className="border border-purple-600 px-2 py-1 text-center text-xs font-bold bg-purple-900" style={{width: "80px"}}>
                   {data.products.reduce((sum, product) => sum + data.matrix[product].total, 0)}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         {/* 요약 정보 */}

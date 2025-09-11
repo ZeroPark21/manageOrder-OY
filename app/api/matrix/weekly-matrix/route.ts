@@ -11,7 +11,8 @@ interface OrderData {
   seller_sku: string
   sku_id: number
   quantity: number
-  delivered_time: string
+  created_time: string
+  delivered_time?: string
 }
 
 // 날짜 파싱 함수: 다양한 형식 처리
@@ -114,10 +115,10 @@ export async function GET(request: NextRequest) {
     while (hasMore && offset < 10000) {  // 최대 10000개까지
       const { data, error: dbError } = await supabase
         .from("orders")
-        .select("id, product_name, seller_sku, sku_id, quantity, delivered_time, sku_unit_original_price")
+        .select("id, product_name, seller_sku, sku_id, quantity, created_time, delivered_time, sku_unit_original_price")
         .eq("sku_unit_original_price", 0)  // 샘플만 필터링
-        .not("delivered_time", "is", null)  // delivered_time이 있는 데이터만
-        .order("delivered_time", { ascending: true })  // 날짜 순서대로
+        .not("created_time", "is", null)  // created_time이 있는 데이터만
+        .order("created_time", { ascending: true })  // 날짜 순서대로
         .range(offset, offset + batchSize - 1)
       
       if (dbError) {
@@ -145,14 +146,14 @@ export async function GET(request: NextRequest) {
     
     console.log(`[weekly-matrix] Total samples from DB: ${allOrders.length}`)
     if (allOrders.length > 0) {
-      console.log(`[weekly-matrix] Sample delivered_time formats:`, allOrders.slice(0, 3).map(o => o.delivered_time))
+      console.log(`[weekly-matrix] Sample created_time formats:`, allOrders.slice(0, 3).map(o => o.created_time))
     }
     
     // 6월 1일 이후 데이터만 필터링
     const startDate = new Date(2025, 5, 1) // 2025년 6월 1일
     const currentDate = new Date() // 현재 날짜
     const orders = allOrders.filter(order => {
-      const orderDate = parseDate(order.delivered_time)
+      const orderDate = parseDate(order.created_time)
       return orderDate && orderDate >= startDate && orderDate <= currentDate
     })
     
@@ -179,12 +180,12 @@ export async function GET(request: NextRequest) {
     let failedCount = 0
     
     orders.forEach((order) => {
-      if (!order.delivered_time || !order.product_name) return
+      if (!order.created_time || !order.product_name) return
 
-      const date = parseDate(order.delivered_time)
+      const date = parseDate(order.created_time)
       if (!date) {
         failedCount++
-        console.log(`[weekly-matrix] Failed to parse date: ${order.delivered_time}`)
+        console.log(`[weekly-matrix] Failed to parse date: ${order.created_time}`)
         return
       }
       
