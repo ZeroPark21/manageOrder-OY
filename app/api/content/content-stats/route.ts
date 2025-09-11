@@ -129,8 +129,8 @@ export async function GET(request: NextRequest) {
       totalCommentCount: uniqueContents.reduce((sum, row) => sum + (Number(row.comment_count) || 0), 0),
       totalGmv: uniqueContents.reduce((sum, row) => sum + (Number(row.gmv) || 0), 0),
       dateRange: {
-        start: startDate,
-        end: endDate
+        start: startDate || "",
+        end: endDate || ""
       }
     }
     

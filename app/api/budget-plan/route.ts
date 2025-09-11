@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/database/supabase"
-import { globalCache } from "@/lib/cache"
+import { globalCache } from "@/lib/database/cache"
 
 export const runtime = "edge"
 

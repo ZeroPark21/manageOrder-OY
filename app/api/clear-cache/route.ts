@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { globalCache } from "@/lib/cache"
+import { globalCache } from "@/lib/database/cache"
 
 export const runtime = "edge"
 

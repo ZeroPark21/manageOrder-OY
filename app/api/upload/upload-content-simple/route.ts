@@ -1,6 +1,30 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/database/supabase"
-import { parseCSV } from "@/lib/csv-parser"
+
+// 간단한 CSV 파싱 함수
+function parseCSV(text: string): any[] {
+  const lines = text.split('\n')
+  if (lines.length < 2) return []
+  
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+  const data = []
+  
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim()
+    if (!line) continue
+    
+    const values = line.split(',').map(v => v.trim().replace(/"/g, ''))
+    const obj: any = {}
+    
+    headers.forEach((header, index) => {
+      obj[header] = values[index] || ''
+    })
+    
+    data.push(obj)
+  }
+  
+  return data
+}
 
 // Edge Runtime 사용 (더 빠른 시작)
 export const runtime = "edge"

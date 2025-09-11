@@ -1,8 +1,9 @@
 import * as cron from 'node-cron';
-import { TikTokGMVCollector } from '../../lib/gmv-collector/collector';
-import { GMVDataParser } from '../../lib/gmv-collector/parser';
-import { createServerClient } from '../../lib/supabase';
+// import { TikTokGMVCollector } from '../../lib/gmv-collector/collector';
+// import { GMVDataParser } from '../../lib/gmv-collector/parser';
+// import { createServerClient } from '../../lib/supabase';
 
+/*
 class GMVCollectionScheduler {
   private collector: TikTokGMVCollector;
   private parser: GMVDataParser;
@@ -199,5 +200,6 @@ if (require.main === module) {
       `);
   }
 }
+*/
 
-export { GMVCollectionScheduler };
+// export { GMVCollectionScheduler };

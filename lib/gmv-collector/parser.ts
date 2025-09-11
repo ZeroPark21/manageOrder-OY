@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { createServerClient } from '../supabase';
+import { createServerClient } from '../database/supabase';
 import * as fs from 'fs/promises';
 
 export interface GMVDailyRecord {

@@ -115,7 +115,7 @@ function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChang
                     {type === 'daily' ? '일별' : type === 'weekly' ? '주별' : '월별'} 매출 현황
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    상품별 {type === 'daily' ? '일일' : type === 'weekly' ? '주간' : '월간'} 매출 수량 매트릭스 (Order Amount > 0)
+                    상품별 {type === 'daily' ? '일일' : type === 'weekly' ? '주간' : '월간'} 매출 수량 매트릭스 (Order Amount &gt; 0)
                   </p>
                 </div>
                 {type !== 'monthly' && (
@@ -202,9 +202,9 @@ function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChang
     }
   }
 
-  const timeKeys = type === 'daily' ? matrixData.dates : 
-                   type === 'weekly' ? matrixData.weeks : 
-                   matrixData.months
+  const timeKeys = type === 'daily' ? (matrixData as any).dates : 
+                   type === 'weekly' ? (matrixData as any).weeks : 
+                   (matrixData as any).months
 
   return (
     <div className="w-full overflow-hidden">
@@ -271,7 +271,7 @@ function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChang
                   </th>
                   <th className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "50px", whiteSpace: "normal"}}>Seller<br/>SKU</th>
                   <th className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: "50px", whiteSpace: "normal"}}>SKU<br/>ID</th>
-                  {timeKeys.map((timeKey) => (
+                  {timeKeys.map((timeKey: string) => (
                     <th key={timeKey} className="border border-blue-500 px-1 py-1 text-center text-xs font-medium text-white" style={{width: type === 'weekly' ? "80px" : "60px"}}>
                       {formatDate(timeKey)}
                     </th>
@@ -300,7 +300,7 @@ function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChang
                         {skuInfo.seller_sku || "-"}
                       </td>
                       <td className="border border-gray-300 px-1 py-1 text-xs text-center" style={{width: "50px", wordBreak: "break-all", whiteSpace: "normal"}}>{skuInfo.sku_id || "-"}</td>
-                      {timeKeys.map((timeKey) => {
+                      {timeKeys.map((timeKey: string) => {
                         const timeData = productData[timeKey]
                         return (
                           <td
@@ -340,7 +340,7 @@ function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChang
                   </td>
                   <td className="border border-gray-600 px-1 py-1 text-xs" style={{width: "50px"}}></td>
                   <td className="border border-gray-600 px-1 py-1 text-xs" style={{width: "50px"}}></td>
-                  {timeKeys.map((timeKey) => {
+                  {timeKeys.map((timeKey: string) => {
                     const periodTotal = matrixData.products.reduce((sum, product) => {
                       const timeData = matrixData.matrix[product][timeKey]
                       return sum + (timeData ? timeData.quantity : 0)
@@ -578,10 +578,10 @@ export default function SalesAnalysis() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold">매출 데이터 분석</h1>
-              <p className="text-muted-foreground">실제 매출이 발생한 주문 분석 (SKU Unit Original Price > 0)</p>
+              <p className="text-muted-foreground">실제 매출이 발생한 주문 분석 (SKU Unit Original Price &gt; 0)</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={fetchData}>
+              <Button variant="outline" onClick={() => fetchData()}>
                 <BarChart3 className="h-4 w-4 mr-2" />
                 새로고침
               </Button>
