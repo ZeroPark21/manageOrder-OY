@@ -54,7 +54,7 @@ export default function UploadPage() {
 
       console.log("🚀 Starting upload:", file.name, "Size:", file.size)
 
-      const response = await fetch("/api/upload-csv", {
+      const response = await fetch("/api/upload/upload-csv", {
         method: "POST",
         body: formData,
       })
