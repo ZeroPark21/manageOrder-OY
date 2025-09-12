@@ -624,18 +624,18 @@ export default function SalesAnalysis() {
       weeklyProducts: weeklyData?.weekly?.products?.length || 0
     })
     
-    if (!weeklyData?.weekly?.weeks || weeklyData.weekly.weeks.length < 2) {
-      console.log("❌ Not enough weekly data for comparison")
+    if (!weeklyData?.weekly?.weeks || weeklyData.weekly.weeks.length < 3) {
+      console.log("❌ Not enough weekly data for comparison (need at least 3 weeks)")
       return null
     }
 
     const weeks = weeklyData.weekly.weeks.sort()
-    const currentWeek = weeks[weeks.length - 1]
-    const previousWeek = weeks[weeks.length - 2]
+    const currentWeek = weeks[weeks.length - 2] // 전주 (두번째로 최근 주)
+    const previousWeek = weeks[weeks.length - 3] // 전전주 (세번째로 최근 주)
 
     console.log("📅 Comparing weeks:", { currentWeek, previousWeek })
 
-    // 현재 주와 이전 주의 총 매출액 및 판매량 계산
+    // 전주와 전전주의 총 매출액 및 판매량 계산
     let currentRevenue = 0
     let currentQuantity = 0
     let previousRevenue = 0  
@@ -950,7 +950,7 @@ export default function SalesAnalysis() {
                         </span>
                       </div>
                       <span className="text-muted-foreground text-[10px]">
-                        {weeklyGrowth.previousWeek ? `${new Date(weeklyGrowth.previousWeek).getMonth() + 1}/${new Date(weeklyGrowth.previousWeek).getDate()}주 대비` : '전주 대비'}
+                        {weeklyGrowth.previousWeek ? `${new Date(weeklyGrowth.previousWeek).getMonth() + 1}/${new Date(weeklyGrowth.previousWeek).getDate()}주 대비` : '전전주 대비 전주 성과'}
                       </span>
                     </div>
                   )}
@@ -982,7 +982,7 @@ export default function SalesAnalysis() {
                         </span>
                       </div>
                       <span className="text-muted-foreground text-[10px]">
-                        {weeklyGrowth.previousWeek ? `${new Date(weeklyGrowth.previousWeek).getMonth() + 1}/${new Date(weeklyGrowth.previousWeek).getDate()}주 대비` : '전주 대비'}
+                        {weeklyGrowth.previousWeek ? `${new Date(weeklyGrowth.previousWeek).getMonth() + 1}/${new Date(weeklyGrowth.previousWeek).getDate()}주 대비` : '전전주 대비 전주 성과'}
                       </span>
                     </div>
                   )}

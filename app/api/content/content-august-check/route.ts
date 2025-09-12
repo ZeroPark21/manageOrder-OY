@@ -5,24 +5,49 @@ export async function GET() {
   try {
     const supabase = createServerClient()
     
-    // 8월 데이터만 직접 조회
-    const { data: augustData, error: augustError } = await supabase
-      .from("contents")
-      .select(`
-        publish_date,
-        content_title,
-        gmv,
-        affiliate_items_sold,
-        affiliate_orders
-      `)
-      .gte("publish_date", "2025-08-01")
-      .lt("publish_date", "2025-09-01")
-      .order("publish_date", { ascending: true })
-      .limit(1000)
+    // 8월 데이터를 페이지네이션으로 모두 조회
+    let augustData: any[] = []
+    let offset = 0
+    const batchSize = 1000
+    let hasMore = true
     
-    if (augustError) {
-      return NextResponse.json({ error: augustError.message }, { status: 500 })
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
+        .from("contents")
+        .select(`
+          publish_date,
+          content_title,
+          gmv,
+          affiliate_items_sold,
+          affiliate_orders
+        `)
+        .gte("publish_date", "2025-08-01")
+        .lt("publish_date", "2025-09-01")
+        .order("publish_date", { ascending: true })
+        .range(offset, offset + batchSize - 1)
+      
+      if (batchError) {
+        console.error(`Error fetching batch at offset ${offset}:`, batchError)
+        if (offset === 0) {
+          return NextResponse.json({ error: batchError.message }, { status: 500 })
+        }
+        break
+      }
+      
+      if (batch && batch.length > 0) {
+        augustData = [...augustData, ...batch]
+        console.log(`📦 August batch ${Math.floor(offset / batchSize) + 1}: ${batch.length}개 (총 ${augustData.length}개)`)
+        offset += batchSize
+        
+        if (batch.length < batchSize) {
+          hasMore = false
+        }
+      } else {
+        hasMore = false
+      }
     }
+    
+    console.log(`📦 Total August data fetched: ${augustData.length}`)
     
     // 날짜별 카운트
     const dateCount: { [key: string]: number } = {}

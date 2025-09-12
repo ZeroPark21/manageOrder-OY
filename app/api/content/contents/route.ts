@@ -231,7 +231,7 @@ export async function GET(request: NextRequest) {
       `)
       .gte("publish_date", startDate || defaultStartDate)
       .order("publish_date", { ascending: true })
-      .limit(10000) // 충분히 큰 제한 설정
+      // 페이지네이션으로 모든 데이터 조회
       
     if (endDate || defaultEndDate) {
       query = query.lte("publish_date", endDate || defaultEndDate)

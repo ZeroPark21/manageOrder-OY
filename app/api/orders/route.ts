@@ -114,39 +114,63 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerClient()
 
-    // orders 테이블에서 샘플 데이터만 조회 (전체 기간)
-    const { data, error: dbError } = await supabase
-      .from("orders")
-      .select(
+    // 모든 샘플 데이터를 페이지네이션으로 가져오기
+    let allOrders: OrderSimple[] = []
+    let offset = 0
+    const batchSize = 1000
+    let hasMore = true
+    
+    while (hasMore) {
+      const { data, error: dbError } = await supabase
+        .from("orders")
+        .select(
+          `
+          id,
+          product_name,
+          quantity,
+          created_time,
+          order_amount,
+          sku_unit_original_price
         `
-        id,
-        product_name,
-        quantity,
-        created_time,
-        order_amount,
-        sku_unit_original_price
-      `,
-      )
-      .eq("sku_unit_original_price", 0)  // 샘플만 필터링
-      .order("created_time", { ascending: true })
+        )
+        .eq("sku_unit_original_price", 0)  // 샘플만 필터링
+        .order("created_time", { ascending: true })
+        .range(offset, offset + batchSize - 1)
 
-    if (dbError) {
-      // 테이블이 없으면 빈 데이터로 응답
-      if ((dbError as any).code === "42P01") {
-        console.warn("orders 테이블이 없어 빈 결과를 반환합니다.")
-        return NextResponse.json({
-          data: [],
-          totalOrders: 0,
-          totalQuantity: 0,
-          uniqueProducts: 0,
-        })
+      if (dbError) {
+        console.error(`Error fetching batch at offset ${offset}:`, dbError)
+        if (offset === 0) {
+          // 테이블이 없으면 빈 데이터로 응답
+          if ((dbError as any).code === "42P01") {
+            console.warn("orders 테이블이 없어 빈 결과를 반환합니다.")
+            return NextResponse.json({
+              data: [],
+              totalOrders: 0,
+              totalQuantity: 0,
+              uniqueProducts: 0,
+            })
+          }
+          return NextResponse.json({ error: dbError.message }, { status: 500 })
+        }
+        break
       }
-
-      console.error("Supabase error:", dbError)
-      return NextResponse.json({ error: dbError.message }, { status: 500 })
+      
+      if (data && data.length > 0) {
+        allOrders = [...allOrders, ...data]
+        console.log(`📦 Orders batch ${Math.floor(offset / batchSize) + 1}: ${data.length}개 (총 ${allOrders.length}개)`)
+        offset += batchSize
+        
+        if (data.length < batchSize) {
+          hasMore = false
+        }
+      } else {
+        hasMore = false
+      }
     }
+    
+    console.log(`📦 Total orders fetched: ${allOrders.length}`)
 
-    const orders = (data || []) as OrderSimple[]
+    const orders = allOrders
 
     const safeOrders = orders.map((o) => ({
       ...o,

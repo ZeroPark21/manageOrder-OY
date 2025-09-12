@@ -192,18 +192,41 @@ export async function GET(request: NextRequest) {
     const date = url.searchParams.get('date');
 
     if (!date) {
-      // Return recent upload logs
-      const { data, error } = await supabase
-        .from('tiktok_ads_upload_logs')
-        .select('*')
-        .order('upload_date', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+      // Return all recent upload logs with pagination
+      let allLogs: any[] = []
+      let offset = 0
+      const batchSize = 100
+      let hasMore = true
+      
+      while (hasMore) {
+        const { data: batch, error } = await supabase
+          .from('tiktok_ads_upload_logs')
+          .select('*')
+          .order('upload_date', { ascending: false })
+          .range(offset, offset + batchSize - 1)
+        
+        if (error) {
+          console.error(`Error fetching logs at offset ${offset}:`, error)
+          if (offset === 0) {
+            return NextResponse.json({ error: error.message }, { status: 500 })
+          }
+          break
+        }
+        
+        if (batch && batch.length > 0) {
+          allLogs = [...allLogs, ...batch]
+          offset += batchSize
+          
+          if (batch.length < batchSize) {
+            hasMore = false
+          }
+        } else {
+          hasMore = false
+        }
       }
-
-      return NextResponse.json({ logs: data });
+      
+      console.log(`📦 Total logs fetched: ${allLogs.length}`)
+      return NextResponse.json({ logs: allLogs });
     }
 
     // Check if data exists for specific date

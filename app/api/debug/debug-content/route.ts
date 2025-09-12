@@ -12,7 +12,7 @@ export async function GET() {
       .gte("publish_date", "2025-08-01")
       .lt("publish_date", "2025-09-01")
       .order("publish_date", { ascending: true })
-      .limit(10)
+      // 디버그용이므로 제한 제거
     
     // 8월 총 개수 확인
     const { count: augustCount, error: countError } = await supabase
