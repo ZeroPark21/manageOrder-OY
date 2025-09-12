@@ -186,48 +186,42 @@ export async function GET(request: NextRequest) {
     
     console.log(`🔍 Fetching sales data with filters: startDate=${startDate}, endDate=${endDate}`)
 
-    // 모든 매출 데이터를 한번에 가져오기
-    const { data, error: dbError } = await supabase
-      .from("orders")
-      .select("id, product_name, seller_sku, sku_id, quantity, created_time, order_amount, sku_unit_original_price")
-      .gt("order_amount", 0)  // 매출 데이터만 필터링
-      .order("created_time", { ascending: true })
+    // 모든 매출 데이터를 페이지네이션으로 가져오기
+    let allOrders: SalesOrder[] = []
+    let offset = 0
+    const batchSize = 1000
+    let hasMore = true
     
-    if (dbError) {
-      // 테이블이 없으면 빈 데이터로 응답
-      if ((dbError as any).code === "42P01") {
-        console.warn("orders 테이블이 없어 빈 결과를 반환합니다.")
-        return NextResponse.json({
-          summary: {
-            totalRevenue: 0,
-            totalQuantity: 0,
-            activeProducts: 0
-          },
-          daily: {
-            dates: [],
-            products: [],
-            matrix: {},
-            productSkuMap: {}
-          },
-          weekly: {
-            weeks: [],
-            products: [],
-            matrix: {},
-            productSkuMap: {}
-          },
-          monthly: {
-            months: [],
-            products: [],
-            matrix: {},
-            productSkuMap: {}
-          }
-        })
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
+        .from("orders")
+        .select("id, product_name, seller_sku, sku_id, quantity, created_time, order_amount, sku_unit_original_price")
+        .gt("order_amount", 0)  // 매출 데이터만 필터링
+        .order("created_time", { ascending: true })
+        .range(offset, offset + batchSize - 1)
+      
+      if (batchError) {
+        console.error(`Error fetching batch at offset ${offset}:`, batchError)
+        if (offset === 0) {
+          return NextResponse.json({ error: batchError.message }, { status: 500 })
+        }
+        break
       }
-      console.error("Supabase error:", dbError)
-      return NextResponse.json({ error: dbError.message }, { status: 500 })
+      
+      if (batch && batch.length > 0) {
+        allOrders = [...allOrders, ...batch]
+        console.log(`📦 Sales batch ${Math.floor(offset / batchSize) + 1}: ${batch.length}개 (총 ${allOrders.length}개)`)
+        offset += batchSize
+        
+        if (batch.length < batchSize) {
+          hasMore = false
+        }
+      } else {
+        hasMore = false
+      }
     }
-
-    const allOrders = (data || []) as SalesOrder[]
+    
+    console.log(`📦 Total sales orders fetched: ${allOrders.length}`)
     
     console.log(`[sales-analysis] Total orders from DB: ${allOrders.length}`)
     if (allOrders.length > 0) {
