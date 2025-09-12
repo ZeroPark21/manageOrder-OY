@@ -167,7 +167,7 @@ export default function UploadContentPage() {
       
       if (contents.length === 0) continue
       
-      const response = await fetch("/api/upload-content-chunk", {
+      const response = await fetch("/api/upload/upload-content-chunk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contents, isLastChunk })
@@ -227,7 +227,7 @@ export default function UploadContentPage() {
       const formData = new FormData()
       formData.append("file", file)
 
-      const response = await fetch("/api/upload-content-v2", {
+      const response = await fetch("/api/upload/upload-content-v2", {
         method: "POST",
         body: formData,
       })
