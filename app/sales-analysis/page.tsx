@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { TrendingUp, BarChart3, Package, DollarSign, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Download } from "lucide-react"
+import { TrendingUp, BarChart3, Package, DollarSign, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Download, Trophy, Calendar } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -17,6 +17,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel, formatWeekRangeForExcel, formatWeekStartForExcel } from "@/lib/excel-utils"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts'
 
 interface SalesAnalysisData {
   summary: {
@@ -103,14 +104,305 @@ interface MatrixTableProps {
   downloadLoading?: boolean
 }
 
+interface WeeklyVisualizationProps {
+  weeklyData: SalesAnalysisData | null
+}
+
+function WeeklyDataVisualization({ weeklyData }: WeeklyVisualizationProps) {
+  const [hoveredWeek, setHoveredWeek] = useState<string | null>(null)
+
+  if (!weeklyData?.weekly?.weeks || weeklyData.weekly.weeks.length === 0) {
+    return (
+      <div className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              주차별 매출 분석
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8 text-muted-foreground">
+              주차별 데이터를 불러오는 중...
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const weeks = weeklyData.weekly.weeks.sort()
+  
+  // 주차별 매출액 및 판매량 데이터 준비
+  const weeklyChartData = weeks.map(week => {
+    let totalRevenue = 0
+    let totalQuantity = 0
+    
+    weeklyData.weekly.products.forEach(product => {
+      const weekData = weeklyData.weekly.matrix[product]?.[week]
+      if (weekData) {
+        totalRevenue += weekData.revenue
+        totalQuantity += weekData.quantity
+      }
+    })
+    
+    const weekDate = new Date(week)
+    const weekLabel = `${weekDate.getMonth() + 1}/${weekDate.getDate()}`
+    
+    return {
+      week,
+      weekLabel,
+      revenue: totalRevenue,
+      quantity: totalQuantity,
+      revenueFormatted: `$${totalRevenue.toFixed(0)}`,
+      quantityFormatted: `${totalQuantity}개`
+    }
+  })
+
+  // 가장 많이 팔린 상품 TOP 5 (전체 기간)
+  const topProducts = weeklyData.weekly.products
+    .map(product => ({
+      name: product.length > 20 ? product.substring(0, 20) + '...' : product,
+      fullName: product,
+      totalQuantity: weeklyData.weekly.matrix[product].total.quantity,
+      totalRevenue: weeklyData.weekly.matrix[product].total.revenue
+    }))
+    .sort((a, b) => b.totalQuantity - a.totalQuantity)
+    .slice(0, 5)
+
+  const COLORS = ['#2563eb', '#dc2626', '#16a34a', '#ca8a04', '#9333ea']
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+          <p className="font-medium text-gray-900">{`${label}주차`}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} style={{ color: entry.color }} className="text-sm">
+              {entry.name}: {entry.payload.revenueFormatted || entry.payload.quantityFormatted}
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
+
+  const CustomPieTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload
+      return (
+        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+          <p className="font-medium text-gray-900">{data.fullName}</p>
+          <p className="text-sm text-blue-600">판매량: {data.totalQuantity.toLocaleString()}개</p>
+          <p className="text-sm text-green-600">매출: ${data.totalRevenue.toLocaleString()}</p>
+        </div>
+      )
+    }
+    return null
+  }
+
+  return (
+    <div className="mt-8 space-y-6">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <Calendar className="h-6 w-6" />
+          주차별 매출 분석
+        </h2>
+        <p className="text-muted-foreground mt-1">주차별 매출액, 판매량 및 인기 상품 현황</p>
+      </div>
+
+      {/* 매출액 & 판매량 차트 (좌우 배치) */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* 매출액 차트 */}
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-blue-700 text-lg">
+              <DollarSign className="h-5 w-5" />
+              주차별 매출액
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 mb-3">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyChartData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="weekLabel" 
+                    stroke="#666"
+                    tick={{ fontSize: 11 }}
+                  />
+                  <YAxis 
+                    stroke="#666"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}K`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar 
+                    dataKey="revenue" 
+                    fill="#2563eb" 
+                    radius={[3, 3, 0, 0]}
+                    onMouseEnter={(data: any) => setHoveredWeek(data.week)}
+                    onMouseLeave={() => setHoveredWeek(null)}
+                    className="hover:opacity-80 transition-opacity duration-200"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center p-2 bg-blue-50 rounded-lg">
+                <div className="text-sm font-bold text-blue-700">
+                  ${weeklyChartData.reduce((sum, week) => sum + week.revenue, 0).toLocaleString()}
+                </div>
+                <div className="text-xs text-blue-600">총 매출액</div>
+              </div>
+              <div className="text-center p-2 bg-green-50 rounded-lg">
+                <div className="text-sm font-bold text-green-700">
+                  ${Math.max(...weeklyChartData.map(w => w.revenue)).toLocaleString()}
+                </div>
+                <div className="text-xs text-green-600">최고 주간매출</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* 판매량 차트 */}
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-green-700 text-lg">
+              <Package className="h-5 w-5" />
+              주차별 판매량
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 mb-3">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={weeklyChartData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="weekLabel" 
+                    stroke="#666"
+                    tick={{ fontSize: 11 }}
+                  />
+                  <YAxis 
+                    stroke="#666"
+                    tick={{ fontSize: 11 }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="quantity" 
+                    stroke="#16a34a" 
+                    strokeWidth={2.5}
+                    dot={{ fill: '#16a34a', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: '#16a34a', strokeWidth: 2 }}
+                    className="drop-shadow-sm"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="text-center p-2 bg-green-50 rounded-lg">
+                <div className="text-sm font-bold text-green-700">
+                  {weeklyChartData.reduce((sum, week) => sum + week.quantity, 0).toLocaleString()}개
+                </div>
+                <div className="text-xs text-green-600">총 판매량</div>
+              </div>
+              <div className="text-center p-2 bg-blue-50 rounded-lg">
+                <div className="text-sm font-bold text-blue-700">
+                  {Math.max(...weeklyChartData.map(w => w.quantity)).toLocaleString()}개
+                </div>
+                <div className="text-xs text-blue-600">최고 주간판매</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 인기 상품 차트 */}
+      <Card className="hover:shadow-lg transition-shadow duration-300">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-purple-700">
+            <Trophy className="h-5 w-5" />
+            인기 상품 TOP 5
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">전체 기간 기준 가장 많이 팔린 상품들</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <Pie
+                    data={topProducts}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="totalQuantity"
+                    label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                    labelLine={false}
+                    className="drop-shadow-sm"
+                  >
+                    {topProducts.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]}
+                        className="hover:opacity-80 transition-opacity duration-200"
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomPieTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="space-y-3">
+              <h4 className="font-medium text-gray-900 mb-4">상품별 판매 실적</h4>
+              {topProducts.map((product, index) => (
+                <div 
+                  key={product.fullName}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:border-purple-300 hover:bg-purple-50 transition-all duration-300"
+                >
+                  <div className="flex items-center gap-3">
+                    <div 
+                      className="w-4 h-4 rounded" 
+                      style={{ backgroundColor: COLORS[index] }}
+                    />
+                    <div>
+                      <div className="font-medium text-gray-900" title={product.fullName}>
+                        {product.name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        #{index + 1} 순위
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-semibold text-gray-900">
+                      {product.totalQuantity.toLocaleString()}개
+                    </div>
+                    <div className="text-sm text-purple-600">
+                      ${product.totalRevenue.toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
 function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChange, onMonthChange, onExcelDownload, downloadLoading }: MatrixTableProps) {
   const matrixData = data[type]
   
   if (!matrixData || !matrixData.products.length) {
     return (
-      <div style={{width: "100%", overflow: "hidden"}}>
-        <div className="bg-white rounded-lg border shadow-sm" style={{width: "100%"}}>
-          <div className="p-6">
+      <div className="w-full overflow-hidden">
+        <div className="bg-white rounded-lg border shadow-sm max-w-6xl mx-auto px-2 sm:px-4">
+          <div className="p-3 sm:p-6">
             <div className="flex flex-col gap-4">
               <div className="flex justify-between items-center">
                 <div>
@@ -166,7 +458,7 @@ function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChang
               </div>
             </div>
           </div>
-          <div className="p-6 pt-0">
+          <div className="p-3 sm:p-6 pt-0">
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-lg font-medium mb-2">데이터 없음</p>
               <p className="text-sm">
@@ -216,8 +508,8 @@ function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChang
 
   return (
     <div className="w-full overflow-hidden">
-      <div className="bg-white rounded-lg border shadow-sm w-full">
-        <div className="p-6 pb-4">
+      <div className="bg-white rounded-lg border shadow-sm max-w-6xl mx-auto px-2 sm:px-4">
+        <div className="p-3 sm:p-6 pb-2 sm:pb-4">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
@@ -301,9 +593,10 @@ function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChang
             </div>
           </div>
         </div>
-        <div className="p-6 pt-0">
-          <div className="w-full rounded-lg border relative" style={{maxWidth: "100%", maxHeight: "600px", overflow: "auto"}}>
-            <table className="border-collapse" style={{minWidth: "1200px", width: "100%"}}>
+        <div className="p-3 sm:p-6 pt-0">
+          <div className="rounded-lg border relative overflow-hidden" style={{maxHeight: "600px"}}>
+            <div className="overflow-x-auto overflow-y-auto max-h-full">
+              <table className="border-collapse w-full" style={{minWidth: "1200px"}}>
               <thead className="sticky top-0 z-5">
                 <tr className="bg-blue-600 text-white">
                   <th className="border border-blue-500 px-2 py-2 text-xs font-medium text-white bg-blue-600" style={{minWidth: "50px"}}>순위</th>
@@ -406,6 +699,7 @@ function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChang
                 </tr>
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* 요약 정보 */}
@@ -1069,6 +1363,9 @@ export default function SalesAnalysis() {
               )}
             </TabsContent>
           </Tabs>
+
+          {/* 주차별 데이터 시각화 */}
+          <WeeklyDataVisualization weeklyData={weeklyData} />
         </div>
       </div>
     </>
