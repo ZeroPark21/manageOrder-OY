@@ -239,7 +239,7 @@ export default function UploadContentPage() {
       const formData = new FormData()
       formData.append("file", file)
 
-      const response = await fetch("/api/upload/upload-content-v2", {
+      const response = await fetch("/api/upload/upload-content", {
         method: "POST",
         body: formData,
       })
