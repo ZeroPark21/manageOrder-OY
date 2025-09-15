@@ -452,18 +452,34 @@ export async function POST(request: NextRequest) {
       
     } catch (error) {
       console.error("스마트 업서트 처리 중 오류:", error)
+      console.error("오류 타입:", typeof error)
+      console.error("오류 스택:", error instanceof Error ? error.stack : 'No stack trace')
+      
+      // 더 자세한 오류 정보 수집
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : typeof error === 'string' 
+          ? error 
+          : JSON.stringify(error)
+      
       return NextResponse.json({ 
         error: "데이터 처리 중 오류가 발생했습니다.",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: errorMessage,
+        errorType: typeof error,
+        errorName: error instanceof Error ? error.name : 'Unknown'
       }, { status: 500 })
     }
 
   } catch (err: any) {
     console.error("콘텐츠 업로드 API 오류:", err)
-    console.error("오류 스택:", err.stack)
+    console.error("오류 타입:", typeof err)
+    console.error("오류 스택:", err?.stack || 'No stack trace')
+    console.error("전체 오류 객체:", JSON.stringify(err, null, 2))
     
-    // 더 자세한 오류 메시지 반환
-    const errorMessage = err.message || "Internal server error"
+    // 더 자세한 오류 메시지 수집
+    const errorMessage = err?.message || 
+                        (typeof err === 'string' ? err : '') ||
+                        "Internal server error"
     
     // Supabase 관련 오류 처리
     if (errorMessage.includes("duplicate key") || errorMessage.includes("unique constraint")) {
@@ -480,9 +496,18 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
+    // 환경 변수 관련 오류 처리
+    if (errorMessage.includes("env vars are missing") || errorMessage.includes("SUPABASE")) {
+      return NextResponse.json({ 
+        error: "서버 설정 오류입니다. 관리자에게 문의하세요.",
+        details: "Database configuration error"
+      }, { status: 500 })
+    }
+    
     return NextResponse.json({ 
-      error: errorMessage,
-      type: err.name || "UnknownError"
+      error: errorMessage || "서버에서 알 수 없는 오류가 발생했습니다.",
+      details: JSON.stringify(err),
+      type: err?.name || "UnknownError"
     }, { status: 500 })
   }
 } 
