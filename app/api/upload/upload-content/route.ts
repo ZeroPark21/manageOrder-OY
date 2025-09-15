@@ -193,13 +193,23 @@ export async function POST(request: NextRequest) {
       const creator_name = getFieldValue(row, ['Creator username', 'creator username', 'creator', 'creator_name'])
       const gmv = getFieldValue(row, ['GMV', 'gmv'])
       
-      // GMV 디버깅 로그 추가
-      if (processedCount <= 5) {
+      // GMV 디버깅 로그 추가 - 더 자세한 정보
+      if (processedCount <= 10) {
         console.log(`🔍 GMV 원본 데이터 (행 ${processedCount}):`, {
           raw: gmv,
           type: typeof gmv,
           length: gmv?.length,
-          charCodes: gmv?.split('').map(c => c.charCodeAt(0))
+          charCodes: gmv?.split('').map(c => c.charCodeAt(0)),
+          allRowData: row // 전체 행 데이터 확인
+        })
+        
+        // 'GMV' 컬럼이 정확히 있는지 확인
+        console.log(`🔍 행 ${processedCount} 컬럼 확인:`, {
+          hasGMV: 'GMV' in row,
+          hasLowerGMV: 'gmv' in row,
+          allKeys: Object.keys(row),
+          gmvDirect: row['GMV'],
+          gmvLower: row['gmv']
         })
       }
       const affiliate_items_sold = getFieldValue(row, ['Affiliate items sold', 'affiliate items sold', 'items sold', 'affiliate_items_sold'])
@@ -353,20 +363,14 @@ export async function POST(request: NextRequest) {
               console.log(`✅ 새 콘텐츠 삽입: ${newContent.content_title}`)
             }
           } else {
-            // 3. 기존 데이터 존재 - video_link, content_title, creator_name 확인
-            const isSameContent = (
-              existingData.video_link === newContent.video_link &&
-              existingData.content_title === newContent.content_title &&
-              existingData.creator_name === newContent.creator_name
-            )
+            // 3. 기존 데이터 존재 - video_link 기준으로 모든 데이터를 최신 값으로 업데이트
+            console.log(`🔄 기존 콘텐츠 업데이트: ${newContent.video_link}`)
+            console.log(`   - 기존 제목: ${existingData.content_title}`)
+            console.log(`   - 새 제목: ${newContent.content_title}`)
+            console.log(`   - 기존 GMV: ${existingData.gmv}`)
+            console.log(`   - 새 GMV: ${newContent.gmv}`)
 
-            if (!isSameContent) {
-              console.log(`⚠️ 다른 콘텐츠 (동일 video_link): ${newContent.video_link}`)
-              skippedCount++
-              continue
-            }
-
-            // 4. 동일한 콘텐츠 - 항상 모든 값을 덮어쓰기
+            // 4. 항상 모든 값을 최신 데이터로 덮어쓰기
             const { error: updateError } = await supabase
               .from("contents")
               .update(newContent)
@@ -377,7 +381,7 @@ export async function POST(request: NextRequest) {
               errorCount++
             } else {
               updatedCount++
-              console.log(`🔄 콘텐츠 업데이트 (덮어쓰기): ${newContent.content_title}`)
+              console.log(`✅ 콘텐츠 업데이트 완료: ${newContent.content_title}`)
             }
           }
         } catch (itemError) {

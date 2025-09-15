@@ -507,7 +507,7 @@ function SalesMatrixTable({ data, type, selectedYear, selectedMonth, onYearChang
         </div>
         <div className="p-3 sm:p-6 pt-0">
           <div className="w-full rounded-lg border relative" style={{maxWidth: "100%", maxHeight: "600px", overflow: "auto"}}>
-              <table className="border-collapse" style={{minWidth: "1200px", width: "100%"}}>
+            <table className="border-collapse" style={{minWidth: "1200px", width: "100%"}}>
               <thead style={{position: "sticky", top: 0, zIndex: 10, backgroundColor: "#2563eb"}}>
                 <tr className="bg-blue-600 text-white">
                   <th className="border border-blue-500 px-2 py-2 text-xs font-medium text-white bg-blue-600" style={{minWidth: "50px"}}>순위</th>

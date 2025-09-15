@@ -26,8 +26,14 @@ export default function UploadContentPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
+    console.log("🔍 Selected file:", {
+      name: selectedFile?.name,
+      type: selectedFile?.type,
+      size: selectedFile?.size
+    })
+    
     if (selectedFile) {
-      if (
+      const isValidFile = (
         selectedFile.type === "text/csv" ||
         selectedFile.name.endsWith(".csv") ||
         selectedFile.type === "text/plain" ||
@@ -35,11 +41,17 @@ export default function UploadContentPage() {
         selectedFile.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
         selectedFile.name.endsWith(".xlsx") ||
         selectedFile.name.endsWith(".xls")
-      ) {
+      )
+      
+      console.log("🔍 File validation:", isValidFile)
+      
+      if (isValidFile) {
         setFile(selectedFile)
         setMessage(null)
+        console.log("✅ File accepted and set")
       } else {
         setMessage({ type: "error", text: "CSV 또는 Excel 파일만 업로드 가능합니다." })
+        console.log("❌ File rejected")
       }
     }
   }
