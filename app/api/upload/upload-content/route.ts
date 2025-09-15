@@ -192,6 +192,16 @@ export async function POST(request: NextRequest) {
       const publish_date = getFieldValue(row, ['Video post date', 'video post date', 'date', 'publish_date'])
       const creator_name = getFieldValue(row, ['Creator username', 'creator username', 'creator', 'creator_name'])
       const gmv = getFieldValue(row, ['GMV', 'gmv'])
+      
+      // GMV 디버깅 로그 추가
+      if (processedCount <= 5) {
+        console.log(`🔍 GMV 원본 데이터 (행 ${processedCount}):`, {
+          raw: gmv,
+          type: typeof gmv,
+          length: gmv?.length,
+          charCodes: gmv?.split('').map(c => c.charCodeAt(0))
+        })
+      }
       const affiliate_items_sold = getFieldValue(row, ['Affiliate items sold', 'affiliate items sold', 'items sold', 'affiliate_items_sold'])
       const affiliate_gmv = getFieldValue(row, ['Affiliate shoppable video GMV', 'affiliate gmv', 'affiliate_gmv'])
       const shoppable_avg_order_value = getFieldValue(row, ['Shoppable video avg. order value', 'avg order value', 'shoppable_avg_order_value'])
@@ -237,7 +247,27 @@ export async function POST(request: NextRequest) {
           creator_name: creator_name || "크리에이터 없음",
           publish_date: formattedDate,
           video_link: video_link || `generated-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-          gmv: parseFloat(gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
+          gmv: (() => {
+            // GMV 파싱 개선
+            const cleanGmv = gmv.toString()
+              .trim()                           // 앞뒤 공백 제거
+              .replace(/[$,\s]/g, '')          // 달러 기호, 쉼표, 모든 공백 제거
+              .replace(/[^0-9.-]/g, '')        // 숫자, 점, 마이너스만 남김
+            
+            const parsed = parseFloat(cleanGmv)
+            const result = isNaN(parsed) ? 0 : parsed
+            
+            if (processedCount <= 5) {
+              console.log(`🔍 GMV 파싱 (행 ${processedCount}):`, {
+                original: gmv,
+                cleaned: cleanGmv,
+                parsed: parsed,
+                final: result
+              })
+            }
+            
+            return result
+          })(),
           affiliate_items_sold: parseInt(affiliate_items_sold.toString().replace(/[^0-9-]/g, '')) || 0,
           affiliate_gmv: parseFloat(affiliate_gmv.toString().replace(/[^0-9.-]/g, '')) || 0,
           shoppable_avg_order_value: parseFloat(shoppable_avg_order_value.toString().replace(/[^0-9.-]/g, '')) || 0,
