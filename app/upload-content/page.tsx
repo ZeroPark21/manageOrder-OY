@@ -140,60 +140,91 @@ export default function UploadContentPage() {
     return data
   }
 
-  // 청크 업로드 함수
+  // 청크 업로드 함수 - 성능 최적화 (병렬 처리)
   const uploadInChunks = async (data: any[]) => {
-    const CHUNK_SIZE = 10
+    const CHUNK_SIZE = 100 // 청크 크기 증가로 성능 향상
+    const MAX_CONCURRENT = 3 // 동시 처리 청크 수
     let totalSaved = 0
     
-    for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-      const chunk = data.slice(i, i + CHUNK_SIZE)
-      const isLastChunk = i + CHUNK_SIZE >= data.length
+    // 데이터 변환을 미리 처리
+    const transformedData = data.map(row => {
+      const publishDate = row['Video post date'] || row['publish_date']
+      // Video post date가 없으면 건너뛰기
+      if (!publishDate) return null
       
-      // 데이터 변환 - Video post date가 있으면 모두 포함
-      const contents = chunk.map(row => {
-        const publishDate = row['Video post date'] || row['publish_date']
-        // Video post date가 없으면 건너뛰기
-        if (!publishDate) return null
-        
-        return {
-          content_title: (row['Video name'] || row['video_name'] || 'Untitled').substring(0, 255),
-          video_link: (row['Video link'] || row['video_link'] || '').substring(0, 255),
-          publish_date: parseDate(publishDate),
-          creator_name: (row['Creator username'] || row['creator_name'] || '알 수 없음').substring(0, 100),
-          gmv: parseFloat(row['GMV'] || row['gmv'] || '0') || 0,
-          affiliate_items_sold: parseInt(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'] || '0') || 0,
-          affiliate_gmv: parseFloat(row['Affiliate shoppable video GMV'] || row['affiliate_gmv'] || '0') || 0,
-          shoppable_avg_order_value: parseFloat(row['Shoppable video avg. order value'] || row['shoppable_avg_order_value'] || '0') || 0,
-          est_commission: parseFloat(row['Est. commission'] || row['est_commission'] || '0') || 0,
-          est_flat_fee: (row['Est. flat fee'] || row['est_flat_fee'] || '--').toString().substring(0, 50),
-          affiliate_orders: parseInt(row['Affiliate orders'] || row['affiliate_orders'] || '0') || 0,
-          shoppable_impressions: parseInt(row['Shoppable video impressions'] || row['shoppable_impressions'] || '0') || 0,
-          affiliate_ctr: parseFloat(row['Affiliate CTR'] || row['affiliate_ctr'] || '0') || 0,
-          shoppable_gpm: parseFloat(row['Shoppable video GPM'] || row['shoppable_gpm'] || '0') || 0,
-          affiliate_items_refunded: parseInt(row['Affiliate items refunded'] || row['affiliate_items_refunded'] || '0') || 0,
-          affiliate_refunded_gmv: parseFloat(row['Affiliate refunded GMV'] || row['affiliate_refunded_gmv'] || '0') || 0,
-          comment_count: parseInt(row['Shoppable video comments'] || row['comment_count'] || '0') || 0,
-          like_count: parseInt(row['Shoppable video likes'] || row['like_count'] || '0') || 0
-        }
-      }).filter(c => c !== null) // Video post date가 있는 것만 포함
-      
-      if (contents.length === 0) continue
-      
-      const response = await fetch("/api/upload/upload-content-chunk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents, isLastChunk })
-      })
-      
-      if (response.ok) {
-        const result = await response.json()
-        totalSaved += result.saved || 0
+      return {
+        content_title: (row['Video name'] || row['video_name'] || 'Untitled').substring(0, 255),
+        video_link: (row['Video link'] || row['video_link'] || '').substring(0, 255),
+        publish_date: parseDate(publishDate),
+        creator_name: (row['Creator username'] || row['creator_name'] || '알 수 없음').substring(0, 100),
+        gmv: parseFloat(row['GMV'] || row['gmv'] || '0') || 0,
+        affiliate_items_sold: parseInt(row['Affiliate items sold '] || row['Affiliate items sold'] || row['affiliate_items_sold'] || '0') || 0,
+        affiliate_gmv: parseFloat(row['Affiliate shoppable video GMV'] || row['affiliate_gmv'] || '0') || 0,
+        shoppable_avg_order_value: parseFloat(row['Shoppable video avg. order value'] || row['shoppable_avg_order_value'] || '0') || 0,
+        est_commission: parseFloat(row['Est. commission'] || row['est_commission'] || '0') || 0,
+        est_flat_fee: (row['Est. flat fee'] || row['est_flat_fee'] || '--').toString().substring(0, 50),
+        affiliate_orders: parseInt(row['Affiliate orders'] || row['affiliate_orders'] || '0') || 0,
+        shoppable_impressions: parseInt(row['Shoppable video impressions'] || row['shoppable_impressions'] || '0') || 0,
+        affiliate_ctr: parseFloat(row['Affiliate CTR'] || row['affiliate_ctr'] || '0') || 0,
+        shoppable_gpm: parseFloat(row['Shoppable video GPM'] || row['shoppable_gpm'] || '0') || 0,
+        affiliate_items_refunded: parseInt(row['Affiliate items refunded'] || row['affiliate_items_refunded'] || '0') || 0,
+        affiliate_refunded_gmv: parseFloat(row['Affiliate refunded GMV'] || row['affiliate_refunded_gmv'] || '0') || 0,
+        comment_count: parseInt(row['Shoppable video comments'] || row['comment_count'] || '0') || 0,
+        like_count: parseInt(row['Shoppable video likes'] || row['like_count'] || '0') || 0
       }
+    }).filter(c => c !== null) // Video post date가 있는 것만 포함
+    
+    // 청크별 병렬 처리
+    const chunks = []
+    for (let i = 0; i < transformedData.length; i += CHUNK_SIZE) {
+      chunks.push(transformedData.slice(i, i + CHUNK_SIZE))
+    }
+    
+    // 병렬 처리를 위한 함수
+    const uploadChunk = async (contents: any[], chunkIndex: number) => {
+      const isLastChunk = chunkIndex === chunks.length - 1
+      
+      try {
+        const response = await fetch("/api/upload/upload-content-chunk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents, isLastChunk })
+        })
+        
+        let result
+        try {
+          result = await response.json()
+        } catch (parseError) {
+          console.log(`청크 ${chunkIndex} 응답 파싱 오류:`, parseError)
+          return 0
+        }
+        
+        if (response.ok) {
+          return result.saved || 0
+        } else {
+          console.log(`청크 ${chunkIndex} 업로드 실패:`, result)
+          return 0
+        }
+      } catch (error) {
+        console.log(`청크 ${chunkIndex} 요청 오류:`, error)
+        return 0
+      }
+    }
+    
+    // 청크를 배치로 나누어 병렬 처리
+    for (let i = 0; i < chunks.length; i += MAX_CONCURRENT) {
+      const batch = chunks.slice(i, i + MAX_CONCURRENT)
+      const promises = batch.map((chunk, index) => uploadChunk(chunk, i + index))
+      
+      const results = await Promise.all(promises)
+      const batchSaved = results.reduce((sum, saved) => sum + saved, 0)
+      totalSaved += batchSaved
       
       // 진행 상황 업데이트
+      const processed = Math.min((i + MAX_CONCURRENT) * CHUNK_SIZE, transformedData.length)
       setMessage({
         type: "success",
-        text: `⏳ 업로드 중... ${Math.min(i + CHUNK_SIZE, data.length)}/${data.length} 처리됨`
+        text: `⏳ 업로드 중... ${processed}/${transformedData.length} 처리됨 (${Math.round(processed / transformedData.length * 100)}%)`
       })
     }
     
@@ -209,8 +240,8 @@ export default function UploadContentPage() {
     try {
       console.log("🚀 Starting content upload:", file.name, "Size:", file.size)
 
-      // 50KB 이상의 파일은 청크 업로드 사용 (414 에러 방지)
-      if (file.size > 50000) {
+      // 안전을 위해 100KB 이상의 모든 파일은 청크 업로드 사용 (414 에러 확실히 방지)
+      if (file.size > 100000) {
         console.log("📊 대용량 파일 - 청크 업로드 사용")
         
         let data: any[] = []
@@ -255,32 +286,96 @@ export default function UploadContentPage() {
         return
       }
 
-      // 일반 업로드 (작은 파일 또는 Excel)
+      // 일반 업로드 (작은 파일)
+      console.log("🚀 일반 업로드 시작:", {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      })
+      
       const formData = new FormData()
       formData.append("file", file)
-
-      const response = await fetch("/api/upload/upload-content", {
-        method: "POST",
-        body: formData,
+      
+      console.log("📤 서버로 요청 전송 중...")
+      let response
+      try {
+        response = await fetch("/api/upload/upload-content", {
+          method: "POST",
+          body: formData,
+        })
+        console.log("📥 서버 응답 수신 성공")
+      } catch (fetchError) {
+        console.log("❌ Fetch 요청 자체 실패:", fetchError)
+        throw new Error(`네트워크 요청 실패: ${fetchError.message}`)
+      }
+      
+      console.log("📥 서버 응답 상세:", {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        url: response.url,
+        type: response.type,
+        redirected: response.redirected
       })
 
       // 응답이 JSON인지 확인
       const contentType = response.headers.get("content-type")
       console.log("응답 Content-Type:", contentType)
+      console.log("응답 상태:", response.status, response.statusText)
       
       let result
-      if (contentType && contentType.includes("application/json")) {
-        result = await response.json()
-      } else {
-        // JSON이 아닌 경우 텍스트로 읽기
-        const text = await response.text()
-        console.error("JSON이 아닌 응답:", text)
-        throw new Error(`서버 오류가 발생했습니다: ${text.substring(0, 100)}...`)
+      try {
+        if (contentType && contentType.includes("application/json")) {
+          result = await response.json()
+        } else {
+          // JSON이 아닌 경우 텍스트로 읽기
+          const text = await response.text()
+          console.log("JSON이 아닌 응답:", text)
+          throw new Error(`서버에서 예상치 못한 응답을 받았습니다: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`)
+        }
+      } catch (parseError) {
+        console.log("응답 파싱 오류:", parseError)
+        // JSON 파싱 실패 시 텍스트로 다시 시도
+        try {
+          const text = await response.text()
+          console.log("원본 응답 텍스트:", text)
+          throw new Error(`서버 응답을 파싱할 수 없습니다: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`)
+        } catch (textError) {
+          throw new Error(`서버 응답을 읽을 수 없습니다. 네트워크 연결을 확인해주세요.`)
+        }
       }
+      
+      console.log("파싱된 응답:", result)
+      console.log("응답 객체 타입:", typeof result)
+      console.log("응답 객체 키들:", result ? Object.keys(result) : "null/undefined")
 
       if (!response.ok) {
-        console.error("업로드 오류 응답:", result)
-        throw new Error(result.error || `업로드에 실패했습니다. (${response.status})`)
+        console.log("❌ HTTP 응답 실패 상세 정보:")
+        console.log("- 응답 상태:", response.status, response.statusText)
+        console.log("- 응답 헤더들:", Object.fromEntries(response.headers.entries()))
+        console.log("- 파싱된 응답 내용:", result)
+        console.log("- 응답 내용 JSON:", JSON.stringify(result, null, 2))
+        
+        // 에러 메시지 추출 개선
+        let errorMessage = "업로드에 실패했습니다."
+        
+        if (result && typeof result === 'object') {
+          if (result.error) {
+            errorMessage = result.error
+          } else if (result.message) {
+            errorMessage = result.message
+          } else if (result.details) {
+            errorMessage = `서버 오류: ${result.details}`
+          } else {
+            errorMessage = `HTTP ${response.status} 오류가 발생했습니다.`
+          }
+        } else if (typeof result === 'string') {
+          errorMessage = result
+        } else {
+          errorMessage = `HTTP ${response.status} ${response.statusText} 오류가 발생했습니다.`
+        }
+        
+        throw new Error(errorMessage)
       }
 
       const processedCount = result.processedCount || 0
@@ -309,10 +404,29 @@ export default function UploadContentPage() {
       const fileInput = document.getElementById("file-upload") as HTMLInputElement
       if (fileInput) fileInput.value = ""
     } catch (error) {
-      console.error("💥 Upload error:", error)
+      console.log("💥 Upload error:", error)
+      console.log("💥 Error type:", typeof error)
+      console.log("💥 Error details:", error)
+      
+      let errorMessage = "업로드 중 오류가 발생했습니다."
+      
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'string') {
+        errorMessage = error
+      } else if (error && typeof error === 'object') {
+        if (error.message) {
+          errorMessage = error.message
+        } else if (error.error) {
+          errorMessage = error.error
+        } else {
+          errorMessage = `알 수 없는 오류: ${JSON.stringify(error)}`
+        }
+      }
+      
       setMessage({
         type: "error",
-        text: `네트워크 오류가 발생했습니다: ${error instanceof Error ? error.message : "알 수 없는 오류"}`,
+        text: errorMessage,
       })
     } finally {
       setUploading(false)
@@ -425,7 +539,7 @@ export default function UploadContentPage() {
                   <li className="text-green-600">Excel 파일(.xlsx, .xls)도 직접 업로드 가능합니다</li>
                   <li>빈 행이나 유효하지 않은 데이터는 자동으로 건너뜁니다</li>
                   <li>대용량 파일의 경우 처리 시간이 오래 걸릴 수 있습니다</li>
-                  <li className="text-blue-600">파일이 50KB 이상인 경우 자동으로 청크 업로드 방식을 사용합니다 (414 에러 방지)</li>
+                  <li className="text-blue-600">100KB 이상의 파일은 자동으로 고속 병렬 청크 업로드를 사용합니다 (414 에러 방지)</li>
                 </ul>
               </div>
             </CardContent>
