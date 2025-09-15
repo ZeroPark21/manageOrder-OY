@@ -209,12 +209,32 @@ export default function UploadContentPage() {
     try {
       console.log("🚀 Starting content upload:", file.name, "Size:", file.size)
 
-      // 100KB 이상의 CSV 파일은 청크 업로드 사용
-      if (file.name.endsWith('.csv') && file.size > 100000) {
-        console.log("📊 대용량 CSV 파일 - 청크 업로드 사용")
+      // 50KB 이상의 파일은 청크 업로드 사용 (414 에러 방지)
+      if (file.size > 50000) {
+        console.log("📊 대용량 파일 - 청크 업로드 사용")
         
-        const text = await file.text()
-        const data = parseCSVContent(text)
+        let data: any[] = []
+        
+        if (file.name.endsWith('.csv')) {
+          const text = await file.text()
+          data = parseCSVContent(text)
+        } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+          // Excel 파일의 경우 클라이언트에서 파싱
+          console.log("📊 Excel 파일 - 클라이언트에서 파싱 후 청크 업로드")
+          
+          // 동적으로 XLSX 라이브러리 로드
+          const XLSX = await import('xlsx')
+          
+          const buffer = await file.arrayBuffer()
+          const workbook = XLSX.read(buffer, { type: 'buffer' })
+          const sheetName = workbook.SheetNames[0]
+          const worksheet = workbook.Sheets[sheetName]
+          data = XLSX.utils.sheet_to_json(worksheet)
+          
+          console.log(`📊 Excel 파일 파싱 완료: ${data.length}개 데이터 행`)
+        } else {
+          throw new Error("지원하지 않는 파일 형식입니다.")
+        }
         
         if (data.length === 0) {
           throw new Error("유효한 데이터가 없습니다")
@@ -405,7 +425,7 @@ export default function UploadContentPage() {
                   <li className="text-green-600">Excel 파일(.xlsx, .xls)도 직접 업로드 가능합니다</li>
                   <li>빈 행이나 유효하지 않은 데이터는 자동으로 건너뜁니다</li>
                   <li>대용량 파일의 경우 처리 시간이 오래 걸릴 수 있습니다</li>
-                  <li className="text-blue-600">CSV 파일이 100KB 이상인 경우 자동으로 청크 업로드 방식을 사용합니다</li>
+                  <li className="text-blue-600">파일이 50KB 이상인 경우 자동으로 청크 업로드 방식을 사용합니다 (414 에러 방지)</li>
                 </ul>
               </div>
             </CardContent>
