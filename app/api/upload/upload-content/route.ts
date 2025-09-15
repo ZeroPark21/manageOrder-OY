@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx'
 
 // Node.js Runtime 사용 (더 긴 실행 시간 허용)
 export const runtime = "nodejs"
-export const maxDuration = 10 // 10초로 제한
+export const maxDuration = 60 // 60초로 확장
 
 interface ContentData {
   content_title: string
@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
     console.log("🔗 Supabase 클라이언트 생성 완료")
 
-    // 스마트 업서트 처리 - 중복 체크 및 데이터 비교
+    // 스마트 업서트 처리 - 배치 조회 후 개별 처리
     console.log("📤 스마트 데이터 업서트 시작...")
     
     try {
@@ -333,44 +333,84 @@ export async function POST(request: NextRequest) {
       let skippedCount = 0
       let errorCount = 0
       
+      // 1. 모든 video_link를 한 번에 조회하여 기존 데이터 확인
+      const videoLinks = contents.map(c => c.video_link)
+      const { data: existingContents, error: batchSelectError } = await supabase
+        .from("contents")
+        .select("video_link, content_title, gmv")
+        .in("video_link", videoLinks)
+      
+      if (batchSelectError) {
+        console.error("배치 조회 오류:", batchSelectError)
+        throw batchSelectError
+      }
+      
+      console.log(`📊 기존 데이터 조회 완료: ${existingContents?.length || 0}개 발견`)
+      
+      // 2. 기존 데이터를 Map으로 변환하여 빠른 조회
+      const existingMap = new Map()
+      if (existingContents) {
+        existingContents.forEach(item => {
+          existingMap.set(item.video_link, item)
+        })
+      }
+      
+      // 3. 데이터 분류: 신규 삽입 vs 업데이트
+      const toInsert: ContentData[] = []
+      const toUpdate: ContentData[] = []
+      
       for (const newContent of contents) {
-        try {
-          // 1. video_link 기준으로 기존 데이터 조회
-          const { data: existingData, error: selectError } = await supabase
-            .from("contents")
-            .select("*")
-            .eq("video_link", newContent.video_link)
-            .single()
-
-          if (selectError && selectError.code !== 'PGRST116') {
-            // PGRST116은 "not found" 에러 코드
-            console.error(`조회 오류 (${newContent.video_link}):`, selectError)
-            errorCount++
-            continue
-          }
-
-          if (!existingData) {
-            // 2. 새로운 데이터 - 바로 삽입
-            const { error: insertError } = await supabase
-              .from("contents")
-              .insert(newContent)
-
-            if (insertError) {
-              console.error(`삽입 오류 (${newContent.video_link}):`, insertError)
+        if (existingMap.has(newContent.video_link)) {
+          toUpdate.push(newContent)
+        } else {
+          toInsert.push(newContent)
+        }
+      }
+      
+      console.log(`📊 처리 계획: 삽입 ${toInsert.length}개, 업데이트 ${toUpdate.length}개`)
+      
+      // 4. 신규 데이터 배치 삽입
+      if (toInsert.length > 0) {
+        console.log(`📥 신규 데이터 ${toInsert.length}개 배치 삽입 시작...`)
+        const { error: batchInsertError } = await supabase
+          .from("contents")
+          .insert(toInsert)
+        
+        if (batchInsertError) {
+          console.error("배치 삽입 오류:", batchInsertError)
+          // 배치 삽입 실패 시 개별 삽입으로 재시도
+          for (const content of toInsert) {
+            try {
+              const { error: singleInsertError } = await supabase
+                .from("contents")
+                .insert(content)
+              
+              if (singleInsertError) {
+                console.error(`개별 삽입 오류 (${content.video_link}):`, singleInsertError)
+                errorCount++
+              } else {
+                insertedCount++
+              }
+            } catch (e) {
+              console.error(`개별 삽입 예외 (${content.video_link}):`, e)
               errorCount++
-            } else {
-              insertedCount++
-              console.log(`✅ 새 콘텐츠 삽입: ${newContent.content_title}`)
             }
-          } else {
-            // 3. 기존 데이터 존재 - video_link 기준으로 모든 데이터를 최신 값으로 업데이트
-            console.log(`🔄 기존 콘텐츠 업데이트: ${newContent.video_link}`)
-            console.log(`   - 기존 제목: ${existingData.content_title}`)
-            console.log(`   - 새 제목: ${newContent.content_title}`)
-            console.log(`   - 기존 GMV: ${existingData.gmv}`)
-            console.log(`   - 새 GMV: ${newContent.gmv}`)
-
-            // 4. 항상 모든 값을 최신 데이터로 덮어쓰기
+          }
+        } else {
+          insertedCount = toInsert.length
+          console.log(`✅ 배치 삽입 완료: ${insertedCount}개`)
+        }
+      }
+      
+      // 5. 기존 데이터 개별 업데이트 (배치 업데이트는 복잡하므로 개별 처리)
+      if (toUpdate.length > 0) {
+        console.log(`🔄 기존 데이터 ${toUpdate.length}개 업데이트 시작...`)
+        for (const newContent of toUpdate) {
+          try {
+            const existing = existingMap.get(newContent.video_link)
+            console.log(`🔄 업데이트: ${newContent.video_link}`)
+            console.log(`   - GMV: ${existing?.gmv} → ${newContent.gmv}`)
+            
             const { error: updateError } = await supabase
               .from("contents")
               .update(newContent)
@@ -381,12 +421,11 @@ export async function POST(request: NextRequest) {
               errorCount++
             } else {
               updatedCount++
-              console.log(`✅ 콘텐츠 업데이트 완료: ${newContent.content_title}`)
             }
+          } catch (itemError) {
+            console.error(`업데이트 예외 (${newContent.video_link}):`, itemError)
+            errorCount++
           }
-        } catch (itemError) {
-          console.error(`항목 처리 오류 (${newContent.video_link}):`, itemError)
-          errorCount++
         }
       }
 
