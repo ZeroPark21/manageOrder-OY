@@ -416,9 +416,9 @@ export default function UploadContentPage() {
       } else if (typeof error === 'string') {
         errorMessage = error
       } else if (error && typeof error === 'object') {
-        if (error.message) {
+        if ('message' in error && typeof error.message === 'string') {
           errorMessage = error.message
-        } else if (error.error) {
+        } else if ('error' in error && typeof error.error === 'string') {
           errorMessage = error.error
         } else {
           errorMessage = `알 수 없는 오류: ${JSON.stringify(error)}`
