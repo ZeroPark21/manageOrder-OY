@@ -306,7 +306,8 @@ export default function UploadContentPage() {
         console.log("📥 서버 응답 수신 성공")
       } catch (fetchError) {
         console.log("❌ Fetch 요청 자체 실패:", fetchError)
-        throw new Error(`네트워크 요청 실패: ${fetchError.message}`)
+        const errorMessage = fetchError instanceof Error ? fetchError.message : "알 수 없는 네트워크 오류"
+        throw new Error(`네트워크 요청 실패: ${errorMessage}`)
       }
       
       console.log("📥 서버 응답 상세:", {
