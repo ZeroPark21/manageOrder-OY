@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/database/supabase"
 
-export const runtime = "edge"
+export const runtime = "nodejs"
+export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,58 +13,41 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServerClient()
-    let saved = 0
+    console.log(`청크 처리 시작: ${contents.length}개 항목`)
+    
+    try {
+      // Supabase upsert 사용으로 성능 개선
+      const { data: result, error: upsertError } = await supabase
+        .from("contents")
+        .upsert(contents, { 
+          onConflict: 'video_link',
+          ignoreDuplicates: false 
+        })
+        .select('id')
 
-    // 각 항목을 개별적으로 upsert
-    for (const content of contents) {
-      try {
-        // 먼저 존재 여부 확인
-        const { data: existing, error: selectError } = await supabase
-          .from("contents")
-          .select("id")
-          .eq("video_link", content.video_link)
-          .single()
-
-        if (selectError && selectError.code !== 'PGRST116') {
-          // PGRST116는 "row not found" 오류로 정상적인 경우
-          console.error(`청크 처리 중 조회 오류 (${content.video_link}):`, selectError)
-          continue
-        }
-
-        if (existing) {
-          // 업데이트
-          const { error: updateError } = await supabase
-            .from("contents")
-            .update(content)
-            .eq("id", existing.id)
-          
-          if (updateError) {
-            console.error(`청크 처리 중 업데이트 오류 (${content.video_link}):`, updateError)
-            continue
-          }
-        } else {
-          // 삽입
-          const { error: insertError } = await supabase
-            .from("contents")
-            .insert(content)
-          
-          if (insertError) {
-            console.error(`청크 처리 중 삽입 오류 (${content.video_link}):`, insertError)
-            continue
-          }
-        }
-        
-        saved++
-      } catch (e) {
-        console.error(`청크 처리 중 예외 발생 (${content.video_link}):`, e)
-        // 개별 오류는 무시하되 로그는 남김
+      if (upsertError) {
+        console.error("배치 upsert 오류:", upsertError)
+        return NextResponse.json({ 
+          error: "데이터 저장 중 오류가 발생했습니다.",
+          details: upsertError.message 
+        }, { status: 500 })
       }
-    }
 
-    return NextResponse.json({
-      saved,
-      isLastChunk
-    })
+      const saved = result ? result.length : contents.length
+      console.log(`청크 처리 완료: ${saved}개 저장됨`)
+      
+      return NextResponse.json({
+        saved,
+        isLastChunk
+      })
+      
+    } catch (dbError) {
+      console.error("데이터베이스 처리 중 오류:", dbError)
+      return NextResponse.json({ 
+        error: "데이터베이스 처리 중 오류가 발생했습니다.",
+        details: dbError instanceof Error ? dbError.message : "Unknown error"
+      }, { status: 500 })
+    }
   } catch (err: any) {
     console.error("청크 업로드 오류:", err)
     console.error("오류 타입:", typeof err)
