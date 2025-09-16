@@ -43,7 +43,7 @@ interface SalesAnalysisData {
     productSkuMap: {
       [product: string]: {
         seller_sku: string
-        sku_id: number
+        sku_id: string
       }
     }
   }
@@ -65,7 +65,7 @@ interface SalesAnalysisData {
     productSkuMap: {
       [product: string]: {
         seller_sku: string
-        sku_id: number
+        sku_id: string
       }
     }
   }
@@ -87,7 +87,7 @@ interface SalesAnalysisData {
     productSkuMap: {
       [product: string]: {
         seller_sku: string
-        sku_id: number
+        sku_id: string
       }
     }
   }

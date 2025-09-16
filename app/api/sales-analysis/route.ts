@@ -12,7 +12,7 @@ interface SalesOrder {
   order_amount: number
   sku_unit_original_price: number
   seller_sku: string
-  sku_id: number
+  sku_id: string // TEXT 타입으로 수정
 }
 
 interface ProductSalesData {
@@ -29,7 +29,7 @@ interface ProductSalesData {
 function createMatrix(orders: SalesOrder[], timeExtractor: (date: Date) => string, timeFormatter: (key: string) => string) {
   // 제품별로 데이터 그룹화
   const productData: { [product: string]: ProductSalesData } = {}
-  const productSkuMap: { [product: string]: { seller_sku: string, sku_id: number } } = {}
+  const productSkuMap: { [product: string]: { seller_sku: string, sku_id: string } } = {}
   const timeKeys = new Set<string>()
 
   orders.forEach(order => {
@@ -53,7 +53,7 @@ function createMatrix(orders: SalesOrder[], timeExtractor: (date: Date) => strin
     if (!productSkuMap[product]) {
       productSkuMap[product] = {
         seller_sku: order.seller_sku || "",
-        sku_id: order.sku_id || 0
+        sku_id: order.sku_id || ""
       }
     }
     
@@ -277,13 +277,13 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // 데이터 검증 및 정제
+    // 데이터 검증 및 정제 (SKU ID를 문자열로 강제 변환)
     const safeOrders = orders.map((o) => ({
       ...o,
       quantity: Number(o.quantity) || 0,
       order_amount: Number(o.order_amount) || 0,
       sku_unit_original_price: Number(o.sku_unit_original_price) || 0,
-      sku_id: Number(o.sku_id) || 0
+      sku_id: String(o.sku_id || "") // 강제로 문자열 변환
     }))
 
     // 요약 통계 계산

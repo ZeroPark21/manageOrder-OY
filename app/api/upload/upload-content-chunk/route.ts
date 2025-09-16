@@ -15,36 +15,46 @@ export async function POST(request: NextRequest) {
     const supabase = createServerClient()
     console.log(`청크 처리 시작: ${contents.length}개 항목`)
     
-    try {
-      // 배치 삽입으로 성능 개선 (onConflict 제거)
-      const { data: result, error: insertError } = await supabase
-        .from("contents")
-        .insert(contents)
-        .select('id')
+    let saved = 0
+    
+    // 개별 처리로 중복 문제 해결 (안전한 방식)
+    for (const content of contents) {
+      try {
+        // 먼저 기존 데이터 확인
+        const { data: existing } = await supabase
+          .from("contents")
+          .select("id")
+          .eq("video_link", content.video_link)
+          .single()
 
-      if (insertError) {
-        console.error("배치 삽입 오류:", insertError)
-        return NextResponse.json({ 
-          error: "데이터 저장 중 오류가 발생했습니다.",
-          details: insertError.message 
-        }, { status: 500 })
+        if (existing) {
+          // 기존 데이터 업데이트
+          const { error: updateError } = await supabase
+            .from("contents")
+            .update(content)
+            .eq("id", existing.id)
+          
+          if (!updateError) saved++
+        } else {
+          // 새 데이터 삽입
+          const { error: insertError } = await supabase
+            .from("contents")
+            .insert(content)
+          
+          if (!insertError) saved++
+        }
+      } catch (itemError) {
+        console.log(`항목 처리 중 오류 (${content.video_link}):`, itemError)
+        // 개별 오류는 무시하고 계속 진행
       }
-
-      const saved = result ? result.length : contents.length
-      console.log(`청크 처리 완료: ${saved}개 저장됨`)
-      
-      return NextResponse.json({
-        saved,
-        isLastChunk
-      })
-      
-    } catch (dbError) {
-      console.error("데이터베이스 처리 중 오류:", dbError)
-      return NextResponse.json({ 
-        error: "데이터베이스 처리 중 오류가 발생했습니다.",
-        details: dbError instanceof Error ? dbError.message : "Unknown error"
-      }, { status: 500 })
     }
+
+    console.log(`청크 처리 완료: ${saved}개 저장됨`)
+    
+    return NextResponse.json({
+      saved,
+      isLastChunk
+    })
   } catch (err: any) {
     console.error("청크 업로드 오류:", err)
     console.error("오류 타입:", typeof err)
