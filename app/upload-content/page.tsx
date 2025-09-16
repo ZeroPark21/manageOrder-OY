@@ -142,8 +142,8 @@ export default function UploadContentPage() {
 
   // 청크 업로드 함수 - 성능 최적화 (병렬 처리)
   const uploadInChunks = async (data: any[]) => {
-    const CHUNK_SIZE = 100 // 청크 크기 증가로 성능 향상
-    const MAX_CONCURRENT = 3 // 동시 처리 청크 수
+    const CHUNK_SIZE = 500 // 청크 크기를 500개로 대폭 증가하여 업로드 속도 향상
+    const MAX_CONCURRENT = 5 // 동시 처리 청크 수 증가로 더 빠른 업로드
     let totalSaved = 0
     
     // 데이터 변환을 미리 처리
@@ -540,7 +540,7 @@ export default function UploadContentPage() {
                   <li className="text-green-600">Excel 파일(.xlsx, .xls)도 직접 업로드 가능합니다</li>
                   <li>빈 행이나 유효하지 않은 데이터는 자동으로 건너뜁니다</li>
                   <li>대용량 파일의 경우 처리 시간이 오래 걸릴 수 있습니다</li>
-                  <li className="text-blue-600">100KB 이상의 파일은 자동으로 고속 병렬 청크 업로드를 사용합니다 (414 에러 방지)</li>
+                  <li className="text-blue-600">100KB 이상의 파일은 자동으로 고속 병렬 청크 업로드를 사용합니다 (500개 단위, 최대 5개 동시 처리)</li>
                 </ul>
               </div>
             </CardContent>
