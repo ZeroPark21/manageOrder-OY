@@ -16,20 +16,17 @@ export async function POST(request: NextRequest) {
     console.log(`청크 처리 시작: ${contents.length}개 항목`)
     
     try {
-      // Supabase upsert 사용으로 성능 개선
-      const { data: result, error: upsertError } = await supabase
+      // 배치 삽입으로 성능 개선 (onConflict 제거)
+      const { data: result, error: insertError } = await supabase
         .from("contents")
-        .upsert(contents, { 
-          onConflict: 'video_link',
-          ignoreDuplicates: false 
-        })
+        .insert(contents)
         .select('id')
 
-      if (upsertError) {
-        console.error("배치 upsert 오류:", upsertError)
+      if (insertError) {
+        console.error("배치 삽입 오류:", insertError)
         return NextResponse.json({ 
           error: "데이터 저장 중 오류가 발생했습니다.",
-          details: upsertError.message 
+          details: insertError.message 
         }, { status: 500 })
       }
 
