@@ -1,525 +1,341 @@
-"use client";
+'use client';
 
-import { useState, useEffect, use } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoadingSpinner } from "@/components/loading-spinner";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DailyMatrixTable } from "@/components/matrix/daily-matrix-table";
-import { WeeklyMatrixTable } from "@/components/matrix/weekly-matrix-table";
-import { MonthlyMatrixTable } from "@/components/matrix/monthly-matrix-table";
-import { Upload, BarChart3, Package } from "lucide-react";
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Calendar, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, BarChart3, Package } from 'lucide-react';
+import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
-  downloadMultiSheetExcel,
-  type MultiSheetExcelData,
-  formatDateForExcel,
-} from "@/lib/excel-utils";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import Link from "next/link";
+  mockSummaryMetrics,
+  mockPlatformRevenue,
+  mockSalesTrend,
+  mockTopProducts,
+  mockPlatformPerformance,
+  datePresets,
+  platformOptions,
+  periodOptions
+} from '@/lib/mock-data/dashboard-mock-data';
 
-interface DashboardData {
-  data: Array<{
-    date?: string;
-    week?: string;
-    month?: string;
-    product?: string;
-    totalQuantity: number;
-    orders: any[];
-  }>;
-  totalOrders: number;
-  totalQuantity: number;
-  uniqueProducts: number;
-}
-
-export default function Dashboard({
-  params,
-}: {
-  params: Promise<{ companyId: string }>;
-}) {
-  const { companyId } = use(params);
-  const [loading, setLoading] = useState(true);
-  const [downloadLoading, setDownloadLoading] = useState(false);
-  const [summaryData, setSummaryData] = useState<{
-    totalCount: number;
-    cancelledCount: number;
-    shippedCount: number;
-  } | null>(null);
-
-  const fetchSummaryData = async () => {
-    try {
-      setLoading(true);
-      console.log("🔄 Fetching summary data from API...");
-
-      const response = await fetch(
-        `/api/sample-summary?companyId=${companyId}`,
-        {
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      if (!response.ok) {
-        throw new Error(`API 요청 실패: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(`API 오류: ${data.error}`);
-      }
-
-      // 실제 API 응답에서 데이터 설정
-      setSummaryData({
-        totalCount: data.totalCount,
-        cancelledCount: data.cancelledCount,
-        shippedCount: data.shippedCount,
-      });
-
-      console.log("✅ Summary data loaded from real API:", {
-        totalCount: data.totalCount,
-        cancelledCount: data.cancelledCount,
-        shippedCount: data.shippedCount,
-        stats: data.stats,
-      });
-
-      // 디버그 정보 출력
-      if (data.samples) {
-        console.log("📊 Sample cancelled orders:", data.samples.cancelled);
-        console.log("📊 Sample shipped orders:", data.samples.shipped);
-      }
-    } catch (error) {
-      console.error("❌ Failed to fetch summary data:", error);
-      // 에러 발생 시 기본값 설정
-      setSummaryData({
-        totalCount: 0,
-        cancelledCount: 0,
-        shippedCount: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAllMatrixDownload = async () => {
-    setDownloadLoading(true);
-    try {
-      console.log("📥 Fetching all matrix data...");
-      const response = await fetch(
-        `/api/matrix/all-matrix?companyId=${companyId}`
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("API Error Response:", errorText);
-        throw new Error(`API 요청 실패: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      // API 에러 체크
-      if (data.error) {
-        console.error("API returned error:", data.error);
-        throw new Error(`API 오류: ${data.error}`);
-      }
-      console.log("📊 Matrix data loaded successfully");
-      console.log("API Response:", {
-        daily: data.daily
-          ? `${data.daily.products?.length || 0} products, ${
-              data.daily.dates?.length || 0
-            } dates`
-          : "null",
-        weekly: data.weekly
-          ? `${data.weekly.products?.length || 0} products, ${
-              data.weekly.weeks?.length || 0
-            } weeks`
-          : "null",
-        monthly: data.monthly
-          ? `${data.monthly.products?.length || 0} products, ${
-              data.monthly.months?.length || 0
-            } months`
-          : "null",
-      });
-
-      if (!data.daily || !data.weekly || !data.monthly) {
-        console.error("❌ Missing matrix data:", {
-          hasDaily: !!data.daily,
-          hasWeekly: !!data.weekly,
-          hasMonthly: !!data.monthly,
-        });
-        throw new Error("매트릭스 데이터를 가져올 수 없습니다.");
-      }
-
-      const sheets = [];
-
-      // 일별 시트 생성
-      if (data.daily.products && data.daily.products.length > 0) {
-        const dailyHeaders = [
-          "순위",
-          "Product Name",
-          "Seller SKU",
-          "SKU ID",
-          ...data.daily.dates.map((date: string) => formatDateForExcel(date)),
-          "총수량",
-        ];
-
-        const dailyRows = data.daily.products.map(
-          (product: string, index: number) => {
-            const productData = data.daily.matrix[product];
-            const skuInfo = data.daily.productSkuMap[product] || {
-              seller_sku: "",
-              sku_id: 0,
-            };
-            return [
-              index + 1,
-              product,
-              skuInfo.seller_sku || "-",
-              skuInfo.sku_id || "-",
-              ...data.daily.dates.map((date: string) => productData[date] || 0),
-              productData.total,
-            ];
-          }
-        );
-
-        // 일별 총계 행
-        dailyRows.push([
-          "",
-          "Daily 발송 수량",
-          "",
-          "",
-          ...data.daily.dates.map((date: string) =>
-            data.daily.products.reduce(
-              (sum: number, product: string) =>
-                sum + (data.daily.matrix[product][date] || 0),
-              0
-            )
-          ),
-          data.daily.products.reduce(
-            (sum: number, product: string) =>
-              sum + data.daily.matrix[product].total,
-            0
-          ),
-        ]);
-
-        sheets.push({
-          name: "일별 매트릭스",
-          headers: dailyHeaders,
-          rows: dailyRows,
-        });
-        console.log("✅ Daily sheet prepared");
-      }
-
-      // 주별 시트 생성
-      if (data.weekly.products && data.weekly.products.length > 0) {
-        const weeklyHeaders = [
-          "순위",
-          "Product Name",
-          "Seller SKU",
-          "SKU ID",
-          ...data.weekly.weeks.map(
-            (week: string) =>
-              `${data.weekly.formatWeekDisplay[week]} (${data.weekly.formatWeekRange[week]})`
-          ),
-          "총수량",
-        ];
-
-        const weeklyRows = data.weekly.products.map(
-          (product: string, index: number) => {
-            const productData = data.weekly.matrix[product];
-            const skuInfo = data.weekly.productSkuMap[product] || {
-              seller_sku: "",
-              sku_id: 0,
-            };
-            return [
-              index + 1,
-              product,
-              skuInfo.seller_sku || "-",
-              skuInfo.sku_id || "-",
-              ...data.weekly.weeks.map(
-                (week: string) => productData[week] || 0
-              ),
-              productData.total,
-            ];
-          }
-        );
-
-        // 주별 총계 행
-        weeklyRows.push([
-          "",
-          "Weekly 발송 수량",
-          "",
-          "",
-          ...data.weekly.weeks.map((week: string) =>
-            data.weekly.products.reduce(
-              (sum: number, product: string) =>
-                sum + (data.weekly.matrix[product][week] || 0),
-              0
-            )
-          ),
-          data.weekly.products.reduce(
-            (sum: number, product: string) =>
-              sum + data.weekly.matrix[product].total,
-            0
-          ),
-        ]);
-
-        sheets.push({
-          name: "주별 매트릭스",
-          headers: weeklyHeaders,
-          rows: weeklyRows,
-        });
-        console.log("✅ Weekly sheet prepared");
-      }
-
-      // 월별 시트 생성
-      if (data.monthly.products && data.monthly.products.length > 0) {
-        const monthlyHeaders = [
-          "순위",
-          "Product Name",
-          "Seller SKU",
-          "SKU ID",
-          ...data.monthly.months,
-          "총수량",
-        ];
-
-        const monthlyRows = data.monthly.products.map(
-          (product: string, index: number) => {
-            const productData = data.monthly.matrix[product];
-            const skuInfo = data.monthly.productSkuMap[product] || {
-              seller_sku: "",
-              sku_id: 0,
-            };
-            return [
-              index + 1,
-              product,
-              skuInfo.seller_sku || "-",
-              skuInfo.sku_id || "-",
-              ...data.monthly.months.map(
-                (month: string) => productData[month] || 0
-              ),
-              productData.total,
-            ];
-          }
-        );
-
-        // 월별 총계 행
-        monthlyRows.push([
-          "",
-          "Monthly 발송 수량",
-          "",
-          "",
-          ...data.monthly.months.map((month: string) =>
-            data.monthly.products.reduce(
-              (sum: number, product: string) =>
-                sum + (data.monthly.matrix[product][month] || 0),
-              0
-            )
-          ),
-          data.monthly.products.reduce(
-            (sum: number, product: string) =>
-              sum + data.monthly.matrix[product].total,
-            0
-          ),
-        ]);
-
-        sheets.push({
-          name: "월별 매트릭스",
-          headers: monthlyHeaders,
-          rows: monthlyRows,
-        });
-        console.log("✅ Monthly sheet prepared");
-      }
-
-      if (sheets.length === 0) {
-        throw new Error("생성할 시트가 없습니다.");
-      }
-
-      console.log(`📁 Creating Excel with ${sheets.length} sheets`);
-
-      const excelData: MultiSheetExcelData = {
-        sheets,
-        filename: `TTS_제품발송현황_통합매트릭스_${
-          new Date().toISOString().split("T")[0]
-        }`,
-      };
-
-      downloadMultiSheetExcel(excelData);
-      console.log("🎉 Excel download completed!");
-    } catch (error) {
-      console.error("❌ Excel download failed:", error);
-      alert(
-        `Excel 다운로드에 실패했습니다: ${
-          error instanceof Error ? error.message : "알 수 없는 오류"
-        }`
-      );
-    } finally {
-      setDownloadLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSummaryData();
-  }, []);
-
-  if (loading) {
-    return <LoadingSpinner message="실제 데이터를 불러오는 중..." />;
+// Custom tooltip for charts
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border rounded-lg shadow-lg">
+        <p className="font-semibold">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.color }}>
+            {entry.name}: ${entry.value.toLocaleString()}
+          </p>
+        ))}
+      </div>
+    );
   }
+  return null;
+};
+
+// Metric card component
+const MetricCard = ({
+  title,
+  value,
+  change,
+  icon: Icon,
+  format = 'number'
+}: {
+  title: string;
+  value: number | string;
+  change: number;
+  icon: any;
+  format?: 'number' | 'currency' | 'percent';
+}) => {
+  const isPositive = change > 0;
+  const formatValue = () => {
+    if (format === 'currency') return `$${value.toLocaleString()}`;
+    if (format === 'percent') return `${value}%`;
+    return value.toLocaleString();
+  };
 
   return (
-    <>
-      {/* 헤더 */}
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="/">TTS Dashboard</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator className="hidden md:block" />
-            <BreadcrumbItem>
-              <BreadcrumbPage>샘플 발송 현황</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-muted-foreground" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{formatValue()}</div>
+        <div className="flex items-center text-xs">
+          {isPositive ? (
+            <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+          ) : (
+            <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+          )}
+          <span className={isPositive ? 'text-green-500' : 'text-red-500'}>
+            {isPositive ? '+' : ''}{change}%
+          </span>
+          <span className="text-muted-foreground ml-1">from last period</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
-      {/* 메인 콘텐츠 */}
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="space-y-8">
-          {/* 페이지 헤더 */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">샘플 발송 현황</h1>
-              <p className="text-muted-foreground">
-                샘플 발송현황 분석 (실제 데이터 기반, SKU Unit Original Price =
-                0)
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={fetchSummaryData}
-                className="hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700 transition-all duration-300"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                새로고침
-              </Button>
-            </div>
+export default function TestDashboard() {
+  const [dateRange, setDateRange] = useState('7');
+  const [platform, setPlatform] = useState('all');
+  const [period, setPeriod] = useState('daily');
+
+  return (
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Sales Dashboard</h1>
+            <p className="text-muted-foreground">TikTok Shop & Amazon Performance Analytics</p>
           </div>
+          <Button variant="outline" className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            Export Report
+          </Button>
+        </div>
 
-          {/* 요약 카드 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  총 샘플 발송
-                </CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold hover:text-blue-600 transition-colors duration-300">
-                  {summaryData?.totalCount?.toLocaleString() || 0}개
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  주문 {summaryData?.totalCount?.toLocaleString() || 0}건
-                </p>
-              </CardContent>
-            </Card>
+        {/* Filters */}
+        <div className="flex gap-3">
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="w-[150px] bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {datePresets.map(preset => (
+                <SelectItem key={preset.value} value={preset.value.toString()}>
+                  {preset.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  취소된 샘플
-                </CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-red-600 hover:text-red-700 transition-colors duration-300">
-                  {summaryData?.cancelledCount?.toLocaleString() || 0}개
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  취소 {summaryData?.cancelledCount?.toLocaleString() || 0}건
-                </p>
-              </CardContent>
-            </Card>
+          <Select value={platform} onValueChange={setPlatform}>
+            <SelectTrigger className="w-[180px] bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {platformOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-            <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  실제 발송된 샘플
-                </CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600 hover:text-green-700 transition-colors duration-300">
-                  {summaryData?.shippedCount?.toLocaleString() || 0}개
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  발송 {summaryData?.shippedCount?.toLocaleString() || 0}건
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* 샘플 매트릭스 테이블 탭 */}
-          <Tabs defaultValue="daily" className="space-y-4">
-            <TabsList className="hover:bg-gray-100 transition-colors duration-300">
-              <TabsTrigger
-                value="daily"
-                className="hover:bg-blue-50 hover:text-blue-700 transition-all duration-300"
-              >
-                일별 매트릭스
-              </TabsTrigger>
-              <TabsTrigger
-                value="weekly"
-                className="hover:bg-blue-50 hover:text-blue-700 transition-all duration-300"
-              >
-                주별 매트릭스
-              </TabsTrigger>
-              <TabsTrigger
-                value="monthly"
-                className="hover:bg-blue-50 hover:text-blue-700 transition-all duration-300"
-              >
-                월별 매트릭스
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="daily" className="space-y-4">
-              <DailyMatrixTable
-                companyId={companyId}
-                onExcelDownload={handleAllMatrixDownload}
-                downloadLoading={downloadLoading}
-              />
-            </TabsContent>
-
-            <TabsContent value="weekly" className="space-y-4">
-              <WeeklyMatrixTable
-                companyId={companyId}
-                onExcelDownload={handleAllMatrixDownload}
-                downloadLoading={downloadLoading}
-              />
-            </TabsContent>
-
-            <TabsContent value="monthly" className="space-y-4">
-              <MonthlyMatrixTable
-                companyId={companyId}
-                onExcelDownload={handleAllMatrixDownload}
-                downloadLoading={downloadLoading}
-              />
-            </TabsContent>
-          </Tabs>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger className="w-[150px] bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {periodOptions.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
-    </>
+
+      {/* Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          title="Total Revenue"
+          value={mockSummaryMetrics.totalRevenue.value}
+          change={mockSummaryMetrics.totalRevenue.change}
+          icon={DollarSign}
+          format="currency"
+        />
+        <MetricCard
+          title="Total Orders"
+          value={mockSummaryMetrics.totalOrders.value}
+          change={mockSummaryMetrics.totalOrders.change}
+          icon={ShoppingCart}
+        />
+        <MetricCard
+          title="Avg Order Value"
+          value={mockSummaryMetrics.avgOrderValue.value}
+          change={mockSummaryMetrics.avgOrderValue.change}
+          icon={BarChart3}
+          format="currency"
+        />
+        <MetricCard
+          title="Conversion Rate"
+          value={mockSummaryMetrics.conversionRate.value}
+          change={mockSummaryMetrics.conversionRate.change}
+          icon={Users}
+          format="percent"
+        />
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Platform Revenue Comparison */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Platform Revenue Comparison</CardTitle>
+            <CardDescription>Revenue breakdown by platform</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] flex items-center justify-center">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={mockPlatformRevenue}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {mockPlatformRevenue.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: any) => `$${value.toLocaleString()}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex justify-center gap-6 mt-4">
+              {mockPlatformRevenue.map((platform) => (
+                <div key={platform.name} className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: platform.color }}
+                  />
+                  <span className="text-sm font-medium">{platform.name}</span>
+                  <span className="text-sm text-muted-foreground">
+                    ${(platform.value / 1000).toFixed(0)}k
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sales Trend */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Sales Trend</CardTitle>
+            <CardDescription>Revenue over time</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={mockSalesTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="tiktok"
+                  stroke="#FF6B6B"
+                  strokeWidth={2}
+                  name="TikTok Shop"
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="amazon"
+                  stroke="#FF9500"
+                  strokeWidth={2}
+                  name="Amazon"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Top Performing Products */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Top Performing Products</CardTitle>
+            <CardDescription>Best sellers across all platforms</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {mockTopProducts.map((product) => (
+                <div key={product.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className={`px-2 py-1 rounded text-xs font-medium ${
+                      product.platform === 'TikTok'
+                        ? 'bg-pink-100 text-pink-700'
+                        : 'bg-orange-100 text-orange-700'
+                    }`}>
+                      {product.platform}
+                    </div>
+                    <div>
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-sm text-muted-foreground">{product.orders} orders</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">${product.revenue.toLocaleString()}</p>
+                    <p className={`text-xs flex items-center justify-end ${
+                      product.growth > 0 ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                      {product.growth > 0 ? '+' : ''}{product.growth}%
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Platform Performance */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Platform Performance</CardTitle>
+            <CardDescription>Key metrics by platform</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              {Object.values(mockPlatformPerformance).map((platform) => (
+                <div key={platform.name} className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${
+                        platform.name === 'TikTok Shop' ? 'bg-pink-500' : 'bg-orange-500'
+                      }`} />
+                      <span className="font-medium">{platform.name}</span>
+                    </div>
+                    <span className="text-xl font-bold">
+                      ${(platform.revenue / 1000).toFixed(0)}k
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Orders</p>
+                      <p className="font-medium">{platform.orders.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Conversion</p>
+                      <p className="font-medium">{platform.conversionRate}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">AOV</p>
+                      <p className="font-medium">${platform.avgOrderValue}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">% of Total</p>
+                      <p className="font-medium">{platform.percentOfTotal}%</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

@@ -51,8 +51,14 @@ interface MenuItem {
 // 메뉴 데이터
 const allMenuItems: MenuItem[] = [
   {
+    title: "대시보드",
+    url: "",  // 홈 경로
+    icon: BarChart3,
+    description: "통합 판매 대시보드",
+  },
+  {
     title: "샘플 발송 현황",
-    url: "",  // 동적으로 설정됨
+    url: "/sample-summary",
     icon: Package,
     description: "TikTok 샘플 발송 데이터 분석",
   },
