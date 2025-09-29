@@ -1,10 +1,13 @@
 "use client"
 
+import { use } from "react"
+
 import { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { LoadingSpinner } from "@/components/loading-spinner"
 import {
   ArrowLeft,
   TrendingUp,
@@ -56,7 +59,8 @@ interface CreatorStats {
   videos: VideoData[]
 }
 
-export default function ContentAnalysisPage() {
+export default function ContentAnalysisPage({ params }: { params: Promise<{ companyId: string }> }) {
+  const { companyId } = use(params)
   const [videoData, setVideoData] = useState<VideoData[]>([])
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
@@ -86,7 +90,7 @@ export default function ContentAnalysisPage() {
         setError(null)
         
         // Supabase contents 테이블에서 실제 데이터 로드
-        const response = await fetch('/api/content/contents?groupBy=creator')
+        const response = await fetch(`/api/content/contents?groupBy=creator&companyId=${companyId}`)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -160,7 +164,7 @@ export default function ContentAnalysisPage() {
     }
 
     loadAllData()
-  }, [])
+  }, [companyId])
 
   // 크리에이터별 통계 계산
   const creatorStats = useMemo(() => {
@@ -336,16 +340,7 @@ export default function ContentAnalysisPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex-1 space-y-4 p-4 md:p-6 pt-6">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">TikTok 데이터를 불러오는 중...</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner message="TikTok 데이터를 불러오는 중..." />
   }
 
   if (error) {
@@ -629,7 +624,7 @@ export default function ContentAnalysisPage() {
         <CardContent className="p-0">
           {creatorStats.length === 0 ? (
             <p className="text-center text-gray-500 py-8">
-              {searchTerm ? "검색 결과가 없습니다." : "데이터를 불러오는 중..."}
+              {searchTerm ? "검색 결과가 없습니다." : "데이터가 없습니다."}
             </p>
           ) : (
             <div className="relative overflow-x-auto">

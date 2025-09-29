@@ -193,6 +193,11 @@ export async function GET(request: NextRequest) {
     const groupBy = searchParams.get("groupBy") || "daily"
     const startDate = searchParams.get("startDate")
     const endDate = searchParams.get("endDate")
+    const companyId = searchParams.get('companyId')
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
+    }
 
     const supabase = createServerClient()
     
@@ -270,6 +275,7 @@ export async function GET(request: NextRequest) {
         `)
         .gte("publish_date", startDate || defaultStartDate)
         .lte("publish_date", endDate || defaultEndDate)
+        .eq("company_id", companyId)
         .order("publish_date", { ascending: true })
         .range(offset, offset + batchSize - 1)
       

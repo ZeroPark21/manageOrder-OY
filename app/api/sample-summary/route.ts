@@ -13,9 +13,16 @@ interface OrderData {
   sku_unit_original_price: number
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    console.log("📊 /api/sample-summary 호출됨")
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
+    }
+
+    console.log(`📊 /api/sample-summary 호출됨 - Company ID: ${companyId}`)
     const supabase = createServerClient()
     
     // 전체 샘플 데이터 카운트
@@ -23,6 +30,7 @@ export async function GET() {
       .from("orders")
       .select("*", { count: 'exact', head: true })
       .eq("sku_unit_original_price", 0)
+      .eq("company_id", companyId)
     
     if (countError) {
       console.error("Database count error:", countError)
@@ -52,6 +60,7 @@ export async function GET() {
           sku_unit_original_price
         `)
         .eq("sku_unit_original_price", 0)
+        .eq("company_id", companyId)
         .order("created_time", { ascending: true })
         .range(offset, offset + batchSize - 1)
       
@@ -172,11 +181,11 @@ export async function GET() {
     response.headers.set('Expires', '0')
     
     return response
-    
+
   } catch (error) {
     console.error("❌ Sample summary API error:", error)
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : "Internal server error" 
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : "Internal server error"
     }, { status: 500 })
   }
 }

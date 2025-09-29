@@ -23,11 +23,12 @@ interface ContentDailyMatrixData {
 }
 
 interface ContentDailyMatrixTableProps {
+  companyId: string
   onExcelDownload?: () => void
   downloadLoading?: boolean
 }
 
-export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: ContentDailyMatrixTableProps) {
+export function ContentDailyMatrixTable({ companyId, onExcelDownload, downloadLoading }: ContentDailyMatrixTableProps) {
   const [matrixData, setMatrixData] = useState<ContentDailyMatrixData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState<string>('')
@@ -37,7 +38,7 @@ export function ContentDailyMatrixTable({ onExcelDownload, downloadLoading }: Co
     setLoading(true)
     try {
       // Use the new content-all-matrix API
-      const response = await fetch(`/api/content/content-all-matrix?t=${Date.now()}`)
+      const response = await fetch(`/api/content/content-all-matrix?t=${Date.now()}&companyId=${companyId}`)
       
       if (!response.ok) {
         throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`)

@@ -1,5 +1,7 @@
 "use client"
 
+import { use } from "react"
+
 import type React from "react"
 
 import { useState } from "react"
@@ -20,7 +22,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-export default function UploadPage() {
+export default function UploadPage({ params }: { params: Promise<{ companyId: string }> }) {
+  const { companyId } = use(params)
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -51,6 +54,7 @@ export default function UploadPage() {
     try {
       const formData = new FormData()
       formData.append("file", file)
+      formData.append("companyId", companyId)
 
       console.log("🚀 Starting upload:", file.name, "Size:", file.size)
 

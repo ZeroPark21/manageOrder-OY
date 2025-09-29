@@ -69,11 +69,16 @@ function parseDate(dateStr: string): Date | null {
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
-    
+
     // URL 파라미터에서 날짜 범위 가져오기
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    const companyId = searchParams.get('companyId')
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
+    }
     
     // 기본값: 현재 월의 첫날
     const now = new Date()
@@ -104,6 +109,7 @@ export async function GET(request: NextRequest) {
         .from("orders")
         .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
         .eq("sku_unit_original_price", 0)  // 샘플만 필터링
+        .eq("company_id", companyId)  // 회사별 필터링
         .order("created_time", { ascending: true })
         .range(offset, offset + batchSize - 1)
       

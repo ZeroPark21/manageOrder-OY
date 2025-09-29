@@ -25,6 +25,7 @@ interface ContentData {
   affiliate_refunded_gmv: number
   comment_count: number
   like_count: number
+  company_id?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -47,12 +48,18 @@ export async function POST(request: NextRequest) {
     }
     
     const file = formData.get("file") as File
+    const companyId = formData.get("companyId") as string
 
     console.log("📁 파일 정보:", {
       name: file?.name,
       size: file?.size,
-      type: file?.type
+      type: file?.type,
+      companyId: companyId
     })
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
+    }
 
     if (!file) {
       return NextResponse.json({ error: "파일이 없습니다." }, { status: 400 })
@@ -257,6 +264,7 @@ export async function POST(request: NextRequest) {
           creator_name: creator_name || "크리에이터 없음",
           publish_date: formattedDate,
           video_link: video_link || `generated-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          company_id: companyId,
           gmv: (() => {
             // GMV 파싱 개선
             const cleanGmv = gmv.toString()
@@ -338,6 +346,7 @@ export async function POST(request: NextRequest) {
       const { data: existingContents, error: batchSelectError } = await supabase
         .from("contents")
         .select("video_link, content_title, gmv")
+        .eq("company_id", companyId)
         .in("video_link", videoLinks)
       
       if (batchSelectError) {
@@ -414,6 +423,7 @@ export async function POST(request: NextRequest) {
             const { error: updateError } = await supabase
               .from("contents")
               .update(newContent)
+              .eq("company_id", companyId)
               .eq("video_link", newContent.video_link)
 
             if (updateError) {
@@ -439,6 +449,7 @@ export async function POST(request: NextRequest) {
       const { count } = await supabase
         .from('contents')
         .select('*', { count: 'exact', head: true })
+        .eq("company_id", companyId)
 
       return NextResponse.json({
         message: `콘텐츠 처리 완료: 삽입 ${insertedCount}개, 업데이트 ${updatedCount}개, 스킵 ${skippedCount}개`,

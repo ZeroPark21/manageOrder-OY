@@ -22,18 +22,19 @@ interface ContentMonthlyMatrixData {
 }
 
 interface ContentMonthlyMatrixTableProps {
+  companyId: string
   onExcelDownload?: () => void
   downloadLoading?: boolean
 }
 
-export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: ContentMonthlyMatrixTableProps) {
+export function ContentMonthlyMatrixTable({ companyId, onExcelDownload, downloadLoading }: ContentMonthlyMatrixTableProps) {
   const [matrixData, setMatrixData] = useState<ContentMonthlyMatrixData | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchMatrixData = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/content/content-all-matrix?t=${Date.now()}`, {
+      const response = await fetch(`/api/content/content-all-matrix?t=${Date.now()}&companyId=${companyId}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -84,7 +85,7 @@ export function ContentMonthlyMatrixTable({ onExcelDownload, downloadLoading }: 
 
   useEffect(() => {
     fetchMatrixData()
-  }, [])
+  }, [companyId])
 
   if (loading) {
     return (

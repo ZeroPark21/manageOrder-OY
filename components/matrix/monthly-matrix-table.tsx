@@ -24,18 +24,19 @@ interface MonthlyMatrixData {
 
 // Props 인터페이스에 추가
 interface MonthlyMatrixTableProps {
+  companyId: string
   onExcelDownload?: () => void
   downloadLoading?: boolean
 }
 
-export function MonthlyMatrixTable({ onExcelDownload, downloadLoading }: MonthlyMatrixTableProps) {
+export function MonthlyMatrixTable({ companyId, onExcelDownload, downloadLoading }: MonthlyMatrixTableProps) {
   const [data, setData] = useState<MonthlyMatrixData | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchData = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/matrix/monthly-matrix")
+      const response = await fetch(`/api/matrix/monthly-matrix?companyId=${companyId}`)
       if (!response.ok) {
         throw new Error(`API 요청 실패: ${response.status}`)
       }

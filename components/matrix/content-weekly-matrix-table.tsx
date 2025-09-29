@@ -22,18 +22,19 @@ interface ContentWeeklyMatrixData {
 }
 
 interface ContentWeeklyMatrixTableProps {
+  companyId: string
   onExcelDownload?: () => void
   downloadLoading?: boolean
 }
 
-export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: ContentWeeklyMatrixTableProps) {
+export function ContentWeeklyMatrixTable({ companyId, onExcelDownload, downloadLoading }: ContentWeeklyMatrixTableProps) {
   const [matrixData, setMatrixData] = useState<ContentWeeklyMatrixData | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchMatrixData = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/content/content-all-matrix?t=${Date.now()}`, {
+      const response = await fetch(`/api/content/content-all-matrix?t=${Date.now()}&companyId=${companyId}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -84,7 +85,7 @@ export function ContentWeeklyMatrixTable({ onExcelDownload, downloadLoading }: C
 
   useEffect(() => {
     fetchMatrixData()
-  }, [])
+  }, [companyId])
 
   if (loading) {
     return (

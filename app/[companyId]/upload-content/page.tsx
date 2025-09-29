@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { use, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,7 +19,8 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 
-export default function UploadContentPage() {
+export default function UploadContentPage({ params }: { params: Promise<{ companyId: string }> }) {
+  const { companyId } = use(params)
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -295,6 +296,7 @@ export default function UploadContentPage() {
       
       const formData = new FormData()
       formData.append("file", file)
+      formData.append("companyId", companyId)
       
       console.log("📤 서버로 요청 전송 중...")
       let response

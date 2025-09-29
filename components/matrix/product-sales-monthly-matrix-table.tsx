@@ -20,7 +20,11 @@ interface ProductMonthlyStats {
   monthlyQuantities: { [month: string]: number }
 }
 
-export function ProductSalesMonthlyMatrixTable() {
+interface ProductSalesMonthlyMatrixTableProps {
+  companyId: string
+}
+
+export function ProductSalesMonthlyMatrixTable({ companyId }: ProductSalesMonthlyMatrixTableProps) {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -31,7 +35,7 @@ export function ProductSalesMonthlyMatrixTable() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/product-sales/all-matrix?groupBy=monthly")
+      const response = await fetch(`/api/product-sales/all-matrix?groupBy=monthly&companyId=${companyId}`)
       if (!response.ok) throw new Error("Failed to fetch data")
       const result = await response.json()
       

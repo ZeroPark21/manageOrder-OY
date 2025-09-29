@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/database/supabase"
 
 export const runtime = "nodejs"
@@ -16,8 +16,15 @@ interface ContentData {
   uniqueCreators?: number
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
+    }
+
     const supabase = createServerClient()
     // Supabase는 기본적으로 1000개 제한이 있으므로, 범위를 나누어 조회
     const allContents = []
@@ -38,6 +45,7 @@ export async function GET() {
           comment_count,
           like_count
         `)
+        .eq("company_id", companyId)
         .order("publish_date", { ascending: true })
         .range(offset, offset + limit - 1)
       

@@ -104,6 +104,13 @@ function formatWeekRange(weekKey: string): string {
 
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
+    }
+
     const supabase = createServerClient()
 
     // 샘플 데이터를 여러 배치로 나누어 조회 (Supabase는 한 번에 1000개 제한이 있음)
@@ -117,6 +124,7 @@ export async function GET(request: NextRequest) {
         .from("orders")
         .select("id, product_name, seller_sku, sku_id, quantity, created_time, delivered_time, sku_unit_original_price")
         .eq("sku_unit_original_price", 0)  // 샘플만 필터링
+        .eq("company_id", companyId)  // 회사별 필터링
         .not("created_time", "is", null)  // created_time이 있는 데이터만
         .order("created_time", { ascending: true })  // 날짜 순서대로
         .range(offset, offset + batchSize - 1)

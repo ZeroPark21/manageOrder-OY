@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/database/supabase"
+import { parseDate, formatDate, parseDateLocal } from "@/lib/utils/data-transformer"
 
 export const runtime = "edge"
 export const dynamic = 'force-dynamic'
@@ -13,6 +14,7 @@ interface SalesOrder {
   sku_unit_original_price: number
   seller_sku: string
   sku_id: string // TEXT 타입으로 수정
+  company_id?: number
 }
 
 interface ProductSalesData {
@@ -123,79 +125,35 @@ function formatWeekRange(weekKey: string): string {
   return `${formatDate(startDate)}-${formatDate(endDate)}`
 }
 
-// 날짜 파싱 함수: 다양한 형식 처리
-function parseDate(dateStr: string): Date | null {
-  if (!dateStr) return null
-  
-  try {
-    // MM/DD/YYYY HH:MM:SS AM/PM 형식 (가장 먼저 체크)
-    if (dateStr.includes('/')) {
-      // "07/31/2025 10:14:33 AM" -> Date 객체로 변환
-      const parts = dateStr.split(' ')
-      const datePart = parts[0] // "07/31/2025"
-      const timePart = parts[1] || "00:00:00" // "10:14:33"
-      const ampm = parts[2] || "" // "AM" or "PM"
-      
-      const [month, day, year] = datePart.split('/')
-      
-      // 시간이 있는 경우
-      if (timePart !== "00:00:00") {
-        const [hours, minutes, seconds] = timePart.split(':')
-        let hour = parseInt(hours)
-        if (ampm === 'PM' && hour !== 12) hour += 12
-        if (ampm === 'AM' && hour === 12) hour = 0
-        
-        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes) || 0, parseInt(seconds) || 0)
-      } else {
-        // 시간이 없는 경우
-        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-      }
-    }
-    
-    // ISO 형식 (2025-07-30T23:29:27.000Z) 또는 YYYY-MM-DD
-    if (dateStr.includes('T')) {
-      return new Date(dateStr)
-    }
-    
-    // YYYY-MM-DD 형식
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      return new Date(dateStr + 'T00:00:00')
-    }
-    
-    // 기타 형식 시도
-    const date = new Date(dateStr)
-    if (!isNaN(date.getTime())) {
-      return date
-    }
-    
-    return null
-  } catch (e) {
-    console.error('Date parsing error:', dateStr, e)
-    return null
-  }
-}
+// parseDate 함수는 이제 data-transformer 유틸리티에서 import
 
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient()
-    
+
     // URL 파라미터에서 날짜 범위 가져오기
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    const companyId = searchParams.get('companyId')
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
+    }
     
     console.log(`🔍 Fetching sales data with filters: startDate=${startDate}, endDate=${endDate}`)
 
-    // 모든 매출 데이터를 페이지네이션으로 가져오기
+    // 모든 매출 데이터를 페이지네이션으로 가져오기 (company_id 필터 포함)
     let allOrders: SalesOrder[] = []
     let offset = 0
     const batchSize = 1000
     let hasMore = true
-    
+
     while (hasMore) {
       const { data: batch, error: batchError } = await supabase
         .from("orders")
-        .select("id, product_name, seller_sku, sku_id, quantity, created_time, order_amount, sku_unit_original_price")
+        .select("id, product_name, seller_sku, sku_id, quantity, created_time, order_amount, sku_unit_original_price, company_id")
+        .eq("company_id", parseInt(companyId))  // company_id 필터 직접 적용
         .gt("order_amount", 0)  // 매출 데이터만 필터링
         .order("created_time", { ascending: true })
         .range(offset, offset + batchSize - 1)
@@ -221,31 +179,26 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    console.log(`📦 Total sales orders fetched: ${allOrders.length}`)
-    
-    console.log(`[sales-analysis] Total orders from DB: ${allOrders.length}`)
-    if (allOrders.length > 0) {
-      console.log(`[sales-analysis] Sample created_time formats:`, allOrders.slice(0, 3).map(o => o.created_time))
-    }
-    
+    console.log(`📦 Total sales orders fetched for company ${companyId}: ${allOrders.length}`)
+
     // 날짜 필터링 적용 (startDate와 endDate가 제공된 경우)
     let orders = allOrders
     if (startDate && endDate) {
-      const filterStartDate = new Date(startDate)
-      const filterEndDate = new Date(endDate)
+      // 로컬 시간대로 날짜 생성 (유틸리티 함수 사용)
+      const filterStartDate = parseDateLocal(startDate)
+      const filterEndDate = new Date(parseDateLocal(endDate).getTime())
       filterEndDate.setHours(23, 59, 59, 999)
       
       console.log(`[sales-analysis] Filter range: ${startDate} to ${endDate}`)
-      
+
       orders = allOrders.filter(order => {
         const orderDate = parseDate(order.created_time)
         if (!orderDate) {
-          console.log(`[sales-analysis] Failed to parse date: ${order.created_time}`)
           return false
         }
         return orderDate >= filterStartDate && orderDate <= filterEndDate
       })
-      
+
       console.log(`[sales-analysis] Filtered ${orders.length} orders from ${allOrders.length} total`)
     }
 

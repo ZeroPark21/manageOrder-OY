@@ -19,7 +19,11 @@ interface WeeklyData {
   avgPrice: number
 }
 
-export function ProductSalesWeeklyMatrixTable() {
+interface ProductSalesWeeklyMatrixTableProps {
+  companyId: string
+}
+
+export function ProductSalesWeeklyMatrixTable({ companyId }: ProductSalesWeeklyMatrixTableProps) {
   const [data, setData] = useState<WeeklyData[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState<string | null>(null)
@@ -31,7 +35,7 @@ export function ProductSalesWeeklyMatrixTable() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/product-sales/all-matrix?groupBy=weekly")
+      const response = await fetch(`/api/product-sales/all-matrix?groupBy=weekly&companyId=${companyId}`)
       if (!response.ok) throw new Error("Failed to fetch data")
       const result = await response.json()
       

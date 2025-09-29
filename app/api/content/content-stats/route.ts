@@ -22,6 +22,11 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get("startDate")
     const endDate = searchParams.get("endDate")
+    const companyId = searchParams.get('companyId')
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
+    }
     
     const supabase = createServerClient()
     
@@ -35,9 +40,10 @@ export async function GET(request: NextRequest) {
       let query = supabase
         .from("contents")
         .select("creator_name")
+        .eq("company_id", companyId)
         .not("creator_name", "is", null)
         .neq("creator_name", "")
-        
+
       if (startDate) query = query.gte("publish_date", startDate)
       if (endDate) query = query.lte("publish_date", endDate)
       
@@ -84,7 +90,8 @@ export async function GET(request: NextRequest) {
           comment_count,
           gmv
         `)
-        
+        .eq("company_id", companyId)
+
       if (startDate) contentsQuery = contentsQuery.gte("publish_date", startDate)
       if (endDate) contentsQuery = contentsQuery.lte("publish_date", endDate)
       

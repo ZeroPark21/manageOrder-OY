@@ -25,11 +25,12 @@ interface DailyMatrixData {
 
 // Props 인터페이스에 추가
 interface DailyMatrixTableProps {
+  companyId: string
   onExcelDownload?: () => void
   downloadLoading?: boolean
 }
 
-export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatrixTableProps) {
+export function DailyMatrixTable({ companyId, onExcelDownload, downloadLoading }: DailyMatrixTableProps) {
   const [data, setData] = useState<DailyMatrixData | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState<string>('')
@@ -38,12 +39,12 @@ export function DailyMatrixTable({ onExcelDownload, downloadLoading }: DailyMatr
   const fetchData = async (year?: number, month?: string) => {
     setLoading(true)
     try {
-      let url = "/api/matrix/daily-matrix"
+      let url = `/api/matrix/daily-matrix?companyId=${companyId}`
       if (year && month) {
         const startDate = `${year}-${month}-01`
         const lastDay = new Date(year, parseInt(month), 0).getDate()
         const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
-        url += `?startDate=${startDate}&endDate=${endDate}`
+        url += `&startDate=${startDate}&endDate=${endDate}`
       }
       const response = await fetch(url)
       if (!response.ok) {

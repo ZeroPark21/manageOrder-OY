@@ -1,7 +1,10 @@
 "use client"
 
+import { use } from "react"
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { LoadingSpinner } from "@/components/loading-spinner"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, BarChart3, TrendingUp, Eye, DollarSign, Users, Heart } from "lucide-react"
@@ -37,7 +40,8 @@ interface ContentData {
   totalLikeCount?: number
 }
 
-export default function ContentDashboard() {
+export default function ContentDashboard({ params }: { params: Promise<{ companyId: string }> }) {
+  const { companyId } = use(params)
   const [summaryData, setSummaryData] = useState<ContentData | null>(null)
   const [loading, setLoading] = useState(true)
   const [totalGmv, setTotalGmv] = useState(0)
@@ -47,7 +51,7 @@ export default function ContentDashboard() {
     setLoading(true)
     try {
       // 새로운 정확한 stats API 사용
-      const statsResponse = await fetch(`/api/content/content-stats?startDate=2025-06-01&t=${Date.now()}`)
+      const statsResponse = await fetch(`/api/content/content-stats?startDate=2025-06-01&t=${Date.now()}&companyId=${companyId}`)
       const statsData = await statsResponse.json()
       
       if (statsData.success) {
@@ -68,7 +72,7 @@ export default function ContentDashboard() {
         })
       } else {
         // Fallback to old method if new API fails
-        const matrixResponse = await fetch(`/api/content/content-all-matrix?t=${Date.now()}`)
+        const matrixResponse = await fetch(`/api/content/content-all-matrix?t=${Date.now()}&companyId=${companyId}`)
         const matrixData = await matrixResponse.json()
         
         let totalCount = 0
@@ -83,7 +87,7 @@ export default function ContentDashboard() {
           })
         }
         
-        const creatorResponse = await fetch(`/api/content/contents?groupBy=creator&startDate=2025-06-01`)
+        const creatorResponse = await fetch(`/api/content/contents?groupBy=creator&startDate=2025-06-01&companyId=${companyId}`)
         const creatorData = await creatorResponse.json()
         
         setSummaryData({
@@ -98,7 +102,7 @@ export default function ContentDashboard() {
 
       
       // GMV 데이터 가져오기 - 콘텐츠 분석 페이지와 동일한 API 사용
-      const contentsResponse = await fetch('/api/content/contents?groupBy=creator')
+      const contentsResponse = await fetch(`/api/content/contents?groupBy=creator&companyId=${companyId}`)
       if (contentsResponse.ok) {
         const contentsResult = await contentsResponse.json()
         console.log("📊 Total GMV loaded:", contentsResult.totalGmv)
@@ -314,18 +318,7 @@ export default function ContentDashboard() {
   }, [])
 
   if (loading) {
-    return (
-      <div className="flex h-16 shrink-0 items-center gap-2 px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <div className="flex items-center justify-center flex-1 h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p>콘텐츠 데이터를 불러오는 중...</p>
-          </div>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner message="콘텐츠 데이터를 불러오는 중..." />
   }
 
   return (
@@ -433,15 +426,15 @@ export default function ContentDashboard() {
             </TabsList>
 
             <TabsContent value="daily" className="space-y-4">
-              <ContentDailyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+              <ContentDailyMatrixTable companyId={companyId} onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
             </TabsContent>
 
             <TabsContent value="weekly" className="space-y-4">
-              <ContentWeeklyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+              <ContentWeeklyMatrixTable companyId={companyId} onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
             </TabsContent>
 
             <TabsContent value="monthly" className="space-y-4">
-              <ContentMonthlyMatrixTable onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
+              <ContentMonthlyMatrixTable companyId={companyId} onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
             </TabsContent>
           </Tabs>
         </div>

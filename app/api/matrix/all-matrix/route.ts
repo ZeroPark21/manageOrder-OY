@@ -249,7 +249,14 @@ function groupByMonth(orders: OrderData[]) {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("📊 /api/all-matrix 호출됨")
+    const { searchParams } = new URL(request.url)
+    const companyId = searchParams.get('companyId')
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
+    }
+
+    console.log(`📊 /api/all-matrix 호출됨 - Company ID: ${companyId}`)
     const supabase = createServerClient()
     
     // 데이터베이스 연결 테스트
@@ -257,6 +264,7 @@ export async function GET(request: NextRequest) {
       .from("orders")
       .select("*", { count: 'exact', head: true })
       .eq("sku_unit_original_price", 0)
+      .eq("company_id", companyId)
     
     if (countError) {
       console.error("Database count error:", countError)
@@ -276,6 +284,7 @@ export async function GET(request: NextRequest) {
         .from("orders")
         .select("id, product_name, seller_sku, sku_id, quantity, created_time, sku_unit_original_price")
         .eq("sku_unit_original_price", 0)
+      .eq("company_id", companyId)
         .order("created_time", { ascending: true })
         .range(offset, offset + batchSize - 1)
       

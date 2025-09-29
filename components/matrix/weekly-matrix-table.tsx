@@ -27,18 +27,19 @@ interface WeeklyMatrixData {
 
 // Props 인터페이스에 추가
 interface WeeklyMatrixTableProps {
+  companyId: string
   onExcelDownload?: () => void
   downloadLoading?: boolean
 }
 
-export function WeeklyMatrixTable({ onExcelDownload, downloadLoading }: WeeklyMatrixTableProps) {
+export function WeeklyMatrixTable({ companyId, onExcelDownload, downloadLoading }: WeeklyMatrixTableProps) {
   const [data, setData] = useState<WeeklyMatrixData | null>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchData = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/matrix/weekly-matrix")
+      const response = await fetch(`/api/matrix/weekly-matrix?companyId=${companyId}`)
       if (!response.ok) {
         throw new Error(`API 요청 실패: ${response.status}`)
       }

@@ -1,5 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/database/supabase"
+import { parseCSVLine } from "@/lib/utils/csv-parser"
+import { parseNumber, parseInteger } from "@/lib/utils/data-transformer"
+import { processBatches } from "@/lib/utils/batch-processor"
 
 export const runtime = "nodejs"
 
@@ -9,44 +12,6 @@ function parseCSVDate(dateString: string): string | null {
   }
   // 날짜를 그대로 문자열로 저장 (데이터베이스에서 TEXT 타입으로 저장)
   return dateString.trim()
-}
-
-function parseNumber(value: string): number {
-  if (!value || value.trim() === "" || value === "\t") {
-    return 0
-  }
-  const num = Number.parseFloat(value.toString().replace(/[,$]/g, ""))
-  return isNaN(num) ? 0 : num
-}
-
-function parseInteger(value: string): number {
-  if (!value || value.trim() === "" || value === "\t") {
-    return 0
-  }
-  const num = Number.parseInt(value.toString().replace(/[,$]/g, ""))
-  return isNaN(num) ? 0 : num
-}
-
-function parseCSVLine(line: string): string[] {
-  const result = []
-  let current = ""
-  let inQuotes = false
-
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i]
-
-    if (char === '"') {
-      inQuotes = !inQuotes
-    } else if (char === "," && !inQuotes) {
-      result.push(current.trim())
-      current = ""
-    } else {
-      current += char
-    }
-  }
-
-  result.push(current.trim())
-  return result.map((cell) => cell.replace(/^"|"$/g, ""))
 }
 
 export async function POST(request: NextRequest) {
@@ -62,6 +27,11 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get("file") as File
+    const companyId = formData.get("companyId") as string
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
+    }
 
     if (!file) {
       return NextResponse.json({ error: "파일이 업로드되지 않았습니다." }, { status: 400 })
@@ -119,19 +89,28 @@ export async function POST(request: NextRequest) {
         
         // order_id를 문자열로 변환하여 정밀도 문제 해결
         const orderId = String(orderIdRaw)
-        
-        // CSV 내에서 중복 체크
-        if (orderIdSet.has(orderId)) {
-          duplicateOrderIds.add(orderId)
+
+        // 고유한 row ID 생성 (order_id + SKU ID 또는 product name)
+        const skuId = rowData["SKU ID"]?.toString().trim()
+        const rowUniqueId = `${orderId}_${skuId || productName || i}`
+
+        // 이미 처리된 row인지 체크 (완전히 동일한 row 중복 방지)
+        if (orderIdSet.has(rowUniqueId)) {
           duplicateRows++
-          console.log(`⚠️ Duplicate order_id in CSV: ${orderId} at row ${i + 1}`)
-          continue // 중복된 경우 건너뛰기
+          console.log(`⚠️ Duplicate row: ${rowUniqueId} at row ${i + 1}`)
+          continue
         }
-        orderIdSet.add(orderId)
+        orderIdSet.add(rowUniqueId)
+
+        // Order ID 자체는 중복 가능 (하나의 주문에 여러 SKU)
+        if (!duplicateOrderIds.has(orderId)) {
+          duplicateOrderIds.add(orderId)
+        }
 
         // CSV 컴럼명을 데이터베이스 컴럼명으로 매핑
         const orderData: any = {
           order_id: orderId,
+          company_id: companyId,
           order_status: rowData["Order Status"] || null,
           order_substatus: rowData["Order Substatus"] || null,
           cancelation_return_type: rowData["Cancelation/Return Type"] || null,
@@ -224,9 +203,9 @@ export async function POST(request: NextRequest) {
       console.warn(`⚠️ Found ${duplicateRows} duplicate order_ids in CSV file`)
     }
 
-    // 배치 업서트
+    // 배치 업서트 (최적화된 배치 크기)
     console.log("💾 Upserting orders into database...")
-    const batchSize = 50
+    const batchSize = 500 // 50에서 500으로 증가
     let upsertedCount = 0
 
     for (let i = 0; i < orders.length; i += batchSize) {
@@ -234,13 +213,14 @@ export async function POST(request: NextRequest) {
       const batchNumber = Math.floor(i / batchSize) + 1
 
       try {
-        // 먼저 기존 order_id들을 조회
+        // 먼저 기존 order들을 조회 (order_id + sku_id 조합으로)
         const orderIds = batch.map(order => String(order.order_id))
         console.log(`🔍 Checking existing orders for batch ${batchNumber}:`, orderIds.slice(0, 3), '...')
-        
+
         const { data: existingOrders, error: selectError } = await supabase
           .from("orders")
-          .select("id, order_id")
+          .select("id, order_id, sku_id, product_name")
+          .eq("company_id", companyId)
           .in("order_id", orderIds)
         
         if (selectError) {
@@ -248,19 +228,23 @@ export async function POST(request: NextRequest) {
           throw selectError
         }
         
+        // order_id + sku_id 조합으로 매핑
         const existingOrderMap = new Map(
-          existingOrders?.map(order => [String(order.order_id), order.id]) || []
+          existingOrders?.map(order => {
+            const key = `${String(order.order_id)}_${order.sku_id || order.product_name}`
+            return [key, order.id]
+          }) || []
         )
-        
+
         console.log(`📊 Batch ${batchNumber}: Found ${existingOrders?.length || 0} existing orders out of ${batch.length} total`)
-        
+
         // 업데이트할 주문과 새로 추가할 주문 분리
         const ordersToUpdate: any[] = []
         const ordersToInsert: any[] = []
-        
+
         batch.forEach(order => {
-          const orderIdStr = String(order.order_id)
-          const existingId = existingOrderMap.get(orderIdStr)
+          const orderKey = `${String(order.order_id)}_${order.sku_id || order.product_name}`
+          const existingId = existingOrderMap.get(orderKey)
           if (existingId) {
             ordersToUpdate.push({ ...order, id: existingId })
           } else {
@@ -315,7 +299,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 최종 검증
-    const { count: finalCount } = await supabase.from("orders").select("*", { count: "exact", head: true })
+    const { count: finalCount } = await supabase
+      .from("orders")
+      .select("*", { count: "exact", head: true })
+      .eq("company_id", companyId)
 
     console.log("🎉 Upload completed!")
     console.log(`📊 Final count: ${finalCount}`)
