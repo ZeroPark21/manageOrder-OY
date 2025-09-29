@@ -145,8 +145,8 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
 
   // 청크 업로드 함수 - 성능 최적화 (병렬 처리)
   const uploadInChunks = async (data: any[]) => {
-    const CHUNK_SIZE = 200 // 청크 크기 최적화 (속도와 안정성 균형)
-    const MAX_CONCURRENT = 4 // 동시 처리 청크 수 최적화
+    const CHUNK_SIZE = 10 // 청크 크기 더 감소 (30 -> 10, 타임아웃 확실히 방지)
+    const MAX_CONCURRENT = 1 // 순차 처리
     let totalSaved = 0
     
     // 데이터 변환을 미리 처리

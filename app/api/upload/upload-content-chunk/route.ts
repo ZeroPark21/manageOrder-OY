@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/database/supabase"
 
 export const runtime = "nodejs"
-export const maxDuration = 60
+export const maxDuration = 10 // 10초로 대폭 감소
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,51 +17,58 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServerClient()
-    console.log(`청크 처리 시작: ${contents.length}개 항목`)
-    
+
     let saved = 0
-    
-    // 개별 처리로 중복 문제 해결 (안전한 방식)
-    for (const content of contents) {
+
+    // 최대 10개만 처리 (타임아웃 방지)
+    const itemsToProcess = contents.slice(0, 10)
+
+    // 빠른 개별 처리 (병렬)
+    const promises = itemsToProcess.map(async (content) => {
+      const contentWithCompany = { ...content, company_id: companyId }
+
       try {
-        // companyId 추가
-        const contentWithCompany = { ...content, company_id: companyId }
-
-        // 먼저 기존 데이터 확인
-        const { data: existing } = await supabase
+        // 먼저 삽입 시도
+        const { error: insertError } = await supabase
           .from("contents")
-          .select("id")
-          .eq("video_link", content.video_link)
-          .eq("company_id", companyId)
-          .single()
+          .insert(contentWithCompany)
 
-        if (existing) {
-          // 기존 데이터 업데이트
-          const { error: updateError } = await supabase
-            .from("contents")
-            .update(contentWithCompany)
-            .eq("id", existing.id)
-
-          if (!updateError) saved++
-        } else {
-          // 새 데이터 삽입
-          const { error: insertError } = await supabase
-            .from("contents")
-            .insert(contentWithCompany)
-
-          if (!insertError) saved++
+        if (!insertError) {
+          return 1
         }
-      } catch (itemError) {
-        console.log(`항목 처리 중 오류 (${content.video_link}):`, itemError)
-        // 개별 오류는 무시하고 계속 진행
-      }
-    }
 
-    console.log(`청크 처리 완료: ${saved}개 저장됨`)
-    
+        // 중복이면 업데이트
+        if (insertError.message?.includes('duplicate') || insertError.message?.includes('unique')) {
+          const { data: existing } = await supabase
+            .from("contents")
+            .select("id")
+            .eq("video_link", content.video_link)
+            .eq("company_id", companyId)
+            .single()
+
+          if (existing) {
+            const { error: updateError } = await supabase
+              .from("contents")
+              .update(contentWithCompany)
+              .eq("id", existing.id)
+
+            return updateError ? 0 : 1
+          }
+        }
+
+        return 0
+      } catch (e) {
+        return 0
+      }
+    })
+
+    const results = await Promise.all(promises)
+    saved = results.reduce((sum: number, val: number) => sum + val, 0)
+
     return NextResponse.json({
       saved,
-      isLastChunk
+      isLastChunk,
+      processed: itemsToProcess.length
     })
   } catch (err: any) {
     console.error("청크 업로드 오류:", err)
