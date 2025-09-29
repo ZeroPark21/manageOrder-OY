@@ -25,6 +25,8 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
+  console.log("🔍 Upload Content Page - companyId:", companyId)
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     console.log("🔍 Selected file:", {
@@ -189,7 +191,7 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
         const response = await fetch("/api/upload/upload-content-chunk", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents, isLastChunk })
+          body: JSON.stringify({ contents, isLastChunk, companyId })
         })
         
         let result

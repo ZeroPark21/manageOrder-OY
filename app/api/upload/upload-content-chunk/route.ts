@@ -6,10 +6,14 @@ export const maxDuration = 60
 
 export async function POST(request: NextRequest) {
   try {
-    const { contents, isLastChunk } = await request.json()
-    
+    const { contents, isLastChunk, companyId } = await request.json()
+
     if (!contents || !Array.isArray(contents)) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 })
+    }
+
+    if (!companyId) {
+      return NextResponse.json({ error: "companyId is required" }, { status: 400 })
     }
 
     const supabase = createServerClient()
@@ -20,27 +24,31 @@ export async function POST(request: NextRequest) {
     // 개별 처리로 중복 문제 해결 (안전한 방식)
     for (const content of contents) {
       try {
+        // companyId 추가
+        const contentWithCompany = { ...content, company_id: companyId }
+
         // 먼저 기존 데이터 확인
         const { data: existing } = await supabase
           .from("contents")
           .select("id")
           .eq("video_link", content.video_link)
+          .eq("company_id", companyId)
           .single()
 
         if (existing) {
           // 기존 데이터 업데이트
           const { error: updateError } = await supabase
             .from("contents")
-            .update(content)
+            .update(contentWithCompany)
             .eq("id", existing.id)
-          
+
           if (!updateError) saved++
         } else {
           // 새 데이터 삽입
           const { error: insertError } = await supabase
             .from("contents")
-            .insert(content)
-          
+            .insert(contentWithCompany)
+
           if (!insertError) saved++
         }
       } catch (itemError) {
