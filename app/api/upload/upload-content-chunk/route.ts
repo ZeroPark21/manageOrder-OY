@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createServerClient } from "@/lib/database/supabase"
 
 export const runtime = "nodejs"
-export const maxDuration = 10 // 10초로 대폭 감소
+export const maxDuration = 30
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,58 +17,69 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServerClient()
+    console.log(`청크 처리 시작: ${contents.length}개 항목, companyId: ${companyId}`)
 
-    let saved = 0
-
-    // 최대 10개만 처리 (타임아웃 방지)
-    const itemsToProcess = contents.slice(0, 10)
-
-    // 빠른 개별 처리 (병렬)
-    const promises = itemsToProcess.map(async (content) => {
-      const contentWithCompany = { ...content, company_id: companyId }
-
+    // 병렬 처리로 속도 향상
+    const promises = contents.map(async (content, index) => {
       try {
-        // 먼저 삽입 시도
-        const { error: insertError } = await supabase
-          .from("contents")
-          .insert(contentWithCompany)
+        // companyId 추가
+        const contentWithCompany = { ...content, company_id: companyId }
 
-        if (!insertError) {
+        // 첫 번째 항목 로그로 확인
+        if (index === 0) {
+          console.log(`첫 번째 항목 처리:`, {
+            video_link: content.video_link,
+            company_id: companyId,
+            content_title: content.content_title
+          })
+        }
+
+        // 먼저 기존 데이터 확인
+        const { data: existing } = await supabase
+          .from("contents")
+          .select("id")
+          .eq("video_link", content.video_link)
+          .eq("company_id", companyId)
+          .single()
+
+        if (existing) {
+          // 기존 데이터 업데이트
+          const { error: updateError } = await supabase
+            .from("contents")
+            .update(contentWithCompany)
+            .eq("id", existing.id)
+
+          return updateError ? 0 : 1
+        } else {
+          // 새 데이터 삽입
+          const { error: insertError } = await supabase
+            .from("contents")
+            .insert(contentWithCompany)
+
+          if (insertError) {
+            console.error(`삽입 실패 (companyId: ${companyId}):`, {
+              error: insertError.message,
+              video_link: content.video_link,
+              company_id: companyId
+            })
+            return 0
+          }
           return 1
         }
-
-        // 중복이면 업데이트
-        if (insertError.message?.includes('duplicate') || insertError.message?.includes('unique')) {
-          const { data: existing } = await supabase
-            .from("contents")
-            .select("id")
-            .eq("video_link", content.video_link)
-            .eq("company_id", companyId)
-            .single()
-
-          if (existing) {
-            const { error: updateError } = await supabase
-              .from("contents")
-              .update(contentWithCompany)
-              .eq("id", existing.id)
-
-            return updateError ? 0 : 1
-          }
-        }
-
-        return 0
-      } catch (e) {
+      } catch (itemError) {
+        console.error(`처리 중 예외 발생:`, itemError)
         return 0
       }
     })
 
     const results = await Promise.all(promises)
-    saved = results.reduce((sum: number, val: number) => sum + val, 0)
+    const saved = results.reduce((sum: number, val: number) => sum + val, 0)
+
+    console.log(`청크 처리 완료: ${saved}개 저장됨`)
 
     return NextResponse.json({
       saved,
-      isLastChunk,
-      processed: itemsToProcess.length
+      isLastChunk
     })
   } catch (err: any) {
     console.error("청크 업로드 오류:", err)
