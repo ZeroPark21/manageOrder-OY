@@ -12,7 +12,7 @@ export async function POST(request: Request) {
 
   await supabase.auth.signOut();
 
-  const response = NextResponse.redirect(new URL("/login", baseUrl));
+  const response = NextResponse.redirect(new URL("/login", baseUrl), { status: 303 });
 
   // 쿠키 삭제
   response.cookies.set("sb-access-token", "", {

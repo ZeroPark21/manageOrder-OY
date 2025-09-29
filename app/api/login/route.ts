@@ -21,12 +21,16 @@ export async function POST(request: Request) {
 
   if (error) {
     return NextResponse.redirect(
-      new URL(`/login?error=${encodeURIComponent(error.message)}`, baseUrl)
+      new URL(`/login?error=${encodeURIComponent(error.message)}`, baseUrl),
+      { status: 303 }
     );
   }
 
   if (data.user) {
-    const response = NextResponse.redirect(new URL("/select-company", baseUrl));
+    const response = NextResponse.redirect(
+      new URL("/select-company", baseUrl),
+      { status: 303 }
+    );
 
     // 세션 쿠키 설정
     if (data.session) {
@@ -48,5 +52,5 @@ export async function POST(request: Request) {
     return response;
   }
 
-  return NextResponse.redirect(new URL("/login", baseUrl));
+  return NextResponse.redirect(new URL("/login", baseUrl), { status: 303 });
 }
