@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { usePathname } from "next/navigation"
-import Link from "next/link"
-import { useEffect, useState } from "react"
-import { getSupabaseBrowserClient } from "@/lib/database/supabase"
+import * as React from "react";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getSupabaseBrowserClient } from "@/lib/database/supabase";
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 import {
   Package,
   Video,
@@ -26,33 +26,32 @@ import {
   TrendingUp,
   ChevronDown,
   Building2,
-  type LucideIcon
-} from "lucide-react"
-import { AuthSection } from "@/components/auth-section"
+  type LucideIcon,
+} from "lucide-react";
+import { AuthSection } from "@/components/auth-section";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 // 메뉴 아이템 타입 정의
 interface MenuItem {
-  title: string
-  url: string
-  icon: LucideIcon
-  description: string
-  devOnly?: boolean
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  description: string;
+  devOnly?: boolean;
 }
-
 
 // 메뉴 데이터
 const allMenuItems: MenuItem[] = [
   {
     title: "대시보드",
-    url: "",  // 홈 경로
+    url: "", // 홈 경로
     icon: BarChart3,
     description: "통합 판매 대시보드",
   },
@@ -80,9 +79,7 @@ const allMenuItems: MenuItem[] = [
     icon: FileSearch,
     description: "콘텐츠 성과 분석",
   },
-]
-
-
+];
 
 const utilityItems: MenuItem[] = [
   {
@@ -97,134 +94,149 @@ const utilityItems: MenuItem[] = [
     icon: BarChart3,
     description: "콘텐츠 발행 데이터 업로드",
   },
-]
+];
 
 interface Company {
-  id: number
-  name: string
+  id: number;
+  name: string;
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const [companyId, setCompanyId] = useState<string>('')
-  const [companyName, setCompanyName] = useState<string>('')
-  const [userRole, setUserRole] = useState<string>('viewer')
-  const [allCompanies, setAllCompanies] = useState<Company[]>([])
-  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false)
+  const pathname = usePathname();
+  const router = useRouter();
+  const [companyId, setCompanyId] = useState<string>("");
+  const [companyName, setCompanyName] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("viewer");
+  const [allCompanies, setAllCompanies] = useState<Company[]>([]);
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
   // URL에서 companyId 추출 및 권한 정보 가져오기
   useEffect(() => {
-    const match = pathname.match(/^\/(\d+)/)
+    const match = pathname.match(/^\/(\d+)/);
     if (match) {
-      const id = match[1]
+      const id = match[1];
 
       // companyId가 변경되었을 때만 업데이트
       if (id !== companyId) {
-        setCompanyId(id)
-        setCompanyName('') // 이전 회사명 초기화
+        setCompanyId(id);
+        setCompanyName(""); // 이전 회사명 초기화
 
         // 업체 이름과 사용자 권한 가져오기
         const getCompanyAndRole = async () => {
-          const supabase = getSupabaseBrowserClient()
+          const supabase = getSupabaseBrowserClient();
 
           // 현재 사용자 가져오기
-          const { data: { user } } = await supabase.auth.getUser()
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
 
           if (user) {
-            console.log('🔍 Current user:', user.email)
+            console.log("🔍 Current user:", user.email);
 
             // 회사 정보 가져오기 (먼저 companies 테이블에서 직접 조회)
             const { data: company } = await supabase
-              .from('companies')
-              .select('name')
-              .eq('id', parseInt(id))
-              .single()
+              .from("companies")
+              .select("name")
+              .eq("id", parseInt(id))
+              .single();
 
             if (company) {
-              setCompanyName((company as any).name)
+              setCompanyName((company as any).name);
             } else {
               // 회사를 찾을 수 없으면 기본값 설정
-              setCompanyName(`Company ${id}`)
+              setCompanyName(`Company ${id}`);
             }
 
             // 사용자의 모든 회사 권한 정보 가져오기
             const { data: userCompanies } = await supabase
-              .from('user_companies')
-              .select('company_id, role')
-              .eq('user_id', user.id)
+              .from("user_companies")
+              .select("company_id, role")
+              .eq("user_id", user.id);
 
-            console.log('👤 User companies:', userCompanies)
+            console.log("👤 User companies:", userCompanies);
 
             // admin 권한 체크
-            const hasAdminRole = userCompanies?.some(uc => uc.role === 'admin')
-            console.log('🔑 Has admin role:', hasAdminRole)
+            const hasAdminRole = userCompanies?.some(
+              (uc) => uc.role === "admin"
+            );
+            console.log("🔑 Has admin role:", hasAdminRole);
 
             if (hasAdminRole) {
-              setUserRole('admin')
+              setUserRole("admin");
 
               // admin인 경우 모든 회사 목록 가져오기
-              setIsLoadingCompanies(true)
-              const { data: allCompanyData, error: allCompanyError } = await supabase
-                .from('companies')
-                .select('id, name')
-                .order('name')
+              setIsLoadingCompanies(true);
+              const { data: allCompanyData, error: allCompanyError } =
+                await supabase
+                  .from("companies")
+                  .select("id, name")
+                  .order("name");
 
-              console.log('🏢 Admin fetching all companies:', {
+              console.log("🏢 Admin fetching all companies:", {
                 data: allCompanyData,
                 error: allCompanyError,
-                count: allCompanyData?.length || 0
-              })
+                count: allCompanyData?.length || 0,
+              });
 
               if (allCompanyData && allCompanyData.length > 0) {
-                setAllCompanies(allCompanyData as any)
-                console.log('✅ All companies set:', allCompanyData)
+                setAllCompanies(allCompanyData as any);
+                console.log("✅ All companies set:", allCompanyData);
                 // 강제로 업데이트 트리거
                 setTimeout(() => {
-                  console.log('🔄 Companies after timeout:', allCompanyData)
-                }, 100)
+                  console.log("🔄 Companies after timeout:", allCompanyData);
+                }, 100);
               } else if (allCompanyError) {
-                console.error('❌ Error fetching all companies:', allCompanyError)
+                console.error(
+                  "❌ Error fetching all companies:",
+                  allCompanyError
+                );
               } else {
-                console.log('⚠️ No companies found or empty result')
+                console.log("⚠️ No companies found or empty result");
               }
-              setIsLoadingCompanies(false)
+              setIsLoadingCompanies(false);
             } else {
               // 특정 회사에서의 권한 확인
-              const userCompany = userCompanies?.find(uc => uc.company_id === parseInt(id))
-              setUserRole((userCompany?.role || 'viewer') as string)
-              console.log('👥 User role for company:', userCompany?.role || 'viewer')
+              const userCompany = userCompanies?.find(
+                (uc) => uc.company_id === parseInt(id)
+              );
+              setUserRole((userCompany?.role || "viewer") as string);
+              console.log(
+                "👥 User role for company:",
+                userCompany?.role || "viewer"
+              );
             }
           }
-        }
+        };
 
-        getCompanyAndRole()
+        getCompanyAndRole();
       }
     }
-  }, [pathname, companyId])
+  }, [pathname, companyId]);
 
   // 개발 환경 체크 (클라이언트 사이드에서 사용 가능한 환경 변수)
-  const isDev = process.env.NEXT_PUBLIC_IS_DEV === 'true'
+  const isDev = process.env.NEXT_PUBLIC_IS_DEV === "true";
 
   // 개발 환경에 따라 메뉴 필터링 - 안전한 필터링
   const menuItems = React.useMemo(() => {
-    if (!Array.isArray(allMenuItems)) return []
-    return allMenuItems.filter(item => !item?.devOnly || isDev)
-  }, [isDev])
+    if (!Array.isArray(allMenuItems)) return [];
+    return allMenuItems.filter((item) => !item?.devOnly || isDev);
+  }, [isDev]);
 
   // 디버그 로그
   React.useEffect(() => {
-    console.log('🎯 Sidebar State:', {
+    console.log("🎯 Sidebar State:", {
       companyId,
       companyName,
       userRole,
       allCompaniesCount: allCompanies.length,
       allCompanies,
       isLoadingCompanies,
-      shouldShowDropdown: userRole === 'admin' && allCompanies.length > 0,
-      dropdownCondition: `userRole === 'admin' (${userRole === 'admin'}) && allCompanies.length > 0 (${allCompanies.length > 0})`
-    })
-  }, [companyId, companyName, userRole, allCompanies, isLoadingCompanies])
+      shouldShowDropdown: userRole === "admin" && allCompanies.length > 0,
+      dropdownCondition: `userRole === 'admin' (${
+        userRole === "admin"
+      }) && allCompanies.length > 0 (${allCompanies.length > 0})`,
+    });
+  }, [companyId, companyName, userRole, allCompanies, isLoadingCompanies]);
 
   return (
     <Sidebar variant="inset" {...props}>
@@ -250,7 +262,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {/* 회사 정보 */}
             {companyName && (
               <div className="pl-2 border-l-2 border-muted-foreground/20 flex-1">
-                {userRole === 'admin' ? (
+                {userRole === "admin" ? (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -271,25 +283,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" className="w-56">
                       {allCompanies.length > 0 ? (
-                        allCompanies.map(company => (
+                        allCompanies.map((company) => (
                           <DropdownMenuItem
                             key={company.id}
                             onClick={() => {
-                              const currentPath = pathname.replace(/^\/\d+/, `/${company.id}`)
-                              router.push(currentPath)
+                              const currentPath = pathname.replace(
+                                /^\/\d+/,
+                                `/${company.id}`
+                              );
+                              router.push(currentPath);
                             }}
                             className="flex items-center gap-2"
                           >
                             <Building2 className="h-3 w-3" />
                             <span className="flex-1">{company.name}</span>
                             {company.id.toString() === companyId && (
-                              <span className="text-xs text-muted-foreground">현재</span>
+                              <span className="text-xs text-muted-foreground">
+                                현재
+                              </span>
                             )}
                           </DropdownMenuItem>
                         ))
                       ) : (
                         <DropdownMenuItem disabled>
-                          <span className="text-muted-foreground">회사 목록을 불러오는 중...</span>
+                          <span className="text-muted-foreground">
+                            회사 목록을 불러오는 중...
+                          </span>
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
@@ -312,27 +331,47 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         {/* 메인 메뉴 */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">분석 대시보드</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            분석 대시보드
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
-                const itemUrl = companyId ? `/${companyId}${item.url}` : item.url
-                const isActive = pathname === itemUrl
+                const itemUrl = companyId
+                  ? `/${companyId}${item.url}`
+                  : item.url;
+                const isActive = pathname === itemUrl;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
                       asChild
                       className={`
                         group relative overflow-hidden transition-all duration-300
-                        ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'}
+                        ${
+                          isActive
+                            ? "bg-primary/10 text-primary"
+                            : "hover:bg-muted/50"
+                        }
                       `}
                     >
                       <Link href={itemUrl}>
-                        <div className={`
+                        <div
+                          className={`
                           p-2 rounded-lg transition-all duration-300
-                          ${isActive ? 'bg-primary/20' : 'bg-muted/30 group-hover:bg-muted/50'}
-                        `}>
-                          <item.icon className={`size-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                          ${
+                            isActive
+                              ? "bg-primary/20"
+                              : "bg-muted/30 group-hover:bg-muted/50"
+                          }
+                        `}
+                        >
+                          <item.icon
+                            className={`size-4 ${
+                              isActive
+                                ? "text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          />
                         </div>
                         <span className="font-medium">{item.title}</span>
                         {isActive && (
@@ -341,37 +380,56 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
-                )
+                );
               })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-
         {/* 유틸리티 메뉴 - editor와 admin만 접근 가능 */}
-        {(userRole === 'editor' || userRole === 'admin') && (
+        {(userRole === "editor" || userRole === "admin") && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">데이터 관리</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              데이터 관리
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {utilityItems.map((item) => {
-                  const itemUrl = companyId ? `/${companyId}${item.url}` : item.url
-                  const isActive = pathname === itemUrl
+                  const itemUrl = companyId
+                    ? `/${companyId}${item.url}`
+                    : item.url;
+                  const isActive = pathname === itemUrl;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton
                         asChild
                         className={`
                           group relative overflow-hidden transition-all duration-300
-                          ${isActive ? 'bg-primary/10 text-primary' : 'hover:bg-muted/50'}
+                          ${
+                            isActive
+                              ? "bg-primary/10 text-primary"
+                              : "hover:bg-muted/50"
+                          }
                         `}
                       >
                         <Link href={itemUrl}>
-                          <div className={`
+                          <div
+                            className={`
                             p-2 rounded-lg transition-all duration-300
-                            ${isActive ? 'bg-primary/20' : 'bg-muted/30 group-hover:bg-muted/50'}
-                          `}>
-                            <item.icon className={`size-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                            ${
+                              isActive
+                                ? "bg-primary/20"
+                                : "bg-muted/30 group-hover:bg-muted/50"
+                            }
+                          `}
+                          >
+                            <item.icon
+                              className={`size-4 ${
+                                isActive
+                                  ? "text-primary"
+                                  : "text-muted-foreground"
+                              }`}
+                            />
                           </div>
                           <span className="font-medium">{item.title}</span>
                           {isActive && (
@@ -380,7 +438,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                  )
+                  );
                 })}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -390,5 +448,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       <AuthSection />
     </Sidebar>
-  )
+  );
 }

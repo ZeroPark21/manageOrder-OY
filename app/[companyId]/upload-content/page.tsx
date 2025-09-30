@@ -25,6 +25,8 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
+  console.log("🔍 Upload Content Page - companyId:", companyId)
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     console.log("🔍 Selected file:", {
@@ -143,8 +145,8 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
 
   // 청크 업로드 함수 - 성능 최적화 (병렬 처리)
   const uploadInChunks = async (data: any[]) => {
-    const CHUNK_SIZE = 200 // 청크 크기 최적화 (속도와 안정성 균형)
-    const MAX_CONCURRENT = 4 // 동시 처리 청크 수 최적화
+    const CHUNK_SIZE = 20 // 청크 크기 적당히 (속도와 안정성 균형)
+    const MAX_CONCURRENT = 3 // 동시 3개 처리
     let totalSaved = 0
     
     // 데이터 변환을 미리 처리
@@ -174,6 +176,16 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
         like_count: parseInt(row['Shoppable video likes'] || row['like_count'] || '0') || 0
       }
     }).filter(c => c !== null) // Video post date가 있는 것만 포함
+
+    // 날짜 범위 로깅 추가
+    if (transformedData.length > 0) {
+      const validData = transformedData.filter(item => item !== null)
+      if (validData.length > 0) {
+        const dates = validData.map((item: any) => item.publish_date).sort()
+        console.log(`📅 [Client] Date range for company ${companyId}: ${dates[0]} ~ ${dates[dates.length - 1]}`)
+        console.log(`📅 [Client] Total items with valid dates: ${validData.length}`)
+      }
+    }
     
     // 청크별 병렬 처리
     const chunks = []
@@ -189,7 +201,7 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
         const response = await fetch("/api/upload/upload-content-chunk", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents, isLastChunk })
+          body: JSON.stringify({ contents, isLastChunk, companyId })
         })
         
         let result
@@ -203,7 +215,12 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
         if (response.ok) {
           return result.saved || 0
         } else {
-          console.log(`청크 ${chunkIndex} 업로드 실패:`, result)
+          console.error(`청크 ${chunkIndex} 업로드 실패:`, {
+            status: response.status,
+            error: result.error,
+            details: result.details,
+            result
+          })
           return 0
         }
       } catch (error) {
