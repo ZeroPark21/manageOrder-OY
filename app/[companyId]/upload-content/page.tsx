@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { use, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,6 +22,7 @@ import {
 
 export default function UploadContentPage({ params }: { params: Promise<{ companyId: string }> }) {
   const { companyId } = use(params)
+  const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -581,7 +583,7 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
                     "업로드"
                   )}
                 </Button>
-                <Button variant="outline" onClick={() => (window.location.href = "/content")}>
+                <Button variant="outline" onClick={() => router.push(`/${companyId}/content`)}>
                   콘텐츠 대시보드로 이동
                 </Button>
               </div>
