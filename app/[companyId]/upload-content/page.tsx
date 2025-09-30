@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { use, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -21,6 +22,7 @@ import {
 
 export default function UploadContentPage({ params }: { params: Promise<{ companyId: string }> }) {
   const { companyId } = use(params)
+  const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -145,19 +147,36 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
 
   // 청크 업로드 함수 - 성능 최적화 (병렬 처리)
   const uploadInChunks = async (data: any[]) => {
+    console.log(`📊 [시작] 전체 데이터 행: ${data.length}개`)
+
     const CHUNK_SIZE = 20 // 청크 크기 적당히 (속도와 안정성 균형)
     const MAX_CONCURRENT = 3 // 동시 3개 처리
     let totalSaved = 0
-    
+
     // 데이터 변환을 미리 처리
-    const transformedData = data.map(row => {
+    let skippedNoDate = 0
+    let skippedNoLink = 0
+
+    const transformedData = data.map((row, index) => {
       const publishDate = row['Video post date'] || row['publish_date']
+      const videoLink = row['Video link'] || row['video_link']
+
       // Video post date가 없으면 건너뛰기
-      if (!publishDate) return null
+      if (!publishDate) {
+        skippedNoDate++
+        return null
+      }
+
+      // Video link가 없으면 건너뛰기
+      if (!videoLink || videoLink.trim() === '') {
+        skippedNoLink++
+        console.log(`⚠️ Row ${index + 1}: 빈 video_link`)
+        return null
+      }
       
       return {
         content_title: (row['Video name'] || row['video_name'] || 'Untitled').substring(0, 255),
-        video_link: (row['Video link'] || row['video_link'] || '').substring(0, 255),
+        video_link: videoLink.substring(0, 255),
         publish_date: parseDate(publishDate),
         creator_name: (row['Creator username'] || row['creator_name'] || '알 수 없음').substring(0, 100),
         gmv: parseFloat(row['GMV'] || row['gmv'] || '0') || 0,
@@ -175,7 +194,19 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
         comment_count: parseInt(row['Shoppable video comments'] || row['comment_count'] || '0') || 0,
         like_count: parseInt(row['Shoppable video likes'] || row['like_count'] || '0') || 0
       }
-    }).filter(c => c !== null) // Video post date가 있는 것만 포함
+    }).filter(c => c !== null) // null인 항목 제외
+
+    console.log(`📊 [필터링 결과]`)
+    console.log(`   - 날짜 없음으로 스킵: ${skippedNoDate}개`)
+    console.log(`   - video_link 없음으로 스킵: ${skippedNoLink}개`)
+    console.log(`   - 유효한 데이터: ${transformedData.length}개`)
+
+    // video_link 중복 체크
+    const uniqueLinks = new Set(transformedData.map((item: any) => item.video_link))
+    console.log(`   - 고유한 video_link 개수: ${uniqueLinks.size}개`)
+    if (uniqueLinks.size !== transformedData.length) {
+      console.log(`⚠️ 중복 video_link 발견! (${transformedData.length - uniqueLinks.size}개 중복)`)
+    }
 
     // 날짜 범위 로깅 추가
     if (transformedData.length > 0) {
@@ -196,12 +227,14 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
     // 병렬 처리를 위한 함수
     const uploadChunk = async (contents: any[], chunkIndex: number) => {
       const isLastChunk = chunkIndex === chunks.length - 1
-      
+
+      console.log(`📤 Uploading chunk ${chunkIndex} with companyId: ${companyId}`)
+
       try {
         const response = await fetch("/api/upload/upload-content-chunk", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents, isLastChunk, companyId })
+          body: JSON.stringify({ contents, isLastChunk, companyId: companyId || "" })
         })
         
         let result
@@ -251,6 +284,13 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
 
   const handleUpload = async () => {
     if (!file) return
+
+    console.log(`🚀 Starting upload with companyId: ${companyId}`)
+    if (!companyId) {
+      console.error("❌ companyId is undefined!")
+      setMessage({ type: "error", text: "회사 ID를 찾을 수 없습니다." })
+      return
+    }
 
     setUploading(true)
     setMessage(null)
@@ -543,7 +583,7 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
                     "업로드"
                   )}
                 </Button>
-                <Button variant="outline" onClick={() => (window.location.href = "/content")}>
+                <Button variant="outline" onClick={() => router.push(`/${companyId}/content`)}>
                   콘텐츠 대시보드로 이동
                 </Button>
               </div>

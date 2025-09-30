@@ -1,7 +1,7 @@
 "use client"
 
 import { use } from "react"
-
+import { useRouter } from "next/navigation"
 import type React from "react"
 
 import { useState } from "react"
@@ -24,6 +24,7 @@ import {
 
 export default function UploadPage({ params }: { params: Promise<{ companyId: string }> }) {
   const { companyId } = use(params)
+  const router = useRouter()
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
@@ -209,7 +210,7 @@ export default function UploadPage({ params }: { params: Promise<{ companyId: st
                     "업로드"
                   )}
                 </Button>
-                <Button variant="outline" onClick={() => (window.location.href = "/")}>
+                <Button variant="outline" onClick={() => router.push(`/${companyId}`)}>
                   대시보드로 이동
                 </Button>
               </div>
