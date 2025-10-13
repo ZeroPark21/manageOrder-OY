@@ -60,13 +60,13 @@ export async function middleware(request: NextRequest) {
           if (userCompanies) {
             // 업체가 1개만 있으면 자동 리다이렉트
             if (userCompanies.length === 1) {
-              return NextResponse.redirect(new URL(`/${userCompanies[0].company_id}`, request.url))
+              return NextResponse.redirect(new URL(`/dashboard/${userCompanies[0].company_id}`, request.url))
             }
 
             // 여러 업체 중 기본 업체가 설정되어 있으면 해당 업체로
             const defaultCompany = userCompanies.find(uc => uc.is_default)
             if (defaultCompany) {
-              return NextResponse.redirect(new URL(`/${defaultCompany.company_id}`, request.url))
+              return NextResponse.redirect(new URL(`/dashboard/${defaultCompany.company_id}`, request.url))
             }
           }
         }
@@ -84,8 +84,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // 업체별 페이지 권한 검증 (/1001, /1001/sales-analysis 등)
-  const companyMatch = pathname.match(/^\/(\d+)/)
+  // 업체별 페이지 권한 검증 (/dashboard/1001, /dashboard/1001/amazon/overview 등)
+  const companyMatch = pathname.match(/^\/dashboard\/(\d+)/)
   if (companyMatch && accessToken && refreshToken) {
     const companyId = parseInt(companyMatch[1])
     console.log(`[Middleware] Checking access to company ${companyId} for path ${pathname}`)
@@ -156,7 +156,7 @@ export async function middleware(request: NextRequest) {
       if (pathname.includes('/upload') && userRole === 'viewer') {
         console.log(`[Middleware] Access denied to upload page for viewer role`)
         // 권한 없음 페이지로 리다이렉트 (또는 이전 페이지로)
-        return NextResponse.redirect(new URL(`/${companyId}`, request.url))
+        return NextResponse.redirect(new URL(`/dashboard/${companyId}`, request.url))
       }
 
       console.log(`[Middleware] Access granted to company ${companyId} with role ${userRole}`)

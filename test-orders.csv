@@ -1,0 +1,2 @@
+amazon-order-id,amazon-order-item-id,purchase-date,payments-date,ship-date,buyer-email,buyer-name,sku,product-name,asin,quantity-purchased,currency,item-price,shipping-price,item-tax
+123-4567890-1234567,12345678901234,2024-01-15,2024-01-15,2024-01-17,test@example.com,Test Buyer,TEST-SKU-001,Test Product Name,B08N5WRWNW,1,USD,29.99,5.99,2.50

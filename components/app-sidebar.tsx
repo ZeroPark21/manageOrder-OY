@@ -26,6 +26,8 @@ import {
   TrendingUp,
   ChevronDown,
   Building2,
+  Database,
+  ShoppingCart,
   type LucideIcon,
 } from "lucide-react";
 import { AuthSection } from "@/components/auth-section";
@@ -91,8 +93,14 @@ const utilityItems: MenuItem[] = [
   {
     title: "콘텐츠 데이터 업로드",
     url: "/upload-content",
-    icon: BarChart3,
+    icon: Video,
     description: "콘텐츠 발행 데이터 업로드",
+  },
+  {
+    title: "Amazon 주문 업로드",
+    url: "/amazon/orders",
+    icon: ShoppingCart,
+    description: "Amazon 주문 데이터 업로드",
   },
 ];
 
