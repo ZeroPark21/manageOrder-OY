@@ -5,9 +5,8 @@ import { use } from "react"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingSpinner } from "@/components/loading-spinner"
-import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Upload, BarChart3, TrendingUp, Eye, DollarSign, Users, Heart } from "lucide-react"
+import { TrendingUp, Eye, DollarSign, Users, Heart } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -21,8 +20,7 @@ import {
 import { ContentDailyMatrixTable } from "@/components/matrix/content-daily-matrix-table"
 import { ContentWeeklyMatrixTable } from "@/components/matrix/content-weekly-matrix-table"
 import { ContentMonthlyMatrixTable } from "@/components/matrix/content-monthly-matrix-table"
-import Link from "next/link"
-import { downloadMultiSheetExcel, type MultiSheetExcelData, formatDateForExcel } from "@/lib/excel-utils"
+import { downloadMultiSheetExcel, formatDateForExcel } from "@/lib/excel-utils"
 
 interface ContentData {
   data: Array<{
@@ -348,18 +346,6 @@ export default function ContentDashboard({ params }: { params: Promise<{ company
             <div>
               <h1 className="text-3xl font-bold">콘텐츠 발행 현황</h1>
               <p className="text-muted-foreground">TikTok 시딩 콘텐츠 발행 추이 분석 (2025년 6월 1일부터)</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={fetchSummaryData}>
-                <BarChart3 className="h-4 w-4 mr-2" />
-                새로고침
-              </Button>
-              <Link href="/upload-content">
-                <Button>
-                  <Upload className="h-4 w-4 mr-2" />
-                  콘텐츠 데이터 업로드
-                </Button>
-              </Link>
             </div>
           </div>
 

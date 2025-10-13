@@ -24,7 +24,7 @@ import {
   DollarSign,
   ShoppingCart,
   BarChart3,
-  Percent,
+  RotateCcw,
   Loader2,
   AlertCircle,
 } from "lucide-react";
@@ -43,6 +43,12 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+} from "@/components/ui/breadcrumb";
 
 // Minimal Metric card component
 const MetricCard = ({
@@ -103,6 +109,7 @@ interface DashboardMetrics {
     totalOrders: { value: number; change: number };
     avgOrderValue: { value: number; change: number };
     totalItems: { value: number; change: number };
+    totalRefunds: { value: number; change: number };
   };
   platformRevenue: Array<{ name: string; value: number; color: string }>;
   salesTrend: Array<{ date: string; tiktok: number; amazon: number }>;
@@ -124,17 +131,21 @@ interface DashboardMetrics {
       name: string;
       revenue: number;
       orders: number;
+      refunds: number;
       conversionRate: number;
       avgOrderValue: number;
-      percentOfTotal: number;
+      revenuePercentOfTotal: number;
+      orderPercentOfTotal: number;
     };
     amazon: {
       name: string;
       revenue: number;
       orders: number;
+      refunds: number;
       conversionRate: number;
       avgOrderValue: number;
-      percentOfTotal: number;
+      revenuePercentOfTotal: number;
+      orderPercentOfTotal: number;
     };
   };
 }
@@ -187,7 +198,7 @@ export default function IntegratedDashboard() {
           if (months.size > 0) {
             const sortedMonths = Array.from(months).sort().reverse();
             const latestMonth = sortedMonths[0];
-            const [year, month] = latestMonth.split('-');
+            const [year, month] = latestMonth.split("-");
             setSelectedYear(parseInt(year));
             setSelectedMonth(month);
           }
@@ -384,264 +395,445 @@ export default function IntegratedDashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-8 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <div>
-            <h1 className="text-2xl font-semibold">통합 대시보드</h1>
-            <p className="text-sm text-gray-600">
-              TikTok Shop & Amazon 성과 분석
-            </p>
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 bg-gray-50 pt-8 px-8 pb-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <div>
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>통합 대시보드</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+              <p className="text-sm text-gray-600 mt-1">
+                TikTok Shop & Amazon 성과 분석
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Tabs
-            value={periodType}
-            onValueChange={(v) =>
-              setPeriodType(v as "daily" | "weekly" | "monthly")
-            }
-          >
-            <TabsList>
-              <TabsTrigger value="daily">일별</TabsTrigger>
-              <TabsTrigger value="weekly">주별</TabsTrigger>
-              <TabsTrigger value="monthly">월별</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Select
-            value={String(selectedYear)}
-            onValueChange={(v) => setSelectedYear(parseInt(v))}
-            disabled={periodType !== "daily"}
-          >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from(
-                new Set(
-                  Array.from(availableMonths).map((ym) =>
-                    parseInt(ym.split("-")[0])
+          <div className="flex items-center gap-3">
+            <Tabs
+              value={periodType}
+              onValueChange={(v) =>
+                setPeriodType(v as "daily" | "weekly" | "monthly")
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="daily">일별</TabsTrigger>
+                <TabsTrigger value="weekly">주별</TabsTrigger>
+                <TabsTrigger value="monthly">월별</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Select
+              value={String(selectedYear)}
+              onValueChange={(v) => setSelectedYear(parseInt(v))}
+              disabled={periodType !== "daily"}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from(
+                  new Set(
+                    Array.from(availableMonths).map((ym) =>
+                      parseInt(ym.split("-")[0])
+                    )
                   )
                 )
-              )
-                .sort((a, b) => b - a)
-                .map((year) => (
-                  <SelectItem key={year} value={String(year)}>
-                    {year}년
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={selectedMonth}
-            onValueChange={setSelectedMonth}
-            disabled={periodType !== "daily"}
-          >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
-                const monthValue = String(month).padStart(2, "0");
-                const yearMonth = `${selectedYear}-${monthValue}`;
-                const isDisabled = !availableMonths.has(yearMonth);
-                return (
-                  <SelectItem
-                    key={month}
-                    value={monthValue}
-                    disabled={isDisabled}
-                  >
-                    {month}월
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <Select value={platform} onValueChange={setPlatform}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Platforms</SelectItem>
-              <SelectItem value="tiktok">TikTok Shop</SelectItem>
-              <SelectItem value="amazon">Amazon</SelectItem>
-            </SelectContent>
-          </Select>
+                  .sort((a, b) => b - a)
+                  .map((year) => (
+                    <SelectItem key={year} value={String(year)}>
+                      {year}년
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedMonth}
+              onValueChange={setSelectedMonth}
+              disabled={periodType !== "daily"}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
+                  const monthValue = String(month).padStart(2, "0");
+                  const yearMonth = `${selectedYear}-${monthValue}`;
+                  const isDisabled = !availableMonths.has(yearMonth);
+                  return (
+                    <SelectItem
+                      key={month}
+                      value={monthValue}
+                      disabled={isDisabled}
+                    >
+                      {month}월
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            <Select value={platform} onValueChange={setPlatform}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Platforms</SelectItem>
+                <SelectItem value="tiktok">TikTok Shop</SelectItem>
+                <SelectItem value="amazon">Amazon</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      {/* Summary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard
-          title="총 매출"
-          value={metrics.summary.totalRevenue.value}
-          change={metrics.summary.totalRevenue.change}
-          icon={DollarSign}
-          format="currency"
-        />
-        <MetricCard
-          title="총 주문"
-          value={metrics.summary.totalOrders.value}
-          change={metrics.summary.totalOrders.change}
-          icon={ShoppingCart}
-        />
-        <MetricCard
-          title="평균 주문액"
-          value={metrics.summary.avgOrderValue.value}
-          change={metrics.summary.avgOrderValue.change}
-          icon={BarChart3}
-          format="currency"
-        />
-        <Card className="border border-gray-200">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between mb-3">
-              <span className="text-sm text-gray-600">전환율</span>
-              <Percent className="h-5 w-5 text-gray-400" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-3xl font-semibold text-gray-400">-</p>
-              <p className="text-xs text-gray-500">페이지뷰 데이터 필요</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Platform Summary Table */}
-      <Card className="border border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-base font-medium">
-            플랫폼별 핵심 지표
-          </CardTitle>
-          <CardDescription className="text-xs">
-            채널별 성과 비교
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">
-                    플랫폼
-                  </th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">
-                    총 매출
-                  </th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">
-                    총 주문 수
-                  </th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">
-                    평균 주문액
-                  </th>
-                  <th className="text-right py-3 px-4 font-medium text-gray-600">
-                    비중
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {(platform === 'all' || platform === 'tiktok') && (
-                  <tr className="border-b hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-black" />
-                        <span className="font-medium">TikTok Shop</span>
-                      </div>
-                    </td>
-                    <td className="text-right py-3 px-4 font-semibold">
-                      $
-                      {metrics.platformPerformance.tiktok.revenue.toLocaleString()}
-                    </td>
-                    <td className="text-right py-3 px-4">
-                      {metrics.platformPerformance.tiktok.orders.toLocaleString()}
-                    </td>
-                    <td className="text-right py-3 px-4">
-                      $
-                      {metrics.platformPerformance.tiktok.avgOrderValue.toLocaleString()}
-                    </td>
-                    <td className="text-right py-3 px-4">
-                      <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-900 font-medium">
-                        {metrics.platformPerformance.tiktok.percentOfTotal}%
-                      </span>
-                    </td>
-                  </tr>
-                )}
-                {(platform === 'all' || platform === 'amazon') && (
-                  <tr className="border-b hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-orange-500" />
-                        <span className="font-medium">Amazon</span>
-                      </div>
-                    </td>
-                    <td className="text-right py-3 px-4 font-semibold">
-                      $
-                      {metrics.platformPerformance.amazon.revenue.toLocaleString()}
-                  </td>
-                  <td className="text-right py-3 px-4">
-                    {metrics.platformPerformance.amazon.orders.toLocaleString()}
-                  </td>
-                  <td className="text-right py-3 px-4">
-                    $
-                    {metrics.platformPerformance.amazon.avgOrderValue.toLocaleString()}
-                  </td>
-                  <td className="text-right py-3 px-4">
-                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-100 text-orange-900 font-medium">
-                      {metrics.platformPerformance.amazon.percentOfTotal}%
-                    </span>
-                  </td>
-                </tr>
-                )}
-              </tbody>
-            </table>
+      {/* Content Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-8 py-8">
+        <div className="flex flex-col gap-8">
+          {/* Summary Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard
+              title="총 매출"
+              value={metrics.summary.totalRevenue.value}
+              change={metrics.summary.totalRevenue.change}
+              icon={DollarSign}
+              format="currency"
+            />
+            <MetricCard
+              title="총 주문"
+              value={metrics.summary.totalOrders.value}
+              change={metrics.summary.totalOrders.change}
+              icon={ShoppingCart}
+            />
+            <MetricCard
+              title="평균 주문액"
+              value={metrics.summary.avgOrderValue.value}
+              change={metrics.summary.avgOrderValue.change}
+              icon={BarChart3}
+              format="currency"
+            />
+            <MetricCard
+              title="총 환불수"
+              value={metrics.summary.totalRefunds.value}
+              change={metrics.summary.totalRefunds.change}
+              icon={RotateCcw}
+            />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Platform Revenue Comparison */}
-        <Card className="border border-gray-200">
-          <CardHeader>
-            <CardTitle className="text-base font-medium">
-              플랫폼별 매출 분포
-            </CardTitle>
-            <CardDescription className="text-xs">
-              전체 매출 중 플랫폼별 비중
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[280px] flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={metrics.platformRevenue.filter((item) => {
-                      if (platform === 'all') return true;
-                      if (platform === 'tiktok') return item.name === 'TikTok Shop';
-                      if (platform === 'amazon') return item.name === 'Amazon';
+          {/* Platform Summary Table */}
+          <Card className="border border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-base font-medium">
+                플랫폼별 핵심 지표
+              </CardTitle>
+              <CardDescription className="text-xs">
+                채널별 성과 비교
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left py-3 px-4 font-medium text-gray-600">
+                        플랫폼
+                      </th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600">
+                        총 매출
+                      </th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600">
+                        총 주문 수
+                      </th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600">
+                        총 환불건수
+                      </th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600">
+                        평균 주문액
+                      </th>
+                      <th className="text-right py-3 px-4 font-medium text-gray-600">
+                        매출 비중
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(platform === "all" || platform === "tiktok") && (
+                      <tr className="border-b hover:bg-gray-50 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-black" />
+                            <span className="font-medium">TikTok Shop</span>
+                          </div>
+                        </td>
+                        <td className="text-right py-3 px-4 font-semibold">
+                          $
+                          {metrics.platformPerformance.tiktok.revenue.toLocaleString()}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          {metrics.platformPerformance.tiktok.orders.toLocaleString()}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          {metrics.platformPerformance.tiktok.refunds.toLocaleString()}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          $
+                          {metrics.platformPerformance.tiktok.avgOrderValue.toLocaleString()}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-900 font-medium">
+                            {
+                              metrics.platformPerformance.tiktok
+                                .revenuePercentOfTotal
+                            }
+                            %
+                          </span>
+                        </td>
+                      </tr>
+                    )}
+                    {(platform === "all" || platform === "amazon") && (
+                      <tr className="border-b hover:bg-gray-50 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-orange-500" />
+                            <span className="font-medium">Amazon</span>
+                          </div>
+                        </td>
+                        <td className="text-right py-3 px-4 font-semibold">
+                          $
+                          {metrics.platformPerformance.amazon.revenue.toLocaleString()}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          {metrics.platformPerformance.amazon.orders.toLocaleString()}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          {metrics.platformPerformance.amazon.refunds.toLocaleString()}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          $
+                          {metrics.platformPerformance.amazon.avgOrderValue.toLocaleString()}
+                        </td>
+                        <td className="text-right py-3 px-4">
+                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-orange-100 text-orange-900 font-medium">
+                            {
+                              metrics.platformPerformance.amazon
+                                .revenuePercentOfTotal
+                            }
+                            %
+                          </span>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Platform Revenue Comparison */}
+            <Card className="border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-base font-medium">
+                  플랫폼별 매출 분포
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  전체 매출 중 플랫폼별 비중
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[280px] flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={metrics.platformRevenue.filter((item) => {
+                          if (platform === "all") return true;
+                          if (platform === "tiktok")
+                            return item.name === "TikTok Shop";
+                          if (platform === "amazon")
+                            return item.name === "Amazon";
+                          return true;
+                        })}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={70}
+                        outerRadius={110}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {metrics.platformRevenue
+                          .filter((item) => {
+                            if (platform === "all") return true;
+                            if (platform === "tiktok")
+                              return item.name === "TikTok Shop";
+                            if (platform === "amazon")
+                              return item.name === "Amazon";
+                            return true;
+                          })
+                          .map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: any) => `$${value.toLocaleString()}`}
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "1px solid #e5e7eb",
+                          borderRadius: "8px",
+                          fontSize: "12px",
+                          padding: "8px 12px",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex justify-center gap-8 mt-4">
+                  {metrics.platformRevenue
+                    .filter((item) => {
+                      if (platform === "all") return true;
+                      if (platform === "tiktok")
+                        return item.name === "TikTok Shop";
+                      if (platform === "amazon") return item.name === "Amazon";
                       return true;
-                    })}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={110}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {metrics.platformRevenue
-                      .filter((item) => {
-                        if (platform === 'all') return true;
-                        if (platform === 'tiktok') return item.name === 'TikTok Shop';
-                        if (platform === 'amazon') return item.name === 'Amazon';
-                        return true;
-                      })
-                      .map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                  </Pie>
+                    })
+                    .map((platformData) => (
+                      <div
+                        key={platformData.name}
+                        className="flex items-center gap-2"
+                      >
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: platformData.color }}
+                        />
+                        <span className="text-sm font-medium">
+                          {platformData.name}
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          ${(platformData.value / 1000).toFixed(0)}k
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sales Trend */}
+            <Card className="border border-gray-200">
+              <CardHeader>
+                <CardTitle className="text-base font-medium">
+                  판매 추이
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  {periodType === "daily"
+                    ? "일별"
+                    : periodType === "weekly"
+                    ? "주별 (월-일)"
+                    : "월별"}{" "}
+                  매출 변화
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={getSalesTrendData()}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#f0f0f0"
+                      vertical={false}
+                    />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: "#9ca3af" }}
+                      axisLine={{ stroke: "#e5e7eb" }}
+                      tickLine={false}
+                      tickFormatter={formatXAxisDate}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#9ca3af" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(value) =>
+                        `$${(value / 1000).toFixed(0)}k`
+                      }
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "1px solid #e5e7eb",
+                        borderRadius: "8px",
+                        fontSize: "12px",
+                        padding: "8px 12px",
+                      }}
+                      formatter={(value: any, name: string) => {
+                        const label =
+                          name === "tiktok" ? "TikTok Shop" : "Amazon";
+                        return [`$${value.toLocaleString()}`, label];
+                      }}
+                    />
+                    {(platform === "all" || platform === "tiktok") && (
+                      <Line
+                        type="monotone"
+                        dataKey="tiktok"
+                        stroke="#000000"
+                        strokeWidth={2}
+                        dot={false}
+                        name="tiktok"
+                      />
+                    )}
+                    {(platform === "all" || platform === "amazon") && (
+                      <Line
+                        type="monotone"
+                        dataKey="amazon"
+                        stroke="#FF9900"
+                        strokeWidth={2}
+                        dot={false}
+                        name="amazon"
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Orders Trend */}
+          <Card className="border border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-base font-medium">
+                주문 수 추이
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {periodType === "daily"
+                  ? "일별"
+                  : periodType === "weekly"
+                  ? "주별 (월-일)"
+                  : "월별"}{" "}
+                주문 수 변화
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={getOrdersTrendData()}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#f0f0f0"
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: "#9ca3af" }}
+                    axisLine={{ stroke: "#e5e7eb" }}
+                    tickLine={false}
+                    tickFormatter={formatXAxisDate}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#9ca3af" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
                   <Tooltip
-                    formatter={(value: any) => `$${value.toLocaleString()}`}
                     contentStyle={{
                       backgroundColor: "white",
                       border: "1px solid #e5e7eb",
@@ -649,314 +841,177 @@ export default function IntegratedDashboard() {
                       fontSize: "12px",
                       padding: "8px 12px",
                     }}
+                    formatter={(value: any, name: string) => {
+                      const label =
+                        name === "tiktok" ? "TikTok Shop" : "Amazon";
+                      return [value.toLocaleString(), label];
+                    }}
                   />
-                </PieChart>
+                  {(platform === "all" || platform === "tiktok") && (
+                    <Line
+                      type="monotone"
+                      dataKey="tiktok"
+                      stroke="#000000"
+                      strokeWidth={2}
+                      dot={false}
+                      name="tiktok"
+                    />
+                  )}
+                  {(platform === "all" || platform === "amazon") && (
+                    <Line
+                      type="monotone"
+                      dataKey="amazon"
+                      stroke="#FF9900"
+                      strokeWidth={2}
+                      dot={false}
+                      name="amazon"
+                    />
+                  )}
+                </LineChart>
               </ResponsiveContainer>
-            </div>
-            <div className="flex justify-center gap-8 mt-4">
-              {metrics.platformRevenue
-                .filter((item) => {
-                  if (platform === 'all') return true;
-                  if (platform === 'tiktok') return item.name === 'TikTok Shop';
-                  if (platform === 'amazon') return item.name === 'Amazon';
-                  return true;
-                })
-                .map((platformData) => (
-                <div
-                  key={platformData.name}
-                  className="flex items-center gap-2"
-                >
-                  <div
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: platformData.color }}
-                  />
-                  <span className="text-sm font-medium">
-                    {platformData.name}
-                  </span>
-                  <span className="text-sm text-gray-600">
-                    ${(platformData.value / 1000).toFixed(0)}k
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Sales Trend */}
-        <Card className="border border-gray-200">
-          <CardHeader>
-            <CardTitle className="text-base font-medium">판매 추이</CardTitle>
-            <CardDescription className="text-xs">
-              {periodType === "daily"
-                ? "일별"
-                : periodType === "weekly"
-                ? "주별 (월-일)"
-                : "월별"}{" "}
-              매출 변화
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={getSalesTrendData()}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#f0f0f0"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11, fill: "#9ca3af" }}
-                  axisLine={{ stroke: "#e5e7eb" }}
-                  tickLine={false}
-                  tickFormatter={formatXAxisDate}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: "#9ca3af" }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "white",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                    fontSize: "12px",
-                    padding: "8px 12px",
-                  }}
-                  formatter={(value: any, name: string) => {
-                    const label = name === "tiktok" ? "TikTok Shop" : "Amazon";
-                    return [`$${value.toLocaleString()}`, label];
-                  }}
-                />
-                {(platform === 'all' || platform === 'tiktok') && (
-                  <Line
-                    type="monotone"
-                    dataKey="tiktok"
-                    stroke="#000000"
-                    strokeWidth={2}
-                    dot={false}
-                    name="tiktok"
-                  />
-                )}
-                {(platform === 'all' || platform === 'amazon') && (
-                  <Line
-                    type="monotone"
-                    dataKey="amazon"
-                    stroke="#FF9900"
-                    strokeWidth={2}
-                    dot={false}
-                    name="amazon"
-                  />
-                )}
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Products and Performance Section */}
+          <div className="w-full">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Top Performing Products */}
+              <Card className="border border-gray-200">
+                <CardHeader>
+                  <CardTitle className="text-base font-medium">
+                    상위 제품
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    전체 플랫폼 베스트셀러
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {metrics.topProducts.length === 0 ? (
+                      <p className="text-center text-gray-500 py-8 text-sm">
+                        데이터가 없습니다
+                      </p>
+                    ) : (
+                      metrics.topProducts
+                        .filter((product) => {
+                          if (platform === "all") return true;
+                          if (platform === "tiktok")
+                            return product.platform === "TikTok";
+                          if (platform === "amazon")
+                            return product.platform === "Amazon";
+                          return true;
+                        })
+                        .map((product) => (
+                          <div
+                            key={product.id}
+                            className="flex items-center justify-between py-3 border-b last:border-0"
+                          >
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <div>
+                                <p className="font-medium text-sm truncate">
+                                  {product.name}
+                                </p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-xs px-2 py-0 ${
+                                      product.platform === "TikTok"
+                                        ? "bg-gray-100 text-gray-900 border-gray-200"
+                                        : "bg-orange-50 text-orange-700 border-orange-200"
+                                    }`}
+                                  >
+                                    {product.platform}
+                                  </Badge>
+                                  <span className="text-xs text-gray-500">
+                                    {product.orders} orders
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right ml-4">
+                              <p className="font-semibold text-sm">
+                                ${product.revenue.toLocaleString()}
+                              </p>
+                              <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
+                                <TrendingUp className="h-3 w-3" />
+                                <span>{product.growth}%</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
 
-      {/* Orders Trend */}
-      <Card className="border border-gray-200">
-        <CardHeader>
-          <CardTitle className="text-base font-medium">주문 수 추이</CardTitle>
-          <CardDescription className="text-xs">
-            {periodType === "daily"
-              ? "일별"
-              : periodType === "weekly"
-              ? "주별 (월-일)"
-              : "월별"}{" "}
-            주문 수 변화
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={getOrdersTrendData()}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#f0f0f0"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 11, fill: "#9ca3af" }}
-                axisLine={{ stroke: "#e5e7eb" }}
-                tickLine={false}
-                tickFormatter={formatXAxisDate}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: "#9ca3af" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "white",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                  padding: "8px 12px",
-                }}
-                formatter={(value: any, name: string) => {
-                  const label = name === "tiktok" ? "TikTok Shop" : "Amazon";
-                  return [value.toLocaleString(), label];
-                }}
-              />
-              {(platform === 'all' || platform === 'tiktok') && (
-                <Line
-                  type="monotone"
-                  dataKey="tiktok"
-                  stroke="#000000"
-                  strokeWidth={2}
-                  dot={false}
-                  name="tiktok"
-                />
-              )}
-              {(platform === 'all' || platform === 'amazon') && (
-                <Line
-                  type="monotone"
-                  dataKey="amazon"
-                  stroke="#FF9900"
-                  strokeWidth={2}
-                  dot={false}
-                  name="amazon"
-                />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Products and Performance Section */}
-      <div className="w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Top Performing Products */}
-          <Card className="border border-gray-200">
-            <CardHeader>
-              <CardTitle className="text-base font-medium">상위 제품</CardTitle>
-              <CardDescription className="text-xs">
-                전체 플랫폼 베스트셀러
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {metrics.topProducts.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8 text-sm">
-                    데이터가 없습니다
-                  </p>
-                ) : (
-                  metrics.topProducts
-                    .filter((product) => {
-                      if (platform === 'all') return true;
-                      if (platform === 'tiktok') return product.platform === 'TikTok';
-                      if (platform === 'amazon') return product.platform === 'Amazon';
-                      return true;
-                    })
-                    .map((product) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center justify-between py-3 border-b last:border-0"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div>
-                          <p className="font-medium text-sm truncate">
-                            {product.name}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge
-                              variant="outline"
-                              className={`text-xs px-2 py-0 ${
-                                product.platform === "TikTok"
-                                  ? "bg-gray-100 text-gray-900 border-gray-200"
-                                  : "bg-orange-50 text-orange-700 border-orange-200"
-                              }`}
-                            >
-                              {product.platform}
-                            </Badge>
-                            <span className="text-xs text-gray-500">
-                              {product.orders} orders
-                            </span>
+              {/* Platform Performance */}
+              <Card className="border border-gray-200">
+                <CardHeader>
+                  <CardTitle className="text-base font-medium">
+                    플랫폼 성과
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    플랫폼별 핵심 지표
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {Object.values(metrics.platformPerformance)
+                      .filter((platformData) => {
+                        if (platform === "all") return true;
+                        if (platform === "tiktok")
+                          return platformData.name === "TikTok Shop";
+                        if (platform === "amazon")
+                          return platformData.name === "Amazon";
+                        return true;
+                      })
+                      .map((platformData) => (
+                        <div key={platformData.name} className="space-y-3">
+                          <div className="flex items-center justify-between pb-3 border-b">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  platformData.name === "TikTok Shop"
+                                    ? "bg-black"
+                                    : "bg-orange-500"
+                                }`}
+                              />
+                              <span className="font-medium text-sm">
+                                {platformData.name}
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-semibold">
+                                ${(platformData.revenue / 1000).toFixed(0)}k
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {platformData.revenuePercentOfTotal}% of total
+                              </p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-xs text-gray-500">주문 수</p>
+                              <p className="font-medium">
+                                {platformData.orders.toLocaleString()}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">
+                                평균 주문액
+                              </p>
+                              <p className="font-medium">
+                                ${platformData.avgOrderValue}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="text-right ml-4">
-                        <p className="font-semibold text-sm">
-                          ${product.revenue.toLocaleString()}
-                        </p>
-                        <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
-                          <TrendingUp className="h-3 w-3" />
-                          <span>{product.growth}%</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Platform Performance */}
-          <Card className="border border-gray-200">
-            <CardHeader>
-              <CardTitle className="text-base font-medium">
-                플랫폼 성과
-              </CardTitle>
-              <CardDescription className="text-xs">
-                플랫폼별 핵심 지표
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {Object.values(metrics.platformPerformance)
-                  .filter((platformData) => {
-                    if (platform === 'all') return true;
-                    if (platform === 'tiktok') return platformData.name === 'TikTok Shop';
-                    if (platform === 'amazon') return platformData.name === 'Amazon';
-                    return true;
-                  })
-                  .map((platformData) => (
-                    <div key={platformData.name} className="space-y-3">
-                      <div className="flex items-center justify-between pb-3 border-b">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`w-2 h-2 rounded-full ${
-                              platformData.name === "TikTok Shop"
-                                ? "bg-black"
-                                : "bg-orange-500"
-                            }`}
-                          />
-                          <span className="font-medium text-sm">
-                            {platformData.name}
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-semibold">
-                            ${(platformData.revenue / 1000).toFixed(0)}k
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {platformData.percentOfTotal}% of total
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-xs text-gray-500">주문 수</p>
-                          <p className="font-medium">
-                            {platformData.orders.toLocaleString()}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500">평균 주문액</p>
-                          <p className="font-medium">
-                            ${platformData.avgOrderValue}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                      ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -38,8 +38,6 @@ import {
   Database,
   Sliders,
   Send,
-  RotateCcw,
-  Percent,
   type LucideIcon,
 } from "lucide-react";
 import { AuthSection } from "@/components/auth-section";
@@ -191,24 +189,6 @@ export function AppSidebarNew({
         //   badge: "예정",
         //   badgeVariant: "outline",
         // },
-        {
-          title: "주문당 비용 현황",
-          url: "/dashboard/amazon/costs",
-          icon: DollarSign,
-          description: "주문당 발생 비용 추이",
-        },
-        {
-          title: "구매 전환율 현황",
-          url: "/dashboard/amazon/conversion",
-          icon: Percent,
-          description: "구매 전환율 추이",
-        },
-        {
-          title: "환불율 현황",
-          url: "/dashboard/amazon/refund",
-          icon: RotateCcw,
-          description: "환불율 추이",
-        },
       ],
     },
   ];

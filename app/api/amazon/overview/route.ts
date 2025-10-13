@@ -92,6 +92,11 @@ export async function GET(req: NextRequest) {
       const unitsRefunded = reports.reduce((sum, r) => sum + (parseInt(r.units_refunded) || 0), 0)
       const pageViewsMobile = reports.reduce((sum, r) => sum + (parseInt(r.page_views_mobile) || 0), 0)
       const pageViewsBrowser = reports.reduce((sum, r) => sum + (parseInt(r.page_views_browser) || 0), 0)
+      const sessionTotal = reports.reduce((sum, r) => sum + (parseInt(r.sessions_total) || 0), 0)
+
+      // 전환율 계산 (평균)
+      const conversionRates = reports.map(r => parseFloat(r.order_item_session_percentage) || 0).filter(rate => rate > 0)
+      const avgConversionRate = conversionRates.length > 0 ? conversionRates.reduce((sum, rate) => sum + rate, 0) / conversionRates.length : 0
 
       const avgSalesPerOrderItem = totalOrderItems > 0 ? orderedProductSales / totalOrderItems : 0
       const avgSellingPrice = unitsOrdered > 0 ? orderedProductSales / unitsOrdered : 0
@@ -106,6 +111,8 @@ export async function GET(req: NextRequest) {
         pageViewsMobile,
         pageViewsBrowser,
         pageViewsTotal: pageViewsMobile + pageViewsBrowser,
+        sessionTotal,
+        conversionRate: Math.round(avgConversionRate * 100) / 100,
         unitsRefunded,
         refundRate: Math.round(refundRate * 100) / 100,
         unitsShipped,
@@ -133,6 +140,7 @@ export async function GET(req: NextRequest) {
       pageViewsMobile: parseInt(report.page_views_mobile) || 0,
       pageViewsBrowser: parseInt(report.page_views_browser) || 0,
       pageViewsTotal: parseInt(report.page_views_total) || 0,
+      conversionRate: parseFloat(report.order_item_session_percentage) || 0,
       unitsRefunded: parseInt(report.units_refunded) || 0,
       refundRate: parseFloat(report.refund_rate) || 0,
       unitsShipped: parseInt(report.units_shipped) || 0,
@@ -162,6 +170,8 @@ export async function GET(req: NextRequest) {
           pageViewsMobile: 0,
           pageViewsBrowser: 0,
           pageViewsTotal: 0,
+          conversionRateSum: 0,
+          conversionRateCount: 0,
           unitsRefunded: 0,
           unitsShipped: 0,
           ordersShipped: 0,
@@ -175,6 +185,10 @@ export async function GET(req: NextRequest) {
       weeklySales[weekKey].pageViewsMobile += day.pageViewsMobile
       weeklySales[weekKey].pageViewsBrowser += day.pageViewsBrowser
       weeklySales[weekKey].pageViewsTotal += day.pageViewsTotal
+      if (day.conversionRate > 0) {
+        weeklySales[weekKey].conversionRateSum += day.conversionRate
+        weeklySales[weekKey].conversionRateCount += 1
+      }
       weeklySales[weekKey].unitsRefunded += day.unitsRefunded
       weeklySales[weekKey].unitsShipped += day.unitsShipped
       weeklySales[weekKey].ordersShipped += day.ordersShipped
@@ -186,6 +200,7 @@ export async function GET(req: NextRequest) {
       orderedProductSales: Math.round(week.orderedProductSales * 100) / 100,
       avgSalesPerOrderItem: week.totalOrderItems > 0 ? Math.round((week.orderedProductSales / week.totalOrderItems) * 100) / 100 : 0,
       avgSellingPrice: week.unitsOrdered > 0 ? Math.round((week.orderedProductSales / week.unitsOrdered) * 100) / 100 : 0,
+      conversionRate: week.conversionRateCount > 0 ? Math.round((week.conversionRateSum / week.conversionRateCount) * 100) / 100 : 0,
       refundRate: week.unitsOrdered > 0 ? Math.round((week.unitsRefunded / week.unitsOrdered * 100) * 100) / 100 : 0,
     }))
 
@@ -205,6 +220,8 @@ export async function GET(req: NextRequest) {
           pageViewsMobile: 0,
           pageViewsBrowser: 0,
           pageViewsTotal: 0,
+          conversionRateSum: 0,
+          conversionRateCount: 0,
           unitsRefunded: 0,
           unitsShipped: 0,
           ordersShipped: 0,
@@ -218,6 +235,10 @@ export async function GET(req: NextRequest) {
       monthlySales[monthKey].pageViewsMobile += day.pageViewsMobile
       monthlySales[monthKey].pageViewsBrowser += day.pageViewsBrowser
       monthlySales[monthKey].pageViewsTotal += day.pageViewsTotal
+      if (day.conversionRate > 0) {
+        monthlySales[monthKey].conversionRateSum += day.conversionRate
+        monthlySales[monthKey].conversionRateCount += 1
+      }
       monthlySales[monthKey].unitsRefunded += day.unitsRefunded
       monthlySales[monthKey].unitsShipped += day.unitsShipped
       monthlySales[monthKey].ordersShipped += day.ordersShipped
@@ -229,6 +250,7 @@ export async function GET(req: NextRequest) {
       orderedProductSales: Math.round(month.orderedProductSales * 100) / 100,
       avgSalesPerOrderItem: month.totalOrderItems > 0 ? Math.round((month.orderedProductSales / month.totalOrderItems) * 100) / 100 : 0,
       avgSellingPrice: month.unitsOrdered > 0 ? Math.round((month.orderedProductSales / month.unitsOrdered) * 100) / 100 : 0,
+      conversionRate: month.conversionRateCount > 0 ? Math.round((month.conversionRateSum / month.conversionRateCount) * 100) / 100 : 0,
       refundRate: month.unitsOrdered > 0 ? Math.round((month.unitsRefunded / month.unitsOrdered * 100) * 100) / 100 : 0,
     }))
 
@@ -281,6 +303,10 @@ export async function GET(req: NextRequest) {
         ordersShipped: {
           value: currentMetrics.ordersShipped,
           change: calculateChange(currentMetrics.ordersShipped, prevMetrics.ordersShipped)
+        },
+        conversionRate: {
+          value: currentMetrics.conversionRate,
+          change: calculateChange(currentMetrics.conversionRate, prevMetrics.conversionRate)
         }
       },
       dailySales,

@@ -340,11 +340,11 @@ export default function UploadOrdersPage({ params }: { params: Promise<{ company
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="/">대시보드</BreadcrumbLink>
+              <BreadcrumbLink href={`/dashboard/${companyId}`}>대시보드</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href={`/${companyId}/amazon`}>Amazon</BreadcrumbLink>
+              <BreadcrumbLink href={`/dashboard/${companyId}/amazon/overview`}>Amazon</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
@@ -417,7 +417,7 @@ export default function UploadOrdersPage({ params }: { params: Promise<{ company
                     "업로드"
                   )}
                 </Button>
-                <Button variant="outline" onClick={() => router.push(`/${companyId}/amazon/overview`)}>
+                <Button variant="outline" onClick={() => router.push(`/dashboard/${companyId}/amazon/overview`)}>
                   Amazon 대시보드로 이동
                 </Button>
               </div>

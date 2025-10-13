@@ -401,7 +401,7 @@ export default function TikTokDataUploadPage({ params }: { params: Promise<{ com
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href={`/${companyId}`}>대시보드</BreadcrumbLink>
+              <BreadcrumbLink href={`/dashboard/${companyId}`}>대시보드</BreadcrumbLink>
             </BreadcrumbItem>
             <BreadcrumbSeparator className="hidden md:block" />
             <BreadcrumbItem>
@@ -483,7 +483,7 @@ export default function TikTokDataUploadPage({ params }: { params: Promise<{ com
                         "업로드"
                       )}
                     </Button>
-                    <Button variant="outline" onClick={() => router.push(`/${companyId}/tiktok/sales`)}>
+                    <Button variant="outline" onClick={() => router.push(`/dashboard/${companyId}/tiktok/samples`)}>
                       판매 분석 보기
                     </Button>
                   </div>
@@ -562,7 +562,7 @@ export default function TikTokDataUploadPage({ params }: { params: Promise<{ com
                         "업로드"
                       )}
                     </Button>
-                    <Button variant="outline" onClick={() => router.push(`/${companyId}/tiktok/content`)}>
+                    <Button variant="outline" onClick={() => router.push(`/dashboard/${companyId}/tiktok/content`)}>
                       콘텐츠 분석 보기
                     </Button>
                   </div>

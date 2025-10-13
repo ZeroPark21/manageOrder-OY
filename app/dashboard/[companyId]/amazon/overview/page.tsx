@@ -25,6 +25,7 @@ import {
   TrendingUp,
   TrendingDown,
   BarChart3,
+  Percent,
   Loader2,
   RefreshCcw,
   Truck,
@@ -122,6 +123,7 @@ interface SalesData {
   pageViewsMobile: number;
   pageViewsBrowser: number;
   pageViewsTotal: number;
+  conversionRate: number;
   unitsRefunded: number;
   refundRate: number;
   unitsShipped: number;
@@ -142,6 +144,7 @@ interface OverviewData {
     refundRate: { value: number; change: number };
     unitsShipped: { value: number; change: number };
     ordersShipped: { value: number; change: number };
+    conversionRate: { value: number; change: number };
   };
   dailySales: Array<SalesData & { date: string }>;
   weeklySales: Array<
@@ -311,27 +314,28 @@ export default function AmazonOverviewPage() {
   const xAxisKey = getXAxisKey();
 
   return (
-    <div className="flex flex-col gap-8 p-8 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href={`/dashboard/${companyId}`}>
-                  대시보드
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Amazon 전체 판매 성과 분석</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-        <div className="flex items-center gap-3">
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 bg-gray-50 pt-8 px-8 pb-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink href={`/dashboard/${companyId}`}>
+                    대시보드
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Amazon 전체 판매 성과 분석</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+          <div className="flex items-center gap-3">
           <Tabs
             value={periodType}
             onValueChange={(v) =>
@@ -400,10 +404,14 @@ export default function AmazonOverviewPage() {
             </Badge>
           )}
         </div>
+        </div>
       </div>
 
-      {/* Key Performance Metrics - Top Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Content Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-8 py-8">
+        <div className="flex flex-col gap-8">
+        {/* Key Performance Metrics - Top Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title="주문 상품 판매량"
           value={data.metrics.orderedProductSales.value}
@@ -669,13 +677,20 @@ export default function AmazonOverviewPage() {
       </div>
 
       {/* Additional Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard
-          title="주문 아이템당 평균 판매량"
+          title="주문 아이템당 평균 판매액"
           value={data.metrics.avgSalesPerOrderItem.value}
           change={data.metrics.avgSalesPerOrderItem.change}
           icon={BarChart3}
           format="currency"
+        />
+        <MetricCard
+          title="구매 전환율"
+          value={data.metrics.conversionRate.value}
+          change={data.metrics.conversionRate.change}
+          icon={Percent}
+          format="percent"
         />
         <MetricCard
           title="배송 주문"
@@ -739,6 +754,9 @@ export default function AmazonOverviewPage() {
                         페이지뷰
                       </th>
                       <th className="text-right py-3 px-3 font-medium">
+                        전환율
+                      </th>
+                      <th className="text-right py-3 px-3 font-medium">
                         환불 수량
                       </th>
                       <th className="text-right py-3 px-3 font-medium">
@@ -771,6 +789,11 @@ export default function AmazonOverviewPage() {
                           <div className="text-xs text-muted-foreground">
                             {day.pageViewsMobile}M / {day.pageViewsBrowser}B
                           </div>
+                        </td>
+                        <td className="text-right py-3 px-3">
+                          <Badge variant="outline">
+                            {day.conversionRate.toFixed(2)}%
+                          </Badge>
                         </td>
                         <td className="text-right py-3 px-3 text-red-600">
                           {day.unitsRefunded}
@@ -820,6 +843,9 @@ export default function AmazonOverviewPage() {
                       페이지뷰
                     </th>
                     <th className="text-right py-3 px-3 font-medium">
+                      전환율
+                    </th>
+                    <th className="text-right py-3 px-3 font-medium">
                       환불 수량
                     </th>
                     <th className="text-right py-3 px-3 font-medium">환불률</th>
@@ -855,6 +881,11 @@ export default function AmazonOverviewPage() {
                         <div className="text-xs text-muted-foreground">
                           {week.pageViewsMobile}M / {week.pageViewsBrowser}B
                         </div>
+                      </td>
+                      <td className="text-right py-3 px-3">
+                        <Badge variant="outline">
+                          {week.conversionRate ? week.conversionRate.toFixed(2) : '0.00'}%
+                        </Badge>
                       </td>
                       <td className="text-right py-3 px-3 text-red-600">
                         {week.unitsRefunded}
@@ -901,6 +932,9 @@ export default function AmazonOverviewPage() {
                       페이지뷰
                     </th>
                     <th className="text-right py-3 px-3 font-medium">
+                      전환율
+                    </th>
+                    <th className="text-right py-3 px-3 font-medium">
                       환불 수량
                     </th>
                     <th className="text-right py-3 px-3 font-medium">환불률</th>
@@ -937,6 +971,11 @@ export default function AmazonOverviewPage() {
                           {month.pageViewsMobile}M / {month.pageViewsBrowser}B
                         </div>
                       </td>
+                      <td className="text-right py-3 px-3">
+                        <Badge variant="outline">
+                          {month.conversionRate ? month.conversionRate.toFixed(2) : '0.00'}%
+                        </Badge>
+                      </td>
                       <td className="text-right py-3 px-3 text-red-600">
                         {month.unitsRefunded}
                       </td>
@@ -963,6 +1002,8 @@ export default function AmazonOverviewPage() {
           )}
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }

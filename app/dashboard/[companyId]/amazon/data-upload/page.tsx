@@ -246,36 +246,9 @@ export default function AmazonDataUploadPage({
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="flex justify-between items-center p-2 hover:bg-muted rounded">
-                <span className="text-sm">전체 판매 성과</span>
+                <span className="text-sm">전체 판매 성과 분석</span>
                 <a
                   href={`/dashboard/${companyId}/amazon/overview`}
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  바로가기 →
-                </a>
-              </div>
-              <div className="flex justify-between items-center p-2 hover:bg-muted rounded">
-                <span className="text-sm">주문당 비용</span>
-                <a
-                  href={`/dashboard/${companyId}/amazon/costs`}
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  바로가기 →
-                </a>
-              </div>
-              <div className="flex justify-between items-center p-2 hover:bg-muted rounded">
-                <span className="text-sm">구매 전환율</span>
-                <a
-                  href={`/dashboard/${companyId}/amazon/conversion`}
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  바로가기 →
-                </a>
-              </div>
-              <div className="flex justify-between items-center p-2 hover:bg-muted rounded">
-                <span className="text-sm">환불율</span>
-                <a
-                  href={`/dashboard/${companyId}/amazon/refund`}
                   className="text-xs text-blue-600 hover:underline"
                 >
                   바로가기 →

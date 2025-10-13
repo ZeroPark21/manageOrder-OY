@@ -31,9 +31,9 @@ export async function GET(req: NextRequest) {
     prevTo.setDate(prevTo.getDate() - 1)
 
     // 1. 현재 기간 TikTok 데이터 (매출 데이터만 - order_amount > 0)
-    const { data: allTiktokOrders, error: tiktokError } = await supabase
+    const { data: allTiktokOrders } = await supabase
       .from('orders')
-      .select('created_time, order_amount, quantity, seller_sku, product_name')
+      .select('created_time, order_amount, quantity, seller_sku, product_name, order_status')
       .eq('company_id', parseInt(companyId))
       .gt('order_amount', 0)
 
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
     })
 
     // 3. 현재 기간 Amazon 데이터 (새 테이블 사용)
-    const { data: amazonCurrent, error: amazonError } = await supabase
+    const { data: amazonCurrent } = await supabase
       .from('amazon_business_reports')
       .select('*')
       .eq('company_id', parseInt(companyId))
@@ -102,9 +102,21 @@ export async function GET(req: NextRequest) {
       return sum + (parseInt(report.units_ordered) || 0)
     }, 0)
 
+    // 환불 건수 집계
+    const tiktokCurrentRefunds = platform === 'amazon' ? 0 : (tiktokCurrent || []).filter(order =>
+      order.order_status && (order.order_status.toLowerCase().includes('refund') ||
+                             order.order_status.toLowerCase().includes('cancel') ||
+                             order.order_status.toLowerCase().includes('return'))
+    ).length
+
+    const amazonCurrentRefunds = platform === 'tiktok' ? 0 : (amazonCurrent || []).reduce((sum, report) => {
+      return sum + (parseInt(report.units_refunded) || 0)
+    }, 0)
+
     const currentTotalRevenue = tiktokCurrentRevenue + amazonCurrentRevenue
     const currentTotalOrders = tiktokCurrentOrders + amazonCurrentOrders
     const currentTotalItems = tiktokCurrentItems + amazonCurrentItems
+    const currentTotalRefunds = tiktokCurrentRefunds + amazonCurrentRefunds
     const currentAvgOrderValue = currentTotalOrders > 0 ? currentTotalRevenue / currentTotalOrders : 0
 
     // === 이전 기간 집계 ===
@@ -122,9 +134,21 @@ export async function GET(req: NextRequest) {
       return sum + (parseInt(report.units_ordered) || 0)
     }, 0)
 
+    // 이전 기간 환불 건수 집계
+    const tiktokPreviousRefunds = platform === 'amazon' ? 0 : (tiktokPrevious || []).filter(order =>
+      order.order_status && (order.order_status.toLowerCase().includes('refund') ||
+                             order.order_status.toLowerCase().includes('cancel') ||
+                             order.order_status.toLowerCase().includes('return'))
+    ).length
+
+    const amazonPreviousRefunds = platform === 'tiktok' ? 0 : (amazonPrevious || []).reduce((sum, report) => {
+      return sum + (parseInt(report.units_refunded) || 0)
+    }, 0)
+
     const previousTotalRevenue = tiktokPreviousRevenue + amazonPreviousRevenue
     const previousTotalOrders = tiktokPreviousOrders + amazonPreviousOrders
     const previousTotalItems = tiktokPreviousItems + amazonPreviousItems
+    const previousTotalRefunds = tiktokPreviousRefunds + amazonPreviousRefunds
     const previousAvgOrderValue = previousTotalOrders > 0 ? previousTotalRevenue / previousTotalOrders : 0
 
     // === 증감률 계산 ===
@@ -413,6 +437,10 @@ export async function GET(req: NextRequest) {
         totalItems: {
           value: currentTotalItems,
           change: calculateChange(currentTotalItems, previousTotalItems)
+        },
+        totalRefunds: {
+          value: currentTotalRefunds,
+          change: calculateChange(currentTotalRefunds, previousTotalRefunds)
         }
       },
       platformRevenue: [
@@ -489,17 +517,21 @@ export async function GET(req: NextRequest) {
           name: 'TikTok Shop',
           revenue: Math.round(tiktokCurrentRevenue),
           orders: tiktokCurrentOrders,
+          refunds: tiktokCurrentRefunds,
           conversionRate: 0,
           avgOrderValue: tiktokCurrentOrders > 0 ? Math.round(tiktokCurrentRevenue / tiktokCurrentOrders) : 0,
-          percentOfTotal: currentTotalRevenue > 0 ? Number(((tiktokCurrentRevenue / currentTotalRevenue) * 100).toFixed(1)) : 0
+          revenuePercentOfTotal: currentTotalRevenue > 0 ? Number(((tiktokCurrentRevenue / currentTotalRevenue) * 100).toFixed(1)) : 0,
+          orderPercentOfTotal: currentTotalOrders > 0 ? Number(((tiktokCurrentOrders / currentTotalOrders) * 100).toFixed(1)) : 0
         },
         amazon: {
           name: 'Amazon',
           revenue: Math.round(amazonCurrentRevenue),
           orders: amazonCurrentOrders,
+          refunds: amazonCurrentRefunds,
           conversionRate: 0,
           avgOrderValue: amazonCurrentOrders > 0 ? Math.round(amazonCurrentRevenue / amazonCurrentOrders) : 0,
-          percentOfTotal: currentTotalRevenue > 0 ? Number(((amazonCurrentRevenue / currentTotalRevenue) * 100).toFixed(1)) : 0
+          revenuePercentOfTotal: currentTotalRevenue > 0 ? Number(((amazonCurrentRevenue / currentTotalRevenue) * 100).toFixed(1)) : 0,
+          orderPercentOfTotal: currentTotalOrders > 0 ? Number(((amazonCurrentOrders / currentTotalOrders) * 100).toFixed(1)) : 0
         }
       }
     })
