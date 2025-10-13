@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
       states: Map<string, number>
       cities: Map<string, number>
       serviceLevel: Map<string, number>
-      dailySales: Map<string, { quantity: number, revenue: number, orders: number }>
+      dailySales: Map<string, { quantity: number, revenue: number, orders: Set<string> }>
     }>()
 
     orders?.forEach(order => {
