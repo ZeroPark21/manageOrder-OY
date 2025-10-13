@@ -122,7 +122,7 @@ export function AppSidebarNew({
   const [allCompanies, setAllCompanies] = useState<Company[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const [channelSettings, setChannelSettings] =
-    useState<Company["channel_settings"]>(null);
+    useState<Company["channel_settings"]>(undefined);
 
   // 메뉴 섹션 정의
   const menuSections: MenuSection[] = [

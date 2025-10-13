@@ -297,49 +297,55 @@ export default function AmazonRefundPage({
               <TabsTrigger value="monthly">월별</TabsTrigger>
             </TabsList>
           </Tabs>
-          {periodType === "daily" && (
-            <>
-              <Select
-                value={String(selectedYear)}
-                onValueChange={(v) => setSelectedYear(parseInt(v))}
-              >
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from(
-                    { length: 5 },
-                    (_, i) => new Date().getFullYear() - i
-                  ).map((year) => (
-                    <SelectItem key={year} value={String(year)}>
-                      {year}년
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedMonth || undefined} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
-                    const monthValue = String(month).padStart(2, "0");
-                    const yearMonth = `${selectedYear}-${monthValue}`;
-                    const isDisabled = !availableMonths.has(yearMonth);
-                    return (
-                      <SelectItem
-                        key={month}
-                        value={monthValue}
-                        disabled={isDisabled}
-                      >
-                        {month}월
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </>
-          )}
+          <Select
+            value={String(selectedYear)}
+            onValueChange={(v) => setSelectedYear(parseInt(v))}
+            disabled={periodType !== "daily"}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from(
+                new Set(
+                  Array.from(availableMonths).map((ym) =>
+                    parseInt(ym.split("-")[0])
+                  )
+                )
+              )
+                .sort((a, b) => b - a)
+                .map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}년
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={selectedMonth || undefined}
+            onValueChange={setSelectedMonth}
+            disabled={periodType !== "daily"}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
+                const monthValue = String(month).padStart(2, "0");
+                const yearMonth = `${selectedYear}-${monthValue}`;
+                const isDisabled = !availableMonths.has(yearMonth);
+                return (
+                  <SelectItem
+                    key={month}
+                    value={monthValue}
+                    disabled={isDisabled}
+                  >
+                    {month}월
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
