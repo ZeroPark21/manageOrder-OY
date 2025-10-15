@@ -16,6 +16,8 @@ export async function GET(req: NextRequest) {
       )
     }
 
+    console.log(`🔍 [Dashboard Metrics] companyId=${companyId}, dateFrom=${dateFrom}, dateTo=${dateTo}, platform=${platform}`)
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -30,12 +32,44 @@ export async function GET(req: NextRequest) {
     const prevTo = new Date(from)
     prevTo.setDate(prevTo.getDate() - 1)
 
-    // 1. 현재 기간 TikTok 데이터 (매출 데이터만 - order_amount > 0)
-    const { data: allTiktokOrders } = await supabase
-      .from('orders')
-      .select('created_time, order_amount, quantity, seller_sku, product_name, order_status')
-      .eq('company_id', parseInt(companyId))
-      .gt('order_amount', 0)
+    // 1. 현재 기간 TikTok 데이터 (매출 데이터만 - order_amount > 0) - 페이지네이션 적용
+    let allTiktokOrders: any[] = []
+    let offset = 0
+    const batchSize = 1000
+    let hasMore = true
+
+    console.log(`🔍 [Dashboard] Fetching ALL TikTok orders for companyId: ${companyId}`)
+
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
+        .from('orders')
+        .select('created_time, order_amount, quantity, seller_sku, product_name, order_status')
+        .eq('company_id', parseInt(companyId))
+        .gt('order_amount', 0)
+        .range(offset, offset + batchSize - 1)
+
+      if (batchError) {
+        console.error(`❌ [Dashboard] TikTok error at offset ${offset}:`, batchError)
+        if (offset === 0) {
+          return NextResponse.json({ error: batchError.message }, { status: 500 })
+        }
+        break
+      }
+
+      if (batch && batch.length > 0) {
+        allTiktokOrders = [...allTiktokOrders, ...batch]
+        console.log(`📦 [Dashboard] Batch ${Math.floor(offset / batchSize) + 1}: ${batch.length} orders (total: ${allTiktokOrders.length})`)
+        offset += batchSize
+
+        if (batch.length < batchSize) {
+          hasMore = false
+        }
+      } else {
+        hasMore = false
+      }
+    }
+
+    console.log(`✅ [Dashboard] Total TikTok orders loaded: ${allTiktokOrders.length}`)
 
     // 날짜 파싱 함수 (MM/DD/YYYY 형식 처리)
     const parseOrderDate = (dateStr: string): Date | null => {
@@ -63,6 +97,10 @@ export async function GET(req: NextRequest) {
       if (!orderDate) return false
       return orderDate >= fromDate && orderDate <= toDate
     })
+
+    const tiktokRevenue = tiktokCurrent.reduce((sum, order) => sum + (order.order_amount || 0), 0)
+    console.log(`📊 [Dashboard] TikTok: ${allTiktokOrders?.length || 0} total orders -> ${tiktokCurrent.length} filtered orders`)
+    console.log(`💰 [Dashboard] TikTok Revenue: $${tiktokRevenue.toFixed(2)} (dateFrom: ${dateFrom}, dateTo: ${dateTo})`)
 
     // 2. 이전 기간 TikTok 데이터
     const tiktokPrevious = (allTiktokOrders || []).filter(order => {
@@ -423,7 +461,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       summary: {
         totalRevenue: {
-          value: Math.round(currentTotalRevenue),
+          value: currentTotalRevenue,
           change: calculateChange(currentTotalRevenue, previousTotalRevenue)
         },
         totalOrders: {
@@ -431,7 +469,7 @@ export async function GET(req: NextRequest) {
           change: calculateChange(currentTotalOrders, previousTotalOrders)
         },
         avgOrderValue: {
-          value: Math.round(currentAvgOrderValue),
+          value: currentAvgOrderValue,
           change: calculateChange(currentAvgOrderValue, previousAvgOrderValue)
         },
         totalItems: {
@@ -446,12 +484,12 @@ export async function GET(req: NextRequest) {
       platformRevenue: [
         {
           name: 'TikTok Shop',
-          value: Math.round(tiktokCurrentRevenue),
+          value: tiktokCurrentRevenue,
           color: '#000000'  // TikTok 블랙
         },
         {
           name: 'Amazon',
-          value: Math.round(amazonCurrentRevenue),
+          value: amazonCurrentRevenue,
           color: '#FF9900'  // Amazon 오렌지
         }
       ],

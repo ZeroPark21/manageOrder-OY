@@ -70,7 +70,7 @@ const MetricCard = ({
 
   const formatValue = () => {
     if (format === "currency")
-      return `$${typeof value === "number" ? value.toLocaleString() : value}`;
+      return `$${typeof value === "number" ? value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : value}`;
     if (format === "percent") return `${value}%`;
     return typeof value === "number" ? value.toLocaleString() : value;
   };
