@@ -11,7 +11,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Cosduck Agency Dashboard",
   description: "TikTok Shop & Amazon 통합 판매 분석 대시보드",
-  generator: 'v0.dev'
+  generator: 'v0.dev',
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/icon.png',
+    apple: '/icon.png',
+  }
 }
 
 export default function RootLayout({
