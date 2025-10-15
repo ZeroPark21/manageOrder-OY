@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DailyMatrixTable } from "@/components/matrix/daily-matrix-table";
 import { WeeklyMatrixTable } from "@/components/matrix/weekly-matrix-table";
 import { MonthlyMatrixTable } from "@/components/matrix/monthly-matrix-table";
@@ -24,6 +24,13 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Link from "next/link";
 
 interface DashboardData {
@@ -53,14 +60,17 @@ export default function Dashboard({
     cancelledCount: number;
     shippedCount: number;
   } | null>(null);
+  const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [availableMonths, setAvailableMonths] = useState<{ [year: number]: number[] }>({});
 
-  const fetchSummaryData = async () => {
+  const fetchAvailableDates = async () => {
     try {
-      setLoading(true);
-      console.log("🔄 Fetching summary data from API...");
-
+      // 모든 날짜를 가져오기 위해 daily-matrix API 호출 (allDates=true로 모든 샘플 데이터의 날짜 가져오기)
       const response = await fetch(
-        `/api/sample-summary?companyId=${companyId}`,
+        `/api/matrix/daily-matrix?companyId=${companyId}&allDates=true`,
         {
           credentials: "include",
           headers: {
@@ -68,6 +78,66 @@ export default function Dashboard({
           },
         }
       );
+
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.dates && data.dates.length > 0) {
+        const yearsMap: { [year: number]: Set<number> } = {};
+
+        data.dates.forEach((dateStr: string) => {
+          const date = new Date(dateStr);
+          const year = date.getFullYear();
+          const month = date.getMonth() + 1;
+
+          if (!yearsMap[year]) {
+            yearsMap[year] = new Set();
+          }
+          yearsMap[year].add(month);
+        });
+
+        const years = Object.keys(yearsMap).map(Number).sort((a, b) => b - a);
+        const months: { [year: number]: number[] } = {};
+        years.forEach(year => {
+          months[year] = Array.from(yearsMap[year]).sort((a, b) => a - b);
+        });
+
+        setAvailableYears(years);
+        setAvailableMonths(months);
+
+        // 가장 최근 연도로 초기화하고, 월은 "전체"로 설정
+        if (years.length > 0) {
+          setSelectedYear(years[0]);
+          setSelectedMonth("all"); // 전체로 설정
+          console.log(`📅 Filter initialized to: ${years[0]}년 전체`);
+        }
+      }
+    } catch (error) {
+      console.error("❌ Failed to fetch available dates:", error);
+    }
+  };
+
+  const fetchSummaryData = async (year?: number, month?: string) => {
+    try {
+      setLoading(true);
+      console.log("🔄 Fetching summary data from API...");
+
+      // 파라미터 구성
+      let url = `/api/sample-summary?companyId=${companyId}`;
+      if (year && month) {
+        url += `&year=${year}&month=${month}`;
+        console.log(`📅 필터 적용: ${year}년 ${month}월`);
+      }
+
+      const response = await fetch(url, {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
       if (!response.ok) {
         throw new Error(`API 요청 실패: ${response.status}`);
       }
@@ -367,56 +437,114 @@ export default function Dashboard({
   };
 
   useEffect(() => {
+    fetchAvailableDates();
     fetchSummaryData();
   }, []);
+
+  // 필터 변경 시 카드 데이터 재조회 (daily 뷰일 때만)
+  useEffect(() => {
+    if (viewMode === "daily" && selectedYear && selectedMonth) {
+      if (selectedMonth === "all") {
+        // "전체" 선택 시 전체 데이터 표시
+        console.log(`🔄 필터 변경됨: ${selectedYear}년 전체`);
+        fetchSummaryData();
+      } else {
+        // 특정 월 선택 시 필터링된 데이터 표시
+        console.log(`🔄 필터 변경됨: ${selectedYear}년 ${selectedMonth}월`);
+        fetchSummaryData(selectedYear, selectedMonth);
+      }
+    } else if (viewMode !== "daily") {
+      // daily가 아닌 경우 전체 데이터 표시
+      fetchSummaryData();
+    }
+  }, [viewMode, selectedYear, selectedMonth]);
 
   if (loading) {
     return <LoadingSpinner message="실제 데이터를 불러오는 중..." />;
   }
 
   return (
-    <>
-      {/* 헤더 */}
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="/">TTS Dashboard</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator className="hidden md:block" />
-            <BreadcrumbItem>
-              <BreadcrumbPage>샘플 발송 현황</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
-
-      {/* 메인 콘텐츠 */}
-      <div className="flex flex-1 flex-col gap-4 p-4">
-        <div className="space-y-8">
-          {/* 페이지 헤더 */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">샘플 발송 현황</h1>
-              <p className="text-muted-foreground">
-                샘플 발송현황 분석 (실제 데이터 기반, SKU Unit Original Price =
-                0)
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={fetchSummaryData}
-                className="hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700 transition-all duration-300"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                새로고침
-              </Button>
-            </div>
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 bg-gray-50 pt-8 px-8 pb-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink href="/">TTS Dashboard</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>샘플 발송 현황</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
+          <div className="flex items-center gap-3">
+            <Tabs
+              value={viewMode}
+              onValueChange={(v) =>
+                setViewMode(v as "daily" | "weekly" | "monthly")
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="daily">일별</TabsTrigger>
+                <TabsTrigger value="weekly">주별</TabsTrigger>
+                <TabsTrigger value="monthly">월별</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Select
+              value={String(selectedYear)}
+              onValueChange={(v) => {
+                const year = parseInt(v);
+                setSelectedYear(year);
+                setSelectedMonth("");
+              }}
+              disabled={viewMode !== "daily" || availableYears.length === 0}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}년
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedMonth || undefined}
+              onValueChange={(v) => {
+                setSelectedMonth(v);
+              }}
+              disabled={viewMode !== "daily" || !availableMonths[selectedYear]?.length}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="월 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체</SelectItem>
+                {(availableMonths[selectedYear] || []).map((month) => {
+                  const monthValue = String(month).padStart(2, "0");
+                  return (
+                    <SelectItem key={month} value={monthValue}>
+                      {month}월
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
 
+      {/* Content Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-8 py-8">
+        <div className="flex flex-col gap-8">
           {/* 요약 카드 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
@@ -431,7 +559,9 @@ export default function Dashboard({
                   {summaryData?.totalCount?.toLocaleString() || 0}개
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  주문 {summaryData?.totalCount?.toLocaleString() || 0}건
+                  {viewMode === "daily" && selectedMonth && selectedMonth !== "all"
+                    ? `${selectedYear}년 ${parseInt(selectedMonth)}월 주문 ${summaryData?.totalCount?.toLocaleString() || 0}건`
+                    : `전체 주문 ${summaryData?.totalCount?.toLocaleString() || 0}건`}
                 </p>
               </CardContent>
             </Card>
@@ -448,7 +578,9 @@ export default function Dashboard({
                   {summaryData?.cancelledCount?.toLocaleString() || 0}개
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  취소 {summaryData?.cancelledCount?.toLocaleString() || 0}건
+                  {viewMode === "daily" && selectedMonth && selectedMonth !== "all"
+                    ? `${selectedYear}년 ${parseInt(selectedMonth)}월 취소 ${summaryData?.cancelledCount?.toLocaleString() || 0}건`
+                    : `전체 취소 ${summaryData?.cancelledCount?.toLocaleString() || 0}건`}
                 </p>
               </CardContent>
             </Card>
@@ -465,61 +597,42 @@ export default function Dashboard({
                   {summaryData?.shippedCount?.toLocaleString() || 0}개
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  발송 {summaryData?.shippedCount?.toLocaleString() || 0}건
+                  {viewMode === "daily" && selectedMonth && selectedMonth !== "all"
+                    ? `${selectedYear}년 ${parseInt(selectedMonth)}월 발송 ${summaryData?.shippedCount?.toLocaleString() || 0}건`
+                    : `전체 발송 ${summaryData?.shippedCount?.toLocaleString() || 0}건`}
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* 샘플 매트릭스 테이블 탭 */}
-          <Tabs defaultValue="daily" className="space-y-4">
-            <TabsList className="hover:bg-gray-100 transition-colors duration-300">
-              <TabsTrigger
-                value="daily"
-                className="hover:bg-blue-50 hover:text-blue-700 transition-all duration-300"
-              >
-                일별 매트릭스
-              </TabsTrigger>
-              <TabsTrigger
-                value="weekly"
-                className="hover:bg-blue-50 hover:text-blue-700 transition-all duration-300"
-              >
-                주별 매트릭스
-              </TabsTrigger>
-              <TabsTrigger
-                value="monthly"
-                className="hover:bg-blue-50 hover:text-blue-700 transition-all duration-300"
-              >
-                월별 매트릭스
-              </TabsTrigger>
-            </TabsList>
+          {/* 샘플 매트릭스 테이블 */}
+          {viewMode === "daily" && (
+            <DailyMatrixTable
+              companyId={companyId}
+              onExcelDownload={handleAllMatrixDownload}
+              downloadLoading={downloadLoading}
+              selectedYear={selectedMonth && selectedMonth !== "all" ? selectedYear : undefined}
+              selectedMonth={selectedMonth && selectedMonth !== "all" ? selectedMonth : undefined}
+            />
+          )}
 
-            <TabsContent value="daily" className="space-y-4">
-              <DailyMatrixTable
-                companyId={companyId}
-                onExcelDownload={handleAllMatrixDownload}
-                downloadLoading={downloadLoading}
-              />
-            </TabsContent>
+          {viewMode === "weekly" && (
+            <WeeklyMatrixTable
+              companyId={companyId}
+              onExcelDownload={handleAllMatrixDownload}
+              downloadLoading={downloadLoading}
+            />
+          )}
 
-            <TabsContent value="weekly" className="space-y-4">
-              <WeeklyMatrixTable
-                companyId={companyId}
-                onExcelDownload={handleAllMatrixDownload}
-                downloadLoading={downloadLoading}
-              />
-            </TabsContent>
-
-            <TabsContent value="monthly" className="space-y-4">
-              <MonthlyMatrixTable
-                companyId={companyId}
-                onExcelDownload={handleAllMatrixDownload}
-                downloadLoading={downloadLoading}
-              />
-            </TabsContent>
-          </Tabs>
+          {viewMode === "monthly" && (
+            <MonthlyMatrixTable
+              companyId={companyId}
+              onExcelDownload={handleAllMatrixDownload}
+              downloadLoading={downloadLoading}
+            />
+          )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

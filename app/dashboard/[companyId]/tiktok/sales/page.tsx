@@ -4,14 +4,11 @@ import { use, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/loading-spinner";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   TrendingUp,
-  BarChart3,
   Package,
   DollarSign,
-  ChevronLeft,
-  ChevronRight,
   ArrowUp,
   ArrowDown,
   Download,
@@ -131,8 +128,6 @@ interface MatrixTableProps {
   type: "daily" | "weekly" | "monthly";
   selectedYear: number;
   selectedMonth: string;
-  onYearChange: (increment: number) => void;
-  onMonthChange: (value: string) => void;
   onExcelDownload?: () => void;
   downloadLoading?: boolean;
   isLoading?: boolean;
@@ -363,8 +358,6 @@ function SalesMatrixTable({
   type,
   selectedYear,
   selectedMonth,
-  onYearChange,
-  onMonthChange,
   onExcelDownload,
   downloadLoading,
   isLoading,
@@ -397,51 +390,9 @@ function SalesMatrixTable({
                     매출 수량 매트릭스 (Order Amount &gt; 0)
                   </p>
                 </div>
-                {type === "daily" && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => onYearChange(-1)}
-                      disabled={selectedYear <= 2025}
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                    <span className="font-medium">{selectedYear}년</span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => onYearChange(1)}
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                    <Select
-                      value={selectedMonth || "all"}
-                      onValueChange={onMonthChange}
-                    >
-                      <SelectTrigger className="w-[120px]">
-                        <SelectValue placeholder="월 선택" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">전체 기간</SelectItem>
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                          (month) => {
-                            const monthValue = String(month).padStart(2, "0");
-                            const isDisabled =
-                              selectedYear === 2025 && month < 6;
-                            return (
-                              <SelectItem
-                                key={monthValue}
-                                value={monthValue}
-                                disabled={isDisabled}
-                              >
-                                {month}월
-                              </SelectItem>
-                            );
-                          }
-                        )}
-                      </SelectContent>
-                    </Select>
+                {type === "daily" && selectedMonth && (
+                  <div className="text-sm text-muted-foreground">
+                    {selectedYear}년 {parseInt(selectedMonth)}월
                   </div>
                 )}
                 {type === "weekly" && (
@@ -536,50 +487,11 @@ function SalesMatrixTable({
                   매출 수량 매트릭스 (총 {matrixData.products.length}개 상품)
                 </p>
               </div>
-              {type === "daily" && (
+              {type === "daily" && selectedMonth && selectedMonth !== "all" && (
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => onYearChange(-1)}
-                    disabled={selectedYear <= 2025}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="font-medium">{selectedYear}년</span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => onYearChange(1)}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  <Select
-                    value={selectedMonth || "all"}
-                    onValueChange={onMonthChange}
-                  >
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue placeholder="월 선택" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">전체 기간</SelectItem>
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                        (month) => {
-                          const monthValue = String(month).padStart(2, "0");
-                          const isDisabled = selectedYear === 2025 && month < 6;
-                          return (
-                            <SelectItem
-                              key={monthValue}
-                              value={monthValue}
-                              disabled={isDisabled}
-                            >
-                              {month}월
-                            </SelectItem>
-                          );
-                        }
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="text-sm text-muted-foreground">
+                    {selectedYear}년 {parseInt(selectedMonth)}월
+                  </div>
                   {onExcelDownload && (
                     <Button
                       variant="outline"
@@ -958,6 +870,13 @@ export default function SalesAnalysis({
   );
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">(
+    "daily"
+  );
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [availableMonths, setAvailableMonths] = useState<{
+    [year: number]: number[];
+  }>({});
 
   const fetchData = async (
     year?: number,
@@ -996,32 +915,6 @@ export default function SalesAnalysis({
 
       setData(salesData);
 
-      // 초기 로드 시에만 최신 월 자동 설정 (forceAll이 false이고 파라미터가 없을 때)
-      if (!forceAll && !year && !month && salesData.daily.dates.length > 0) {
-        const latestDate =
-          salesData.daily.dates[salesData.daily.dates.length - 1];
-        const latestDateObj = new Date(latestDate);
-        const latestYear = latestDateObj.getFullYear();
-        const latestMonth = String(latestDateObj.getMonth() + 1).padStart(
-          2,
-          "0"
-        );
-
-        console.log(
-          `📅 Initial load - setting to latest data: ${latestYear}-${latestMonth}`
-        );
-
-        // 가장 최근 월의 데이터로 다시 로드
-        setSelectedYear(latestYear);
-        setSelectedMonth(latestMonth);
-
-        // 재귀 호출로 해당 월 데이터 로드
-        setTimeout(() => {
-          fetchData(latestYear, latestMonth, false, true);
-        }, 100);
-        return;
-      }
-
       console.log("✅ Sales analysis data loaded:", {
         totalRevenue: salesData.summary.totalRevenue,
         totalQuantity: salesData.summary.totalQuantity,
@@ -1055,6 +948,46 @@ export default function SalesAnalysis({
       }
 
       setAllData(salesData);
+
+      // 사용 가능한 년도와 월 계산 (전체 데이터에서)
+      if (salesData.daily?.dates && salesData.daily.dates.length > 0) {
+        const yearsMap: { [year: number]: Set<number> } = {};
+
+        salesData.daily.dates.forEach((dateStr: string) => {
+          const date = new Date(dateStr);
+          const year = date.getFullYear();
+          const month = date.getMonth() + 1;
+
+          if (!yearsMap[year]) {
+            yearsMap[year] = new Set();
+          }
+          yearsMap[year].add(month);
+        });
+
+        const years = Object.keys(yearsMap)
+          .map(Number)
+          .sort((a, b) => b - a);
+        const months: { [year: number]: number[] } = {};
+        years.forEach((year) => {
+          months[year] = Array.from(yearsMap[year]).sort((a, b) => a - b);
+        });
+
+        setAvailableYears(years);
+        setAvailableMonths(months);
+
+        // 가장 최근 년도로 초기화하고, 월은 "전체"로 설정
+        if (years.length > 0) {
+          const latestYear = years[0];
+          setSelectedYear(latestYear);
+          setSelectedMonth("all"); // 전체로 설정
+          console.log(`📅 Filter initialized to: ${latestYear}년 전체`);
+        }
+
+        console.log("✅ Available years and months calculated:", {
+          years,
+          months,
+        });
+      }
 
       console.log("✅ All sales analysis data loaded for monthly view");
     } catch (error) {
@@ -1093,12 +1026,12 @@ export default function SalesAnalysis({
     const loadInitialData = async () => {
       setInitialLoading(true);
 
-      // 모든 데이터를 병렬로 로드
-      await Promise.all([
-        fetchAllData(),
-        fetchWeeklyData(),
-        fetchData(undefined, undefined, false, true),
-      ]);
+      // 1. 먼저 전체 데이터를 가져와서 필터 활성화
+      await fetchAllData();
+      await fetchWeeklyData();
+
+      // 2. 전체 데이터를 data에도 설정 (초기 화면용)
+      await fetchData(undefined, undefined, false, true);
 
       setInitialLoading(false);
     };
@@ -1106,40 +1039,29 @@ export default function SalesAnalysis({
     loadInitialData();
   }, []);
 
-  const handleYearChange = (increment: number) => {
-    const newYear = selectedYear + increment;
-    // 2025년 이전은 선택 불가
-    if (newYear < 2025) return;
-    setSelectedYear(newYear);
-    if (selectedMonth && selectedMonth !== "") {
-      // 2025년으로 변경 시 6월 이전 선택되어 있으면 6월로 변경
-      if (newYear === 2025 && parseInt(selectedMonth) < 6) {
-        setSelectedMonth("06");
-        fetchData(newYear, "06");
+  // 일별 뷰에서 필터 변경 시 데이터 재조회
+  useEffect(() => {
+    if (
+      !initialLoading &&
+      viewMode === "daily" &&
+      selectedYear &&
+      selectedMonth
+    ) {
+      if (selectedMonth === "all") {
+        // "전체" 선택 시 전체 데이터 표시
+        console.log(
+          `🔄 Filter changed to ALL in daily view: ${selectedYear}년 전체`
+        );
+        fetchData(undefined, undefined, false, false);
       } else {
-        fetchData(newYear, selectedMonth);
+        // 특정 월 선택 시 필터링된 데이터 표시
+        console.log(
+          `🔄 Filter changed in daily view: ${selectedYear}년 ${selectedMonth}월`
+        );
+        fetchData(selectedYear, selectedMonth, false, false);
       }
-    } else {
-      // 전체 기간 선택 시
-      console.log("🌍 Year changed with 전체 기간 selected - loading all data");
-      fetchData(undefined, undefined, true);
     }
-  };
-
-  const handleMonthChange = (value: string) => {
-    if (value === "all") {
-      setSelectedMonth("");
-      console.log("🌍 User selected 전체 기간 - loading all data");
-      fetchData(undefined, undefined, true); // forceAll = true로 전체 데이터 로드
-    } else {
-      // 2025년의 경우 6월 이전은 선택 불가
-      if (selectedYear === 2025 && parseInt(value) < 6) {
-        return;
-      }
-      setSelectedMonth(value);
-      fetchData(selectedYear, value);
-    }
-  };
+  }, [viewMode, selectedYear, selectedMonth]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -1225,6 +1147,10 @@ export default function SalesAnalysis({
 
   // 주별 성장률 데이터 계산 (weeklyData를 사용)
   const weeklyGrowth = weeklyData ? calculateWeekOverWeekGrowth() : null;
+
+  // 현재 viewMode에 맞는 데이터 선택
+  const currentDisplayData =
+    viewMode === "daily" ? data : viewMode === "weekly" ? weeklyData : allData;
 
   const handleExcelDownload = async () => {
     setDownloadLoading(true);
@@ -1478,73 +1404,116 @@ export default function SalesAnalysis({
   }
 
   return (
-    <>
-      {/* 헤더 */}
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="mr-2 h-4" />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem className="hidden md:block">
-              <BreadcrumbLink href="/">TTS Dashboard</BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator className="hidden md:block" />
-            <BreadcrumbItem>
-              <BreadcrumbPage>SKU별 판매량</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-      </header>
-
-      {/* 메인 콘텐츠 */}
-      <div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">
-        <div className="space-y-8 overflow-hidden">
-          {/* 페이지 헤더 */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">매출 데이터 분석</h1>
-              <p className="text-muted-foreground">
-                실제 매출이 발생한 주문 분석 (SKU Unit Original Price &gt; 0)
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  if (!selectedMonth || selectedMonth === "") {
-                    console.log("🔄 Refresh with 전체 기간");
-                    fetchData(undefined, undefined, true);
-                  } else {
-                    console.log(
-                      `🔄 Refresh with filter: ${selectedYear}-${selectedMonth}`
-                    );
-                    fetchData(selectedYear, selectedMonth, false, false);
-                  }
-                }}
-                className="hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700 transition-all duration-300"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                새로고침
-              </Button>
-            </div>
+    <div className="flex flex-col h-screen bg-gray-50">
+      {/* Header - Fixed */}
+      <div className="flex-shrink-0 bg-gray-50 pt-8 px-8 pb-4 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink href="/">TTS Dashboard</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>SKU별 판매량</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
+          <div className="flex items-center gap-3">
+            <Tabs
+              value={viewMode}
+              onValueChange={(v) =>
+                setViewMode(v as "daily" | "weekly" | "monthly")
+              }
+            >
+              <TabsList>
+                <TabsTrigger value="daily">일별</TabsTrigger>
+                <TabsTrigger value="weekly">주별</TabsTrigger>
+                <TabsTrigger value="monthly">월별</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Select
+              value={String(selectedYear)}
+              onValueChange={(v) => {
+                const year = parseInt(v);
+                setSelectedYear(year);
+                setSelectedMonth(""); // 년도 변경 시 월 초기화
+              }}
+              disabled={viewMode !== "daily" || availableYears.length === 0}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableYears.map((year) => (
+                  <SelectItem key={year} value={String(year)}>
+                    {year}년
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={selectedMonth || undefined}
+              onValueChange={(v) => {
+                setSelectedMonth(v);
+              }}
+              disabled={
+                viewMode !== "daily" || !availableMonths[selectedYear]?.length
+              }
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="월 선택" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">전체</SelectItem>
+                {(availableMonths[selectedYear] || []).map((month) => {
+                  const monthValue = String(month).padStart(2, "0");
+                  return (
+                    <SelectItem key={month} value={monthValue}>
+                      {month}월
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
 
+      {/* Content Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-8 py-8">
+        <div className="flex flex-col gap-8">
           {/* 요약 카드 */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">총 매출액</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {viewMode === "daily" &&
+                  selectedMonth &&
+                  selectedMonth !== "all"
+                    ? `${parseInt(selectedMonth)}월 총 매출액`
+                    : "누적 매출액"}
+                </CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold hover:text-green-600 transition-colors duration-300">
-                  {data?.summary.totalRevenue
-                    ? formatCurrency(data.summary.totalRevenue)
+                  {currentDisplayData?.summary.totalRevenue
+                    ? formatCurrency(currentDisplayData.summary.totalRevenue)
                     : "$0"}
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">
-                    전체 기간 매출
+                    {viewMode === "daily" &&
+                    selectedMonth &&
+                    selectedMonth !== "all"
+                      ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                      : "전체 기간"}{" "}
+                    매출
                   </p>
                   {weeklyGrowth && (
                     <div className="flex flex-col items-end text-xs">
@@ -1581,16 +1550,29 @@ export default function SalesAnalysis({
 
             <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">총 판매량</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {viewMode === "daily" &&
+                  selectedMonth &&
+                  selectedMonth !== "all"
+                    ? `${parseInt(selectedMonth)}월 총 판매량`
+                    : "누적 판매량"}
+                </CardTitle>
                 <Package className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold hover:text-blue-600 transition-colors duration-300">
-                  {data?.summary.totalQuantity?.toLocaleString() || 0}개
+                  {currentDisplayData?.summary.totalQuantity?.toLocaleString() ||
+                    0}
+                  개
                 </div>
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-muted-foreground">
-                    전체 판매 수량
+                    {viewMode === "daily" &&
+                    selectedMonth &&
+                    selectedMonth !== "all"
+                      ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                      : "전체 기간"}{" "}
+                    판매량
                   </p>
                   {weeklyGrowth && (
                     <div className="flex flex-col items-end text-xs">
@@ -1628,36 +1610,41 @@ export default function SalesAnalysis({
             <Card className="hover:border-blue-500 hover:shadow-md transition-all duration-300 cursor-pointer border-2">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
-                  활성 제품 수
+                  {viewMode === "daily" &&
+                  selectedMonth &&
+                  selectedMonth !== "all"
+                    ? `${parseInt(selectedMonth)}월 활성 제품 수`
+                    : "누적 활성 제품 수"}
                 </CardTitle>
                 <TrendingUp className="h-4 w-4 text-muted-foreground hover:text-blue-600 transition-colors duration-300" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold hover:text-purple-600 transition-colors duration-300">
-                  {data?.summary.activeProducts?.toLocaleString() || 0}개
+                  {currentDisplayData?.summary.activeProducts?.toLocaleString() ||
+                    0}
+                  개
                 </div>
-                <p className="text-xs text-muted-foreground">매출 발생 제품</p>
+                <p className="text-xs text-muted-foreground">
+                  {viewMode === "daily" &&
+                  selectedMonth &&
+                  selectedMonth !== "all"
+                    ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                    : "전체 기간"}{" "}
+                  활성 제품
+                </p>
               </CardContent>
             </Card>
           </div>
 
           {/* 매출 매트릭스 테이블 */}
-          <Tabs defaultValue="daily" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="daily">일별 매출 분석</TabsTrigger>
-              <TabsTrigger value="weekly">주별 매출 분석</TabsTrigger>
-              <TabsTrigger value="monthly">월별 매출 분석</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="daily" className="space-y-4">
+          {viewMode === "daily" && (
+            <>
               {data ? (
                 <SalesMatrixTable
                   data={data}
                   type="daily"
                   selectedYear={selectedYear}
                   selectedMonth={selectedMonth}
-                  onYearChange={handleYearChange}
-                  onMonthChange={handleMonthChange}
                   onExcelDownload={handleExcelDownload}
                   downloadLoading={downloadLoading}
                   isLoading={dataLoading}
@@ -1669,17 +1656,17 @@ export default function SalesAnalysis({
                   </p>
                 </div>
               )}
-            </TabsContent>
+            </>
+          )}
 
-            <TabsContent value="weekly" className="space-y-4">
+          {viewMode === "weekly" && (
+            <>
               {weeklyData ? (
                 <SalesMatrixTable
                   data={weeklyData}
                   type="weekly"
                   selectedYear={selectedYear}
                   selectedMonth=""
-                  onYearChange={handleYearChange}
-                  onMonthChange={handleMonthChange}
                   onExcelDownload={handleExcelDownload}
                   downloadLoading={downloadLoading}
                 />
@@ -1690,17 +1677,17 @@ export default function SalesAnalysis({
                   </p>
                 </div>
               )}
-            </TabsContent>
+            </>
+          )}
 
-            <TabsContent value="monthly" className="space-y-4">
+          {viewMode === "monthly" && (
+            <>
               {allData ? (
                 <SalesMatrixTable
                   data={allData}
                   type="monthly"
                   selectedYear={selectedYear}
                   selectedMonth=""
-                  onYearChange={handleYearChange}
-                  onMonthChange={handleMonthChange}
                   onExcelDownload={handleExcelDownload}
                   downloadLoading={downloadLoading}
                 />
@@ -1711,13 +1698,13 @@ export default function SalesAnalysis({
                   </p>
                 </div>
               )}
-            </TabsContent>
-          </Tabs>
+            </>
+          )}
 
           {/* 주차별 데이터 시각화 */}
           <WeeklyDataVisualization weeklyData={weeklyData} />
         </div>
       </div>
-    </>
+    </div>
   );
 }

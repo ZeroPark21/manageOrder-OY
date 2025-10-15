@@ -4,8 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Download, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Download, TrendingUp } from "lucide-react"
 
 interface ContentDailyMatrixData {
   dates: string[]
@@ -26,19 +25,20 @@ interface ContentDailyMatrixTableProps {
   companyId: string
   onExcelDownload?: () => void
   downloadLoading?: boolean
+  selectedYear?: number
+  selectedMonth?: string
 }
 
-export function ContentDailyMatrixTable({ companyId, onExcelDownload, downloadLoading }: ContentDailyMatrixTableProps) {
+export function ContentDailyMatrixTable({ companyId, onExcelDownload, downloadLoading, selectedYear: propYear, selectedMonth: propMonth }: ContentDailyMatrixTableProps) {
   const [matrixData, setMatrixData] = useState<ContentDailyMatrixData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [selectedMonth, setSelectedMonth] = useState<string>('')
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
 
   const fetchMatrixData = async (year?: number, month?: string) => {
     setLoading(true)
     try {
+      let url = `/api/content/content-all-matrix?t=${Date.now()}&companyId=${companyId}`
       // Use the new content-all-matrix API
-      const response = await fetch(`/api/content/content-all-matrix?t=${Date.now()}&companyId=${companyId}`)
+      const response = await fetch(url)
       
       if (!response.ok) {
         throw new Error(`API 요청 실패: ${response.status} ${response.statusText}`)
@@ -103,85 +103,14 @@ export function ContentDailyMatrixTable({ companyId, onExcelDownload, downloadLo
   }
 
   useEffect(() => {
-    // 현재 월로 초기화
-    const now = new Date()
-    const currentMonth = String(now.getMonth() + 1).padStart(2, '0')
-    const currentYear = now.getFullYear()
-    
-    // 2025년 6월 이전이면 6월로 설정
-    if (currentYear === 2025 && parseInt(currentMonth) < 6) {
-      setSelectedMonth('06')
-      fetchMatrixData(currentYear, '06')
+    // props 값에 따라 데이터 가져오기
+    if (propYear && propMonth && propMonth !== 'all') {
+      fetchMatrixData(propYear, propMonth)
     } else {
-      setSelectedMonth(currentMonth)
-      fetchMatrixData(currentYear, currentMonth)
-    }
-  }, [])
-  
-  const handleMonthChange = (value: string) => {
-    if (value === 'all') {
-      setSelectedMonth('')
-      fetchMatrixData()
-    } else {
-      // 2025년의 경우 6월 이전은 선택 불가
-      if (selectedYear === 2025 && parseInt(value) < 6) {
-        return
-      }
-      setSelectedMonth(value)
-      fetchMatrixData(selectedYear, value)
-    }
-  }
-  
-  const handleYearChange = (increment: number) => {
-    const newYear = selectedYear + increment
-    // 2024년 이전은 선택 불가
-    if (newYear < 2025) return
-    setSelectedYear(newYear)
-    if (selectedMonth && selectedMonth !== 'all') {
-      // 2025년으로 변경 시 6월 이전 선택되어 있으면 6월로 변경
-      if (newYear === 2025 && parseInt(selectedMonth) < 6) {
-        setSelectedMonth('06')
-        fetchMatrixData(newYear, '06')
-      } else {
-        fetchMatrixData(newYear, selectedMonth)
-      }
-    } else {
-      // 전체 기간 선택 시
+      // "전체"이거나 props가 없으면 전체 데이터 가져오기
       fetchMatrixData()
     }
-  }
-  
-  // 월 옵션 렌더링 함수
-  const renderMonthOptions = () => {
-    const months = [
-      { value: '01', label: '1월' },
-      { value: '02', label: '2월' },
-      { value: '03', label: '3월' },
-      { value: '04', label: '4월' },
-      { value: '05', label: '5월' },
-      { value: '06', label: '6월' },
-      { value: '07', label: '7월' },
-      { value: '08', label: '8월' },
-      { value: '09', label: '9월' },
-      { value: '10', label: '10월' },
-      { value: '11', label: '11월' },
-      { value: '12', label: '12월' },
-    ]
-    
-    return months.map(month => {
-      // 2025년의 경우 6월 이전은 비활성화
-      const isDisabled = selectedYear === 2025 && parseInt(month.value) < 6
-      return (
-        <SelectItem 
-          key={month.value} 
-          value={month.value} 
-          disabled={isDisabled}
-        >
-          {month.label}
-        </SelectItem>
-      )
-    })
-  }
+  }, [propYear, propMonth])
 
   if (loading) {
     return (
@@ -203,49 +132,13 @@ export function ContentDailyMatrixTable({ companyId, onExcelDownload, downloadLo
     return (
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-center">
-              <CardTitle>일별 콘텐츠 발행현황</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handleYearChange(-1)}
-                  disabled={loading || selectedYear <= 2025}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="font-medium">{selectedYear}년</span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handleYearChange(1)}
-                  disabled={loading}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-                <Select value={selectedMonth || 'all'} onValueChange={handleMonthChange}>
-                  <SelectTrigger className="w-[120px]">
-                    <SelectValue placeholder="월 선택" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">전체 기간</SelectItem>
-                    {renderMonthOptions()}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
+          <CardTitle>일별 콘텐츠 발행현황</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p className="text-lg font-medium mb-2">데이터 없음</p>
-            <p className="text-sm">
-              {selectedMonth && selectedMonth !== 'all' 
-                ? `${selectedYear}년 ${parseInt(selectedMonth)}월에는 데이터가 없습니다.`
-                : '콘텐츠 발행 데이터를 업로드하여 분석을 시작하세요.'}
-            </p>
+            <p className="text-sm">콘텐츠 발행 데이터를 업로드하여 분석을 시작하세요.</p>
           </div>
         </CardContent>
       </Card>
@@ -255,42 +148,12 @@ export function ContentDailyMatrixTable({ companyId, onExcelDownload, downloadLo
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-between items-center">
-            <CardTitle>일별 콘텐츠 발행현황</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleYearChange(-1)}
-                disabled={loading}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="font-medium">{selectedYear}년</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleYearChange(1)}
-                disabled={loading}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Select value={selectedMonth || 'all'} onValueChange={handleMonthChange}>
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="월 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체 기간</SelectItem>
-                  {renderMonthOptions()}
-                </SelectContent>
-              </Select>
-              <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
-                <Download className="h-4 w-4 mr-2" />
-                {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
-              </Button>
-            </div>
-          </div>
+        <div className="flex justify-between items-center">
+          <CardTitle>일별 콘텐츠 발행현황</CardTitle>
+          <Button variant="outline" size="sm" onClick={onExcelDownload} disabled={downloadLoading}>
+            <Download className="h-4 w-4 mr-2" />
+            {downloadLoading ? "다운로드 중..." : "엑셀 다운로드"}
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="p-4">

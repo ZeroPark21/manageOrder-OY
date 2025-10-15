@@ -5,7 +5,7 @@ import { use } from "react"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingSpinner } from "@/components/loading-spinner"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TrendingUp, Eye, DollarSign, Users, Heart } from "lucide-react"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -21,6 +21,13 @@ import { ContentDailyMatrixTable } from "@/components/matrix/content-daily-matri
 import { ContentWeeklyMatrixTable } from "@/components/matrix/content-weekly-matrix-table"
 import { ContentMonthlyMatrixTable } from "@/components/matrix/content-monthly-matrix-table"
 import { downloadMultiSheetExcel, formatDateForExcel } from "@/lib/excel-utils"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface ContentData {
   data: Array<{
@@ -44,12 +51,74 @@ export default function ContentDashboard({ params }: { params: Promise<{ company
   const [loading, setLoading] = useState(true)
   const [totalGmv, setTotalGmv] = useState(0)
   const [downloadLoading, setDownloadLoading] = useState(false)
+  const [viewMode, setViewMode] = useState<"daily" | "weekly" | "monthly">("daily")
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState<string>("all")
+  const [availableYears, setAvailableYears] = useState<number[]>([])
+  const [availableMonths, setAvailableMonths] = useState<{ [year: number]: number[] }>({})
 
-  const fetchSummaryData = async () => {
+  const fetchAvailableDates = async () => {
+    try {
+      const response = await fetch(`/api/content/content-all-matrix?companyId=${companyId}`, {
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      })
+
+      if (!response.ok) return
+
+      const data = await response.json()
+
+      if (data.daily?.dates && data.daily.dates.length > 0) {
+        const yearsMap: { [year: number]: Set<number> } = {}
+
+        data.daily.dates.forEach((dateStr: string) => {
+          const date = new Date(dateStr)
+          const year = date.getFullYear()
+          const month = date.getMonth() + 1
+
+          if (!yearsMap[year]) yearsMap[year] = new Set()
+          yearsMap[year].add(month)
+        })
+
+        const years = Object.keys(yearsMap).map(Number).sort((a, b) => b - a)
+        const months: { [year: number]: number[] } = {}
+
+        years.forEach(year => {
+          months[year] = Array.from(yearsMap[year]).sort((a, b) => a - b)
+        })
+
+        setAvailableYears(years)
+        setAvailableMonths(months)
+
+        if (years.length > 0) {
+          const latestYear = years[0]
+          setSelectedYear(latestYear)
+          setSelectedMonth("all")
+          console.log(`📅 Filter initialized to: ${latestYear}년 전체`)
+        }
+      }
+    } catch (error) {
+      console.error("❌ Failed to fetch available dates:", error)
+    }
+  }
+
+  const fetchSummaryData = async (year?: number, month?: string) => {
     setLoading(true)
     try {
+      // URL 구성
+      let statsUrl = `/api/content/content-stats?startDate=2025-06-01&t=${Date.now()}&companyId=${companyId}`
+
+      // 년도와 월이 있으면 필터링
+      if (year && month && month !== 'all') {
+        const startDate = `${year}-${month}-01`
+        const lastDay = new Date(year, parseInt(month), 0).getDate()
+        const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
+        statsUrl = `/api/content/content-stats?startDate=${startDate}&endDate=${endDate}&t=${Date.now()}&companyId=${companyId}`
+        console.log(`📅 Fetching summary for ${year}-${month}`)
+      }
+
       // 새로운 정확한 stats API 사용
-      const statsResponse = await fetch(`/api/content/content-stats?startDate=2025-06-01&t=${Date.now()}&companyId=${companyId}`)
+      const statsResponse = await fetch(statsUrl)
       const statsData = await statsResponse.json()
       
       if (statsData.success) {
@@ -98,9 +167,19 @@ export default function ContentDashboard({ params }: { params: Promise<{ company
         })
       }
 
-      
+
       // GMV 데이터 가져오기 - 콘텐츠 분석 페이지와 동일한 API 사용
-      const contentsResponse = await fetch(`/api/content/contents?groupBy=creator&companyId=${companyId}`)
+      let gmvUrl = `/api/content/contents?groupBy=creator&companyId=${companyId}`
+
+      // 년도와 월이 있으면 필터링
+      if (year && month && month !== 'all') {
+        const startDate = `${year}-${month}-01`
+        const lastDay = new Date(year, parseInt(month), 0).getDate()
+        const endDate = `${year}-${month}-${String(lastDay).padStart(2, '0')}`
+        gmvUrl = `/api/content/contents?groupBy=creator&startDate=${startDate}&endDate=${endDate}&companyId=${companyId}`
+      }
+
+      const contentsResponse = await fetch(gmvUrl)
       if (contentsResponse.ok) {
         const contentsResult = await contentsResponse.json()
         console.log("📊 Total GMV loaded:", contentsResult.totalGmv)
@@ -312,8 +391,24 @@ export default function ContentDashboard({ params }: { params: Promise<{ company
   }
 
   useEffect(() => {
+    fetchAvailableDates()
     fetchSummaryData()
   }, [])
+
+  // 필터 변경 시 카드 데이터 재조회 (daily 뷰일 때만)
+  useEffect(() => {
+    if (viewMode === "daily" && selectedYear && selectedMonth) {
+      if (selectedMonth === "all") {
+        console.log(`🔄 필터 변경됨: ${selectedYear}년 전체`)
+        fetchSummaryData()
+      } else {
+        console.log(`🔄 필터 변경됨: ${selectedYear}년 ${selectedMonth}월`)
+        fetchSummaryData(selectedYear, selectedMonth)
+      }
+    } else if (viewMode !== "daily") {
+      fetchSummaryData()
+    }
+  }, [viewMode, selectedYear, selectedMonth])
 
   if (loading) {
     return <LoadingSpinner message="콘텐츠 데이터를 불러오는 중..." />
@@ -336,17 +431,66 @@ export default function ContentDashboard({ params }: { params: Promise<{ company
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
+        <div className="ml-auto flex items-center gap-2">
+          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-auto">
+            <TabsList>
+              <TabsTrigger value="daily">일별</TabsTrigger>
+              <TabsTrigger value="weekly">주별</TabsTrigger>
+              <TabsTrigger value="monthly">월별</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Select
+            value={String(selectedYear)}
+            onValueChange={(v) => {
+              const year = parseInt(v)
+              setSelectedYear(year)
+              setSelectedMonth("")
+            }}
+            disabled={viewMode !== "daily" || availableYears.length === 0}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={String(year)}>
+                  {year}년
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={selectedMonth || undefined}
+            onValueChange={(v) => {
+              setSelectedMonth(v)
+            }}
+            disabled={viewMode !== "daily" || !availableMonths[selectedYear]?.length}
+          >
+            <SelectTrigger className="w-[100px]">
+              <SelectValue placeholder="월 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체</SelectItem>
+              {(availableMonths[selectedYear] || []).map((month) => {
+                const monthValue = String(month).padStart(2, "0")
+                return (
+                  <SelectItem key={month} value={monthValue}>
+                    {month}월
+                  </SelectItem>
+                )
+              })}
+            </SelectContent>
+          </Select>
+        </div>
       </header>
 
       {/* 메인 콘텐츠 */}
       <div className="flex flex-1 flex-col gap-4 p-4">
         <div className="space-y-8">
           {/* 페이지 헤더 */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold">콘텐츠 발행 현황</h1>
-              <p className="text-muted-foreground">TikTok 시딩 콘텐츠 발행 추이 분석 (2025년 6월 1일부터)</p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold">콘텐츠 발행 현황</h1>
+            <p className="text-muted-foreground">TikTok 시딩 콘텐츠 발행 추이 분석 (2025년 6월 1일부터)</p>
           </div>
 
           {/* 요약 카드 */}
@@ -358,7 +502,11 @@ export default function ContentDashboard({ params }: { params: Promise<{ company
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summaryData?.totalCount?.toLocaleString() || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 누적</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {viewMode === "daily" && selectedMonth && selectedMonth !== "all"
+                    ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                    : "6월 1일부터 누적"}
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -368,7 +516,11 @@ export default function ContentDashboard({ params }: { params: Promise<{ company
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">${totalGmv.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 총 GMV</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {viewMode === "daily" && selectedMonth && selectedMonth !== "all"
+                    ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                    : "6월 1일부터 누적"}
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -378,7 +530,11 @@ export default function ContentDashboard({ params }: { params: Promise<{ company
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summaryData?.uniqueCreators || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">참여 크리에이터</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {viewMode === "daily" && selectedMonth && selectedMonth !== "all"
+                    ? `${selectedYear}년 ${parseInt(selectedMonth)}월 참여`
+                    : "참여 크리에이터"}
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -388,7 +544,11 @@ export default function ContentDashboard({ params }: { params: Promise<{ company
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summaryData?.totalShoppableImpressions?.toLocaleString() || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 누적</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {viewMode === "daily" && selectedMonth && selectedMonth !== "all"
+                    ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                    : "6월 1일부터 누적"}
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -398,31 +558,41 @@ export default function ContentDashboard({ params }: { params: Promise<{ company
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{summaryData?.totalLikeCount?.toLocaleString() || 0}</div>
-                <p className="text-xs text-muted-foreground mt-1">6월 1일부터 누적</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {viewMode === "daily" && selectedMonth && selectedMonth !== "all"
+                    ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                    : "6월 1일부터 누적"}
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* 콘텐츠 매트릭스 테이블 탭 */}
-          <Tabs defaultValue="daily" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="daily">일별 매트릭스</TabsTrigger>
-              <TabsTrigger value="weekly">주별 매트릭스</TabsTrigger>
-              <TabsTrigger value="monthly">월별 매트릭스</TabsTrigger>
-            </TabsList>
+          {/* 콘텐츠 매트릭스 테이블 */}
+          {viewMode === "daily" && (
+            <ContentDailyMatrixTable
+              companyId={companyId}
+              onExcelDownload={handleAllMatrixDownload}
+              downloadLoading={downloadLoading}
+              selectedYear={selectedMonth && selectedMonth !== "all" ? selectedYear : undefined}
+              selectedMonth={selectedMonth && selectedMonth !== "all" ? selectedMonth : undefined}
+            />
+          )}
 
-            <TabsContent value="daily" className="space-y-4">
-              <ContentDailyMatrixTable companyId={companyId} onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-            </TabsContent>
+          {viewMode === "weekly" && (
+            <ContentWeeklyMatrixTable
+              companyId={companyId}
+              onExcelDownload={handleAllMatrixDownload}
+              downloadLoading={downloadLoading}
+            />
+          )}
 
-            <TabsContent value="weekly" className="space-y-4">
-              <ContentWeeklyMatrixTable companyId={companyId} onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-            </TabsContent>
-
-            <TabsContent value="monthly" className="space-y-4">
-              <ContentMonthlyMatrixTable companyId={companyId} onExcelDownload={handleAllMatrixDownload} downloadLoading={downloadLoading} />
-            </TabsContent>
-          </Tabs>
+          {viewMode === "monthly" && (
+            <ContentMonthlyMatrixTable
+              companyId={companyId}
+              onExcelDownload={handleAllMatrixDownload}
+              downloadLoading={downloadLoading}
+            />
+          )}
         </div>
       </div>
     </>

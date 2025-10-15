@@ -65,12 +65,14 @@ const MetricCard = ({
   change,
   icon: Icon,
   format = "number",
+  subtitle,
 }: {
   title: string;
   value: number | string;
   change?: number;
   icon: any;
   format?: "number" | "currency" | "percent";
+  subtitle?: string;
 }) => {
   const isPositive = change !== undefined && change > 0;
 
@@ -91,6 +93,9 @@ const MetricCard = ({
         </div>
         <div className="space-y-1">
           <p className="text-3xl font-semibold">{formatValue()}</p>
+          {subtitle && (
+            <p className="text-xs text-gray-500">{subtitle}</p>
+          )}
           {change !== undefined && (
             <div
               className={`flex items-center text-xs ${
@@ -163,9 +168,7 @@ export default function AmazonOverviewPage() {
   );
   const [platform, setPlatform] = useState("amazon");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(
-    String(new Date().getMonth() + 1).padStart(2, "0")
-  );
+  const [selectedMonth, setSelectedMonth] = useState("all");
   const [availableMonths, setAvailableMonths] = useState<Set<string>>(
     new Set()
   );
@@ -195,13 +198,13 @@ export default function AmazonOverviewPage() {
           }
           setAvailableMonths(months);
 
-          // Set default to the most recent month with data
+          // Set year to the most recent year with data, but keep month as "all"
           if (months.size > 0) {
             const sortedMonths = Array.from(months).sort().reverse();
             const latestMonth = sortedMonths[0];
-            const [year, month] = latestMonth.split("-");
+            const [year] = latestMonth.split("-");
             setSelectedYear(parseInt(year));
-            setSelectedMonth(month);
+            // selectedMonth는 "all"로 유지
           }
         }
       } catch (err) {
@@ -220,7 +223,7 @@ export default function AmazonOverviewPage() {
         let dateFrom: string;
         let dateTo: string;
 
-        if (periodType === "daily") {
+        if (periodType === "daily" && selectedMonth !== "all") {
           // For daily: specific year and month
           const year = selectedYear;
           const month = parseInt(selectedMonth);
@@ -228,7 +231,7 @@ export default function AmazonOverviewPage() {
           const lastDay = new Date(year, month, 0).getDate();
           dateTo = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
         } else {
-          // For weekly and monthly: all available data
+          // For weekly, monthly, or "all": all available data
           dateFrom = "2020-01-01";
           dateTo = new Date().toISOString().split("T")[0];
         }
@@ -266,14 +269,45 @@ export default function AmazonOverviewPage() {
     );
   }
 
-  if (error || !data) {
+  if (error) {
     return (
       <div className="p-8">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>오류</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="p-8">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>데이터 없음</AlertTitle>
           <AlertDescription>
-            {error || "데이터를 불러올 수 없습니다."}
+            데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // 데이터가 비어있는지 확인
+  const hasData = data.dailySales?.length > 0 || data.weeklySales?.length > 0 || data.monthlySales?.length > 0;
+
+  if (!hasData) {
+    return (
+      <div className="p-8">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>데이터 없음</AlertTitle>
+          <AlertDescription>
+            {selectedMonth !== "all"
+              ? `${selectedYear}년 ${parseInt(selectedMonth)}월에 대한 아마존 판매 데이터가 없습니다.`
+              : "아마존 판매 데이터가 없습니다. Amazon Sales 탭에서 데이터를 업로드해주세요."}
           </AlertDescription>
         </Alert>
       </div>
@@ -373,14 +407,15 @@ export default function AmazonOverviewPage() {
             </SelectContent>
           </Select>
           <Select
-            value={selectedMonth || undefined}
+            value={selectedMonth}
             onValueChange={setSelectedMonth}
             disabled={periodType !== "daily"}
           >
             <SelectTrigger className="w-[100px]">
-              <SelectValue />
+              <SelectValue placeholder="전체" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">전체</SelectItem>
               {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
                 const monthValue = String(month).padStart(2, "0");
                 const yearMonth = `${selectedYear}-${monthValue}`;
@@ -418,18 +453,33 @@ export default function AmazonOverviewPage() {
           change={data.metrics.orderedProductSales.change}
           icon={DollarSign}
           format="currency"
+          subtitle={
+            periodType === "daily" && selectedMonth && selectedMonth !== "all"
+              ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+              : "전체 기간 누적"
+          }
         />
         <MetricCard
           title="주문 수량"
           value={data.metrics.unitsOrdered.value}
           change={data.metrics.unitsOrdered.change}
           icon={ShoppingCart}
+          subtitle={
+            periodType === "daily" && selectedMonth && selectedMonth !== "all"
+              ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+              : "전체 기간 누적"
+          }
         />
         <MetricCard
           title="총 주문 아이템"
           value={data.metrics.totalOrderItems.value}
           change={data.metrics.totalOrderItems.change}
           icon={Package}
+          subtitle={
+            periodType === "daily" && selectedMonth && selectedMonth !== "all"
+              ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+              : "전체 기간 누적"
+          }
         />
         <MetricCard
           title="평균 판매 가격"
@@ -437,6 +487,11 @@ export default function AmazonOverviewPage() {
           change={data.metrics.avgSellingPrice.change}
           icon={DollarSign}
           format="currency"
+          subtitle={
+            periodType === "daily" && selectedMonth && selectedMonth !== "all"
+              ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+              : "전체 기간 누적"
+          }
         />
       </div>
 
@@ -684,6 +739,11 @@ export default function AmazonOverviewPage() {
           change={data.metrics.avgSalesPerOrderItem.change}
           icon={BarChart3}
           format="currency"
+          subtitle={
+            periodType === "daily" && selectedMonth && selectedMonth !== "all"
+              ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+              : "전체 기간 누적"
+          }
         />
         <MetricCard
           title="구매 전환율"
@@ -691,18 +751,33 @@ export default function AmazonOverviewPage() {
           change={data.metrics.conversionRate.change}
           icon={Percent}
           format="percent"
+          subtitle={
+            periodType === "daily" && selectedMonth && selectedMonth !== "all"
+              ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+              : "전체 기간 누적"
+          }
         />
         <MetricCard
           title="배송 주문"
           value={data.metrics.ordersShipped.value}
           change={data.metrics.ordersShipped.change}
           icon={Truck}
+          subtitle={
+            periodType === "daily" && selectedMonth && selectedMonth !== "all"
+              ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+              : "전체 기간 누적"
+          }
         />
         <MetricCard
           title="환불된 수량"
           value={data.metrics.unitsRefunded.value}
           change={data.metrics.unitsRefunded.change}
           icon={RefreshCcw}
+          subtitle={
+            periodType === "daily" && selectedMonth && selectedMonth !== "all"
+              ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+              : "전체 기간 누적"
+          }
         />
         <MetricCard
           title="환불률"
@@ -710,6 +785,11 @@ export default function AmazonOverviewPage() {
           change={data.metrics.refundRate.change}
           icon={TrendingDown}
           format="percent"
+          subtitle={
+            periodType === "daily" && selectedMonth && selectedMonth !== "all"
+              ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+              : "전체 기간 누적"
+          }
         />
       </div>
 

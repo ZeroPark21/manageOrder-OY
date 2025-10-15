@@ -57,12 +57,14 @@ const MetricCard = ({
   change,
   icon: Icon,
   format = "number",
+  subtitle,
 }: {
   title: string;
   value: number | string;
   change: number;
   icon: any;
   format?: "number" | "currency" | "percent";
+  subtitle?: string;
 }) => {
   const isPositive = change > 0;
 
@@ -82,6 +84,9 @@ const MetricCard = ({
         </div>
         <div className="space-y-1">
           <p className="text-3xl font-semibold">{formatValue()}</p>
+          {subtitle && (
+            <p className="text-xs text-gray-500">{subtitle}</p>
+          )}
           <div
             className={`flex items-center text-xs ${
               isPositive ? "text-green-600" : "text-red-600"
@@ -159,9 +164,7 @@ export default function IntegratedDashboard() {
   );
   const [platform, setPlatform] = useState("all");
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(
-    String(new Date().getMonth() + 1).padStart(2, "0")
-  );
+  const [selectedMonth, setSelectedMonth] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -194,13 +197,13 @@ export default function IntegratedDashboard() {
           }
           setAvailableMonths(months);
 
-          // Set default to the most recent month with data
+          // Set year to the most recent year with data, but keep month as "all"
           if (months.size > 0) {
             const sortedMonths = Array.from(months).sort().reverse();
             const latestMonth = sortedMonths[0];
-            const [year, month] = latestMonth.split("-");
+            const [year] = latestMonth.split("-");
             setSelectedYear(parseInt(year));
-            setSelectedMonth(month);
+            // selectedMonth는 "all"로 유지
           }
         }
       } catch (err) {
@@ -222,7 +225,7 @@ export default function IntegratedDashboard() {
       let dateFrom: string;
       let dateTo: string;
 
-      if (periodType === "daily") {
+      if (periodType === "daily" && selectedMonth !== "all") {
         // For daily: specific year and month
         const year = selectedYear;
         const month = parseInt(selectedMonth);
@@ -230,7 +233,7 @@ export default function IntegratedDashboard() {
         const lastDay = new Date(year, month, 0).getDate();
         dateTo = `${year}-${String(month).padStart(2, "0")}-${lastDay}`;
       } else {
-        // For weekly and monthly: all available data
+        // For weekly, monthly, or "all": all available data
         dateFrom = "2020-01-01"; // Get all historical data
         dateTo = new Date().toISOString().split("T")[0];
       }
@@ -458,9 +461,10 @@ export default function IntegratedDashboard() {
               disabled={periodType !== "daily"}
             >
               <SelectTrigger className="w-[100px]">
-                <SelectValue />
+                <SelectValue placeholder="전체" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">전체</SelectItem>
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
                   const monthValue = String(month).padStart(2, "0");
                   const yearMonth = `${selectedYear}-${monthValue}`;
@@ -502,12 +506,22 @@ export default function IntegratedDashboard() {
               change={metrics.summary.totalRevenue.change}
               icon={DollarSign}
               format="currency"
+              subtitle={
+                periodType === "daily" && selectedMonth && selectedMonth !== "all"
+                  ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                  : "전체 기간 누적"
+              }
             />
             <MetricCard
               title="총 주문"
               value={metrics.summary.totalOrders.value}
               change={metrics.summary.totalOrders.change}
               icon={ShoppingCart}
+              subtitle={
+                periodType === "daily" && selectedMonth && selectedMonth !== "all"
+                  ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                  : "전체 기간 누적"
+              }
             />
             <MetricCard
               title="평균 주문액"
@@ -515,12 +529,22 @@ export default function IntegratedDashboard() {
               change={metrics.summary.avgOrderValue.change}
               icon={BarChart3}
               format="currency"
+              subtitle={
+                periodType === "daily" && selectedMonth && selectedMonth !== "all"
+                  ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                  : "전체 기간 누적"
+              }
             />
             <MetricCard
               title="총 환불수"
               value={metrics.summary.totalRefunds.value}
               change={metrics.summary.totalRefunds.change}
               icon={RotateCcw}
+              subtitle={
+                periodType === "daily" && selectedMonth && selectedMonth !== "all"
+                  ? `${selectedYear}년 ${parseInt(selectedMonth)}월`
+                  : "전체 기간 누적"
+              }
             />
           </div>
 
