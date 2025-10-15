@@ -75,19 +75,30 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
     const companyId = searchParams.get('companyId')
+    const allDates = searchParams.get('allDates') === 'true'
 
     if (!companyId) {
       return NextResponse.json({ error: "companyId is required" }, { status: 400 })
     }
-    
+
     // 기본값: 현재 월의 첫날
     const now = new Date()
     const currentMonth = now.getMonth() + 1
     const currentYear = now.getFullYear()
-    
-    // 기본 날짜 범위 설정 (현재 월 전체)
-    const defaultStartDate = startDate || `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
-    const defaultEndDate = endDate || new Date(currentYear, currentMonth, 0).toISOString().split('T')[0]
+
+    // allDates가 true면 필터링 없이 모든 날짜 반환
+    let defaultStartDate: string
+    let defaultEndDate: string
+
+    if (allDates && !startDate && !endDate) {
+      // 모든 날짜를 가져오기 위해 필터링하지 않음 (나중에 처리)
+      defaultStartDate = ''
+      defaultEndDate = ''
+    } else {
+      // 기본 날짜 범위 설정 (현재 월 전체)
+      defaultStartDate = startDate || `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`
+      defaultEndDate = endDate || new Date(currentYear, currentMonth, 0).toISOString().split('T')[0]
+    }
     
     // startDate와 endDate가 제공된 경우만 날짜 필터링 적용
     let startDateTime: string | null = null
@@ -144,24 +155,33 @@ export async function GET(request: NextRequest) {
     if (allOrders.length > 0) {
       console.log(`[daily-matrix] Sample created_time formats:`, allOrders.slice(0, 3).map(o => o.created_time))
     }
-    
-    // 클라이언트 측에서 날짜 필터링
-    const filterStartDate = new Date(defaultStartDate)
-    const filterEndDate = new Date(defaultEndDate)
-    filterEndDate.setHours(23, 59, 59, 999)
-    
-    console.log(`[daily-matrix] Filter range: ${defaultStartDate} to ${defaultEndDate}`)
-    
-    const orders = allOrders.filter(order => {
-      const orderDate = parseDate(order.created_time)
-      if (!orderDate) {
-        console.log(`[daily-matrix] Failed to parse date: ${order.created_time}`)
-        return false
-      }
-      return orderDate >= filterStartDate && orderDate <= filterEndDate
-    })
-    
-    console.log(`[daily-matrix] Filtered ${orders.length} orders from ${allOrders.length} total samples`)
+
+    // allDates가 true면 필터링 없이 모든 주문 사용
+    let orders: OrderData[]
+
+    if (allDates && !defaultStartDate && !defaultEndDate) {
+      // 필터링 없이 모든 주문 사용
+      orders = allOrders
+      console.log(`[daily-matrix] Using all orders without date filtering: ${orders.length}`)
+    } else {
+      // 클라이언트 측에서 날짜 필터링
+      const filterStartDate = new Date(defaultStartDate)
+      const filterEndDate = new Date(defaultEndDate)
+      filterEndDate.setHours(23, 59, 59, 999)
+
+      console.log(`[daily-matrix] Filter range: ${defaultStartDate} to ${defaultEndDate}`)
+
+      orders = allOrders.filter(order => {
+        const orderDate = parseDate(order.created_time)
+        if (!orderDate) {
+          console.log(`[daily-matrix] Failed to parse date: ${order.created_time}`)
+          return false
+        }
+        return orderDate >= filterStartDate && orderDate <= filterEndDate
+      })
+
+      console.log(`[daily-matrix] Filtered ${orders.length} orders from ${allOrders.length} total samples`)
+    }
 
     if (orders.length === 0) {
       return NextResponse.json({
@@ -211,15 +231,23 @@ export async function GET(request: NextRequest) {
     })
 
     // 날짜 범위 생성 (빈 날짜도 포함)
-    const startDateObj = new Date(defaultStartDate)
-    const endDateObj = new Date(defaultEndDate)
-    const allDates: string[] = []
-    
-    for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
-      allDates.push(new Date(d).toISOString().split("T")[0])
+    let sortedDates: string[]
+
+    if (allDates && !defaultStartDate && !defaultEndDate) {
+      // allDates가 true면 실제 데이터에서 발견된 날짜만 사용
+      sortedDates = Array.from(dateSet).sort()
+    } else {
+      // 날짜 범위 생성 (빈 날짜도 포함)
+      const startDateObj = new Date(defaultStartDate)
+      const endDateObj = new Date(defaultEndDate)
+      const allDatesArray: string[] = []
+
+      for (let d = new Date(startDateObj); d <= endDateObj; d.setDate(d.getDate() + 1)) {
+        allDatesArray.push(new Date(d).toISOString().split("T")[0])
+      }
+
+      sortedDates = allDatesArray
     }
-    
-    const sortedDates = allDates
     const products = Array.from(productSet)
 
     // 각 상품별 총 수량 계산 및 정렬

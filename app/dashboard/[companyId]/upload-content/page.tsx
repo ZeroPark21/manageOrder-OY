@@ -583,7 +583,7 @@ export default function UploadContentPage({ params }: { params: Promise<{ compan
                     "업로드"
                   )}
                 </Button>
-                <Button variant="outline" onClick={() => router.push(`/${companyId}/content`)}>
+                <Button variant="outline" onClick={() => router.push(`/dashboard/${companyId}/tiktok/content`)}>
                   콘텐츠 대시보드로 이동
                 </Button>
               </div>

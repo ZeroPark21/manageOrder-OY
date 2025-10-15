@@ -13,16 +13,66 @@ interface OrderData {
   sku_unit_original_price: number
 }
 
+// 날짜 파싱 함수
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr) return null
+
+  try {
+    // MM/DD/YYYY HH:MM:SS AM/PM 형식
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split(' ')
+      const datePart = parts[0]
+      const timePart = parts[1] || "00:00:00"
+      const ampm = parts[2] || ""
+
+      const [month, day, year] = datePart.split('/')
+
+      if (timePart !== "00:00:00") {
+        const [hours, minutes, seconds] = timePart.split(':')
+        let hour = parseInt(hours)
+        if (ampm === 'PM' && hour !== 12) hour += 12
+        if (ampm === 'AM' && hour === 12) hour = 0
+
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes) || 0, parseInt(seconds) || 0)
+      } else {
+        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+      }
+    }
+
+    // ISO 형식
+    if (dateStr.includes('T')) {
+      return new Date(dateStr)
+    }
+
+    // YYYY-MM-DD 형식
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return new Date(dateStr + 'T00:00:00')
+    }
+
+    const date = new Date(dateStr)
+    if (!isNaN(date.getTime())) {
+      return date
+    }
+
+    return null
+  } catch (e) {
+    console.error('Date parsing error:', dateStr, e)
+    return null
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const companyId = searchParams.get('companyId')
+    const year = searchParams.get('year')
+    const month = searchParams.get('month')
 
     if (!companyId) {
       return NextResponse.json({ error: "companyId is required" }, { status: 400 })
     }
 
-    console.log(`📊 /api/sample-summary 호출됨 - Company ID: ${companyId}`)
+    console.log(`📊 /api/sample-summary 호출됨 - Company ID: ${companyId}, Year: ${year}, Month: ${month}`)
     const supabase = createServerClient()
     
     // 전체 샘플 데이터 카운트
@@ -87,7 +137,26 @@ export async function GET(request: Request) {
     
     console.log(`📦 총 조회된 주문 수: ${allOrders.length}`)
 
-    if (allOrders.length === 0) {
+    // 날짜 필터링 (year, month가 제공된 경우)
+    let filteredOrders = allOrders
+    if (year && month) {
+      const filterYear = parseInt(year)
+      const filterMonth = parseInt(month)
+      const startDate = new Date(filterYear, filterMonth - 1, 1)
+      const endDate = new Date(filterYear, filterMonth, 0, 23, 59, 59, 999)
+
+      console.log(`📅 필터 적용: ${year}년 ${month}월 (${startDate.toISOString()} ~ ${endDate.toISOString()})`)
+
+      filteredOrders = allOrders.filter(order => {
+        const orderDate = parseDate(order.created_time)
+        if (!orderDate) return false
+        return orderDate >= startDate && orderDate <= endDate
+      })
+
+      console.log(`📦 필터 후 주문 수: ${filteredOrders.length} / ${allOrders.length}`)
+    }
+
+    if (filteredOrders.length === 0) {
       return NextResponse.json({
         totalCount: 0,
         cancelledCount: 0,
@@ -105,7 +174,7 @@ export async function GET(request: Request) {
     const cancelledOrders: OrderData[] = []
     const shippedOrders: OrderData[] = []
 
-    allOrders.forEach((order) => {
+    filteredOrders.forEach((order) => {
       // 취소된 주문 판별 (여러 조건으로)
       const isCancelled = 
         order.cancelled_time || 
@@ -132,16 +201,16 @@ export async function GET(request: Request) {
     })
 
     console.log(`📊 상태별 집계:`)
-    console.log(`  - 총 주문: ${allOrders.length}개`)
-    console.log(`  - 취소: ${cancelledCount}개 (${(cancelledCount/allOrders.length*100).toFixed(2)}%)`)
-    console.log(`  - 발송: ${shippedCount}개 (${(shippedCount/allOrders.length*100).toFixed(2)}%)`)
-    console.log(`  - 대기: ${pendingCount}개 (${(pendingCount/allOrders.length*100).toFixed(2)}%)`)
+    console.log(`  - 총 주문: ${filteredOrders.length}개`)
+    console.log(`  - 취소: ${cancelledCount}개 (${(cancelledCount/filteredOrders.length*100).toFixed(2)}%)`)
+    console.log(`  - 발송: ${shippedCount}개 (${(shippedCount/filteredOrders.length*100).toFixed(2)}%)`)
+    console.log(`  - 대기: ${pendingCount}개 (${(pendingCount/filteredOrders.length*100).toFixed(2)}%)`)
 
     // 실제 발송된 수량 계산 (취소되지 않은 주문들)
-    const actualShippedCount = allOrders.length - cancelledCount
+    const actualShippedCount = filteredOrders.length - cancelledCount
 
     const response = NextResponse.json({
-      totalCount: allOrders.length,
+      totalCount: filteredOrders.length,
       cancelledCount,
       shippedCount: actualShippedCount, // 실제 발송 = 전체 - 취소
       pendingCount,
@@ -149,9 +218,9 @@ export async function GET(request: Request) {
       
       // 디버그 정보
       stats: {
-        totalOrders: allOrders.length,
-        cancelledRate: (cancelledCount / allOrders.length * 100).toFixed(2) + '%',
-        shippedRate: (actualShippedCount / allOrders.length * 100).toFixed(2) + '%'
+        totalOrders: filteredOrders.length,
+        cancelledRate: (cancelledCount / filteredOrders.length * 100).toFixed(2) + '%',
+        shippedRate: (actualShippedCount / filteredOrders.length * 100).toFixed(2) + '%'
       },
       
       // 샘플 데이터 (처음 3개씩)

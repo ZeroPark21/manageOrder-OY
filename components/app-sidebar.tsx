@@ -26,6 +26,8 @@ import {
   TrendingUp,
   ChevronDown,
   Building2,
+  Database,
+  ShoppingCart,
   type LucideIcon,
 } from "lucide-react";
 import { AuthSection } from "@/components/auth-section";
@@ -50,8 +52,14 @@ interface MenuItem {
 // 메뉴 데이터
 const allMenuItems: MenuItem[] = [
   {
+    title: "대시보드",
+    url: "", // 홈 경로
+    icon: BarChart3,
+    description: "통합 판매 대시보드",
+  },
+  {
     title: "샘플 발송 현황",
-    url: "", // 동적으로 설정됨
+    url: "/sample-summary",
     icon: Package,
     description: "TikTok 샘플 발송 데이터 분석",
   },
@@ -85,8 +93,14 @@ const utilityItems: MenuItem[] = [
   {
     title: "콘텐츠 데이터 업로드",
     url: "/upload-content",
-    icon: BarChart3,
+    icon: Video,
     description: "콘텐츠 발행 데이터 업로드",
+  },
+  {
+    title: "Amazon 주문 업로드",
+    url: "/amazon/orders",
+    icon: ShoppingCart,
+    description: "Amazon 주문 데이터 업로드",
   },
 ];
 

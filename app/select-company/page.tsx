@@ -61,7 +61,7 @@ export default function SelectCompanyPage() {
 
           // 업체가 1개면 자동 리다이렉트
           if (companyList.length === 1) {
-            router.push(`/${companyList[0].id}`)
+            router.push(`/dashboard/${companyList[0].id}`)
           }
         }
       }
@@ -113,7 +113,7 @@ export default function SelectCompanyPage() {
               key={company.id}
               onClick={() => {
                 console.log(`Navigating to company ${company.id}`)
-                router.push(`/${company.id}`)
+                router.push(`/dashboard/${company.id}`)
               }}
               style={{
                 padding: "12px 16px",

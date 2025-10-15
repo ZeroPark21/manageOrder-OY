@@ -210,7 +210,7 @@ export default function UploadPage({ params }: { params: Promise<{ companyId: st
                     "업로드"
                   )}
                 </Button>
-                <Button variant="outline" onClick={() => router.push(`/${companyId}`)}>
+                <Button variant="outline" onClick={() => router.push(`/dashboard/${companyId}`)}>
                   대시보드로 이동
                 </Button>
               </div>
