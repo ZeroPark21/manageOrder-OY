@@ -46,6 +46,102 @@ export default function UploadPage({ params }: { params: Promise<{ companyId: st
     }
   }
 
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = []
+    let current = ''
+    let inQuotes = false
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"'
+          i++
+        } else {
+          inQuotes = !inQuotes
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim())
+        current = ''
+      } else {
+        current += char
+      }
+    }
+    result.push(current.trim())
+    return result
+  }
+
+  const parseNumber = (value: any): number | null => {
+    if (!value || value === '' || value === '\t') return null
+    const num = parseFloat(String(value).replace(/[,$]/g, ''))
+    return isNaN(num) ? null : num
+  }
+
+  const parseInteger = (value: any): number => {
+    if (!value || value === '' || value === '\t') return 0
+    const num = parseInt(String(value).replace(/[,$]/g, ''))
+    return isNaN(num) ? 0 : num
+  }
+
+  const uploadInChunks = async (orders: any[]) => {
+    const CHUNK_SIZE = 100
+    const MAX_CONCURRENT = 3
+    let totalSaved = 0
+    let totalUpdated = 0
+    let totalInserted = 0
+
+    const chunks = []
+    for (let i = 0; i < orders.length; i += CHUNK_SIZE) {
+      chunks.push(orders.slice(i, i + CHUNK_SIZE))
+    }
+
+    const uploadChunk = async (chunkOrders: any[], chunkIndex: number) => {
+      const isLastChunk = chunkIndex === chunks.length - 1
+
+      try {
+        const response = await fetch("/api/upload/tiktok-csv-chunk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orders: chunkOrders, isLastChunk, companyId })
+        })
+
+        const result = await response.json()
+
+        if (response.ok) {
+          return {
+            saved: result.saved || 0,
+            updated: result.updated || 0,
+            inserted: result.inserted || 0
+          }
+        } else {
+          throw new Error(result.error || "청크 업로드 실패")
+        }
+      } catch (error) {
+        throw error
+      }
+    }
+
+    for (let i = 0; i < chunks.length; i += MAX_CONCURRENT) {
+      const batch = chunks.slice(i, i + MAX_CONCURRENT)
+      const promises = batch.map((chunk, index) => uploadChunk(chunk, i + index))
+
+      const results = await Promise.all(promises)
+      results.forEach(result => {
+        totalSaved += result.saved
+        totalUpdated += result.updated
+        totalInserted += result.inserted
+      })
+
+      const processed = Math.min((i + MAX_CONCURRENT) * CHUNK_SIZE, orders.length)
+      setMessage({
+        type: "success",
+        text: `⏳ 업로드 중... ${processed}/${orders.length} 처리됨 (${Math.round(processed / orders.length * 100)}%)`
+      })
+    }
+
+    return { totalSaved, totalUpdated, totalInserted }
+  }
+
   const handleUpload = async () => {
     if (!file) return
 
@@ -53,67 +149,154 @@ export default function UploadPage({ params }: { params: Promise<{ companyId: st
     setMessage(null)
 
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("companyId", companyId)
-
       console.log("🚀 Starting upload:", file.name, "Size:", file.size)
 
-      const response = await fetch("/api/upload/upload-csv", {
-        method: "POST",
-        body: formData,
-      })
+      // CSV 파일 파싱
+      const text = await file.text()
+      const lines = text.split(/\r?\n/).filter((line) => line.trim())
 
-      console.log("📡 Response status:", response.status)
-      console.log("📡 Response ok:", response.ok)
+      if (lines.length < 2) {
+        setMessage({ type: "error", text: "CSV 파일에 데이터가 없습니다." })
+        return
+      }
 
-      let result
-      try {
-        const responseText = await response.text()
-        console.log("📄 Response text:", responseText.substring(0, 500))
-        result = JSON.parse(responseText)
-      } catch (parseError) {
-        console.error("❌ Failed to parse response:", parseError)
+      const headers = parseCSVLine(lines[0])
+      const orders = []
+      const orderIdSet = new Set<string>()
+      let skippedRows = 0
+
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim()
+        if (!line) continue
+
+        try {
+          const values = parseCSVLine(line)
+          const rowData: any = {}
+
+          headers.forEach((header, index) => {
+            rowData[header] = values[index] || ""
+          })
+
+          const orderIdRaw = rowData["Order ID"]?.toString().trim()
+          const productName = rowData["Product Name"]?.toString().trim()
+          const quantity = parseInteger(rowData["Quantity"])
+
+          if (!orderIdRaw || !productName || quantity <= 0) {
+            skippedRows++
+            continue
+          }
+
+          const orderId = String(orderIdRaw)
+          const skuId = rowData["SKU ID"]?.toString().trim()
+          const rowUniqueId = `${orderId}_${skuId || productName || i}`
+
+          if (orderIdSet.has(rowUniqueId)) {
+            skippedRows++
+            continue
+          }
+          orderIdSet.add(rowUniqueId)
+
+          const orderData: any = {
+            order_id: orderId,
+            order_status: rowData["Order Status"] || null,
+            order_substatus: rowData["Order Substatus"] || null,
+            cancelation_return_type: rowData["Cancelation/Return Type"] || null,
+            normal_or_preorder: rowData["Normal or Pre-order"] || null,
+            sku_id: rowData["SKU ID"] || null,
+            seller_sku: rowData["Seller SKU"] || null,
+            product_name: productName,
+            variation: rowData["Variation"] || null,
+            quantity: quantity,
+            sku_quantity_of_return: parseInteger(rowData["Sku Quantity of return"]),
+            sku_unit_original_price: parseNumber(rowData["SKU Unit Original Price"]),
+            sku_subtotal_before_discount: parseNumber(rowData["SKU Subtotal Before Discount"]),
+            sku_platform_discount: parseNumber(rowData["SKU Platform Discount"]),
+            sku_seller_discount: parseNumber(rowData["SKU Seller Discount"]),
+            sku_subtotal_after_discount: parseNumber(rowData["SKU Subtotal After Discount"]),
+            shipping_fee_after_discount: parseNumber(rowData["Shipping Fee After Discount"]),
+            original_shipping_fee: parseNumber(rowData["Original Shipping Fee"]),
+            shipping_fee_seller_discount: parseNumber(rowData["Shipping Fee Seller Discount"]),
+            co_funded_shipping_fee_discount: parseNumber(rowData["Co-Funded Shipping Fee Discount"]),
+            shipping_fee_platform_discount: parseNumber(rowData["Shipping Fee Platform Discount"]),
+            payment_platform_discount: parseNumber(rowData["Payment platform discount"]),
+            retail_delivery_fee: parseNumber(rowData["Retail Delivery Fee"]),
+            taxes: parseNumber(rowData["Taxes"]),
+            order_amount: parseNumber(rowData["Order Amount"]),
+            order_refund_amount: parseNumber(rowData["Order Refund Amount"]),
+            created_time: rowData["Created Time"] || null,
+            paid_time: rowData["Paid Time"] || null,
+            rts_time: rowData["RTS Time"] || null,
+            shipped_time: rowData["Shipped Time"] || null,
+            delivered_time: rowData["Delivered Time"] || null,
+            cancelled_time: rowData["Cancelled Time"] || null,
+            cancel_by: rowData["Cancel By"] || null,
+            cancel_reason: rowData["Cancel Reason"] || null,
+            fulfillment_type: rowData["Fulfillment Type"] || null,
+            warehouse_name: rowData["Warehouse Name"] || null,
+            tracking_id: rowData["Tracking ID"] || null,
+            delivery_option_type: rowData["Delivery Option Type"] || null,
+            delivery_option: rowData["Delivery Option"] || null,
+            shipping_provider_name: rowData["Shipping Provider Name"] || null,
+            buyer_message: rowData["Buyer Message"] || null,
+            buyer_username: rowData["Buyer Username"] || null,
+            recipient: rowData["Recipient"] || null,
+            phone_number: rowData["Phone #"] || null,
+            country: rowData["Country"] || null,
+            state: rowData["State"] || null,
+            city: rowData["City"] || null,
+            zipcode: rowData["Zipcode"] || null,
+            address_line_1: rowData["Address Line 1"] || null,
+            address_line_2: rowData["Address Line 2"] || null,
+            delivery_instruction: rowData["Delivery Instruction"] || null,
+            payment_method: rowData["Payment Method"] || null,
+            weight_kg: parseNumber(rowData["Weight(kg)"]),
+            product_category: rowData["Product Category"] || null,
+            package_id: rowData["Package ID"] || null,
+            seller_note: rowData["Seller Note"] || null,
+            shipping_information: rowData["Shipping Information"] || null,
+            combined_listing: rowData["Combined Listing"] || null,
+          }
+
+          orders.push(orderData)
+        } catch (rowError) {
+          console.error(`Error parsing row ${i}:`, rowError)
+          skippedRows++
+        }
+      }
+
+      if (orders.length === 0) {
         setMessage({
           type: "error",
-          text: `서버 응답을 파싱할 수 없습니다. Status: ${response.status}`,
+          text: "유효한 주문 데이터를 찾을 수 없습니다."
         })
         return
       }
 
-      // Check for success field or successful status
-      if (response.ok && (result.success || result.count > 0)) {
-        const successMessage = [
-          `✅ ${result.message || "업로드 완료!"}`,
-          `📊 업로드된 주문: ${result.count}개`,
-          `📈 처리된 행: ${result.processed}개`,
-          result.skipped > 0 ? `⚠️ 건너뛴 행: ${result.skipped}개` : "",
-          result.failedBatches > 0 ? `⚠️ 실패한 배치: ${result.failedBatches}개` : "",
-          result.successRate ? `📈 성공률: ${result.successRate}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n")
+      // 청크 업로드 실행
+      const { totalSaved, totalUpdated, totalInserted } = await uploadInChunks(orders)
 
-        setMessage({
-          type: "success",
-          text: successMessage,
-        })
-        setFile(null)
-        // 파일 입력 초기화
-        const fileInput = document.getElementById("file-upload") as HTMLInputElement
-        if (fileInput) fileInput.value = ""
-      } else {
-        console.error("❌ Upload failed:", result)
-        setMessage({
-          type: "error",
-          text: result.error || `업로드에 실패했습니다. (${response.status})`,
-        })
-      }
+      const successMessage = [
+        `✅ TikTok 주문 데이터 업로드 완료!`,
+        `📊 총 처리: ${totalSaved}개`,
+        `  - 새로 추가: ${totalInserted}개`,
+        `  - 업데이트: ${totalUpdated}개`,
+        skippedRows > 0 ? `⚠️ 건너뛴 행: ${skippedRows}개` : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+
+      setMessage({
+        type: "success",
+        text: successMessage,
+      })
+      setFile(null)
+      const fileInput = document.getElementById("file-upload") as HTMLInputElement
+      if (fileInput) fileInput.value = ""
     } catch (error) {
       console.error("💥 Upload error:", error)
       setMessage({
         type: "error",
-        text: `네트워크 오류가 발생했습니다: ${error instanceof Error ? error.message : "알 수 없는 오류"}`,
+        text: `업로드 중 오류: ${error instanceof Error ? error.message : "알 수 없는 오류"}`,
       })
     } finally {
       setUploading(false)
