@@ -2,13 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
 
-// Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+export const runtime = "nodejs"
 
 export async function POST(request: NextRequest) {
+  // Initialize Supabase client at runtime
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json(
+      { error: 'Server configuration error: Missing Supabase credentials' },
+      { status: 500 }
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
   let body: any = {};
   try {
     body = await request.json();
@@ -130,7 +138,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert new data
-    const { data: insertedData, error: insertError } = await supabase
+    const { error: insertError } = await supabase
       .from('gmv_data')
       .insert(transformedData);
 
@@ -187,6 +195,19 @@ export async function POST(request: NextRequest) {
 
 // GET endpoint to check upload status
 export async function GET(request: NextRequest) {
+  // Initialize Supabase client at runtime
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return NextResponse.json(
+      { error: 'Server configuration error: Missing Supabase credentials' },
+      { status: 500 }
+    );
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
   try {
     const url = new URL(request.url);
     const date = url.searchParams.get('date');
@@ -197,14 +218,14 @@ export async function GET(request: NextRequest) {
       let offset = 0
       const batchSize = 100
       let hasMore = true
-      
+
       while (hasMore) {
         const { data: batch, error } = await supabase
           .from('tiktok_ads_upload_logs')
           .select('*')
           .order('upload_date', { ascending: false })
           .range(offset, offset + batchSize - 1)
-        
+
         if (error) {
           console.error(`Error fetching logs at offset ${offset}:`, error)
           if (offset === 0) {
@@ -212,11 +233,11 @@ export async function GET(request: NextRequest) {
           }
           break
         }
-        
+
         if (batch && batch.length > 0) {
           allLogs = [...allLogs, ...batch]
           offset += batchSize
-          
+
           if (batch.length < batchSize) {
             hasMore = false
           }
@@ -224,13 +245,13 @@ export async function GET(request: NextRequest) {
           hasMore = false
         }
       }
-      
+
       console.log(`📦 Total logs fetched: ${allLogs.length}`)
       return NextResponse.json({ logs: allLogs });
     }
 
     // Check if data exists for specific date
-    const { data, error, count } = await supabase
+    const { error, count } = await supabase
       .from('gmv_data')
       .select('*', { count: 'exact', head: true })
       .eq('data_date', date)
