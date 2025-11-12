@@ -930,15 +930,15 @@ export default function IntegratedDashboard() {
                             key={product.id}
                             className="flex items-center justify-between py-3 border-b last:border-0"
                           >
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <div>
-                                <p className="font-medium text-sm truncate">
+                            <div className="flex items-center gap-3 flex-1 min-w-0 overflow-hidden">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm max-w-full line-clamp-2" title={product.name}>
                                   {product.name}
                                 </p>
                                 <div className="flex items-center gap-2 mt-1">
                                   <Badge
                                     variant="outline"
-                                    className={`text-xs px-2 py-0 ${
+                                    className={`text-xs px-2 py-0 flex-shrink-0 ${
                                       product.platform === "TikTok"
                                         ? "bg-gray-100 text-gray-900 border-gray-200"
                                         : "bg-orange-50 text-orange-700 border-orange-200"
@@ -946,13 +946,13 @@ export default function IntegratedDashboard() {
                                   >
                                     {product.platform}
                                   </Badge>
-                                  <span className="text-xs text-gray-500">
+                                  <span className="text-xs text-gray-500 flex-shrink-0">
                                     {product.orders} orders
                                   </span>
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right ml-4">
+                            <div className="text-right ml-4 flex-shrink-0">
                               <p className="font-semibold text-sm">
                                 ${product.revenue.toLocaleString()}
                               </p>
